@@ -2,14 +2,14 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/integrations/supabase/auth-provider";
 import { useProfile } from "@/hooks/use-profile";
-import { useDashboardMetrics } from "@/hooks/use-dashboard-data";
+import { useDashboardData } from "@/hooks/use-dashboard-data";
 import { Loader2, Construction, DollarSign, AlertTriangle, Clock } from "lucide-react";
 import BudgetChart from "@/components/dashboard/BudgetChart";
 
 const Dashboard = () => {
   const { user } = useAuth();
   const { data: profile } = useProfile();
-  const { data: metrics, isLoading: isLoadingMetrics } = useDashboardMetrics();
+  const { data, isLoading } = useDashboardData();
   
   const firstName = profile?.first_name || user?.email?.split('@')[0] || "Usuário";
 
@@ -46,17 +46,17 @@ const Dashboard = () => {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
           <MetricCard
             title="Obras Ativas"
-            value={metrics?.activeObrasCount ?? 0}
+            value={data?.activeObrasCount ?? 0}
             description="Acompanhe o progresso das suas construções."
             icon={Construction}
-            loading={isLoadingMetrics}
+            loading={isLoading}
           />
           <MetricCard
             title="Orçamento Total (Inicial)"
-            value={formatCurrency(metrics?.totalInitialBudget ?? 0)}
+            value={formatCurrency(data?.totalInitialBudget ?? 0)}
             description="Soma dos orçamentos iniciais de todas as obras."
             icon={DollarSign}
-            loading={isLoadingMetrics}
+            loading={isLoading}
           />
           <MetricCard
             title="Alertas Pendentes"
@@ -76,7 +76,7 @@ const Dashboard = () => {
 
         {/* Power BI-like Visualization */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          <BudgetChart />
+          <BudgetChart data={data?.chartData} isLoading={isLoading} />
         </div>
       </div>
     </DashboardLayout>
