@@ -37,7 +37,7 @@ const fetchFinancialEntries = async ({ obraId, startDate, endDate, categoryId, p
     .select(`
       *,
       categorias_despesa (id, nome),
-      profiles (first_name, last_name, id)
+      user_id:profiles (first_name, last_name, id)
     `)
     .eq('obra_id', obraId)
     .order('data_gasto', { ascending: false });
@@ -63,8 +63,8 @@ const fetchFinancialEntries = async ({ obraId, startDate, endDate, categoryId, p
   
   // Map user data from profiles join
   const entries = data.map(entry => {
-    // The join structure is now simpler: lancamentos_financeiros -> profiles
-    const profileData = (entry as any).profiles || {};
+    // The join structure now returns the profile data under the alias 'user_id'
+    const profileData = (entry as any).user_id || {};
 
     return {
       ...entry,
@@ -114,7 +114,7 @@ export const useCreateFinancialEntry = () => {
         .select(`
           *,
           categorias_despesa (id, nome),
-          profiles (first_name, last_name, id)
+          user_id:profiles (first_name, last_name, id)
         `)
         .single();
 
@@ -123,7 +123,7 @@ export const useCreateFinancialEntry = () => {
       }
       
       // Manually map the nested profile data for the return type
-      const profileData = (data as any).profiles || {};
+      const profileData = (data as any).user_id || {};
       
       return {
         ...data,
@@ -158,7 +158,7 @@ export const useUpdateFinancialEntry = () => {
         .select(`
           *,
           categorias_despesa (id, nome),
-          profiles (first_name, last_name, id)
+          user_id:profiles (first_name, last_name, id)
         `)
         .single();
 
@@ -167,7 +167,7 @@ export const useUpdateFinancialEntry = () => {
       }
       
       // Manually map the nested profile data for the return type
-      const profileData = (data as any).profiles || {};
+      const profileData = (data as any).user_id || {};
       
       return {
         ...data,
