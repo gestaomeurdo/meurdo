@@ -79,6 +79,14 @@ const fetchFinancialEntries = async ({ obraId, startDate, endDate, categoryId, p
   return entries;
 };
 
+export const useFinancialEntries = (params: FetchEntriesParams) => {
+  return useQuery<FinancialEntry[], Error>({
+    queryKey: ['financialEntries', params],
+    queryFn: () => fetchFinancialEntries(params),
+    enabled: !!params.obraId,
+  });
+};
+
 // --- Mutations ---
 
 interface FinancialEntryInput {
