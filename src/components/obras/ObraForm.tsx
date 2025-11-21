@@ -14,6 +14,25 @@ import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 
+// Define a utility function for parsing currency input (BRL format string to number)
+const parseCurrencyInput = (value: string): number => {
+  if (!value) return 0;
+  // Remove thousands separators (dots) and replace decimal comma with dot
+  const cleanedValue = value.replace(/\./g, '').replace(',', '.');
+  return parseFloat(cleanedValue) || 0;
+};
+
+// Helper function to format number for display in the text input (localized)
+const formatCurrencyForInput = (value: number | undefined): string => {
+  if (value === undefined || value === null) return "";
+  // Format as BRL currency string, showing 2 decimal places
+  return new Intl.NumberFormat('pt-BR', { 
+    minimumFractionDigits: 2, 
+    maximumFractionDigits: 2 
+  }).format(value);
+};
+
+
 const ObraSchema = z.object({
   nome: z.string().min(3, "O nome é obrigatório."),
   endereco: z.string().optional(),
@@ -21,8 +40,16 @@ const ObraSchema = z.object({
   responsavel_tecnico: z.string().optional(),
   data_inicio: z.date({ required_error: "Data de início é obrigatória." }),
   previsao_entrega: z.date().optional().nullable(),
-  orcamento_inicial: z.coerce.number().min(0, "O orçamento deve ser positivo."),
+  // Now expecting a string input for currency
+  orcamento_inicial: z.string().min(1, "O orçamento é obrigatório."),
   status: z.enum(['ativa', 'concluida', 'pausada']),
+}).refine((data) => {
+    // Custom validation to ensure the parsed number is valid and non-negative
+    const parsedValue = parseCurrencyInput(data.orcamento_inicial);
+    return parsedValue >= 0;
+}, {
+    message: "O orçamento deve ser um valor numérico positivo.",
+    path: ["orcamento_inicial"],
 });
 
 type ObraFormValues = z.infer<typeof ObraSchema>;
@@ -46,17 +73,23 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
       responsavel_tecnico: initialData?.responsavel_tecnico || "",
       data_inicio: initialData?.data_inicio ? new Date(initialData.data_inicio) : undefined,
       previsao_entrega: initialData?.previsao_entrega ? new Date(initialData.previsao_entrega) : undefined,
-      orcamento_inicial: initialData?.orcamento_inicial || 0,
+      // Initialize orcamento_inicial as a formatted string for text input
+      orcamento_inicial: initialData?.orcamento_inicial !== undefined 
+        ? formatCurrencyForInput(initialData.orcamento_inicial) 
+        : "0,00",
       status: initialData?.status || 'ativa',
     },
   });
 
   const onSubmit = async (values: ObraFormValues) => {
+    // Parse the currency string back to a number before submitting
+    const parsedOrcamento = parseCurrencyInput(values.orcamento_inicial);
+
     const dataToSubmit = {
       ...values,
       data_inicio: format(values.data_inicio, 'yyyy-MM-dd'),
       previsao_entrega: values.previsao_entrega ? format(values.previsao_entrega, 'yyyy-MM-dd') : undefined,
-      orcamento_inicial: values.orcamento_inicial,
+      orcamento_inicial: parsedOrcamento, // Use the parsed number
     };
 
     try {
@@ -240,11 +273,9 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
               <FormLabel>Orçamento Inicial (R$)</FormLabel>
               <FormControl>
                 <Input 
-                  type="number" 
-                  step="0.01" 
-                  placeholder="0.00" 
+                  type="text" 
+                  placeholder="0,00" 
                   {...field} 
-                  onChange={(e) => field.onChange(parseFloat(e.target.value))}
                   disabled={isLoading} 
                 />
               </FormControl>
