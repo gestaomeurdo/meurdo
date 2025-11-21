@@ -37,7 +37,7 @@ const fetchFinancialEntries = async ({ obraId, startDate, endDate, categoryId, p
     .select(`
       *,
       categorias_despesa (id, nome),
-      profiles (first_name, last_name, id)
+      user:user_id (profiles (first_name, last_name, id))
     `)
     .eq('obra_id', obraId)
     .order('data_gasto', { ascending: false });
@@ -62,14 +62,20 @@ const fetchFinancialEntries = async ({ obraId, startDate, endDate, categoryId, p
   }
   
   // Map user data from profiles join
-  const entries = data.map(entry => ({
-    ...entry,
-    profiles: {
-      first_name: entry.profiles?.first_name,
-      last_name: entry.profiles?.last_name,
-      email: entry.profiles?.id ? entry.profiles.id : undefined, // Placeholder for email/name if profile is null
+  const entries = data.map(entry => {
+    // The join structure is complex: lancamentos_financeiros -> auth.users (aliased as 'user') -> profiles
+    // We need to extract the profile data from the nested structure
+    const profileData = (entry as any).user?.profiles?.[0] || {};
+
+    return {
+      ...entry,
+      profiles: {
+        first_name: profileData.first_name,
+        last_name: profileData.last_name,
+        email: profileData.id ? profileData.id : undefined, // Using ID as placeholder for email
+      }
     }
-  })) as FinancialEntry[];
+  }) as FinancialEntry[];
 
   return entries;
 };
@@ -109,14 +115,25 @@ export const useCreateFinancialEntry = () => {
         .select(`
           *,
           categorias_despesa (id, nome),
-          profiles (first_name, last_name, id)
+          user:user_id (profiles (first_name, last_name, id))
         `)
         .single();
 
       if (error) {
         throw new Error(error.message);
       }
-      return data as FinancialEntry;
+      
+      // Manually map the nested profile data for the return type
+      const profileData = (data as any).user?.profiles?.[0] || {};
+      
+      return {
+        ...data,
+        profiles: {
+          first_name: profileData.first_name,
+          last_name: profileData.last_name,
+          email: profileData.id ? profileData.id : undefined,
+        }
+      } as FinancialEntry;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['financialEntries', { obraId: data.obra_id }] });
@@ -142,14 +159,25 @@ export const useUpdateFinancialEntry = () => {
         .select(`
           *,
           categorias_despesa (id, nome),
-          profiles (first_name, last_name, id)
+          user:user_id (profiles (first_name, last_name, id))
         `)
         .single();
 
       if (error) {
         throw new Error(error.message);
       }
-      return data as FinancialEntry;
+      
+      // Manually map the nested profile data for the return type
+      const profileData = (data as any).user?.profiles?.[0] || {};
+      
+      return {
+        ...data,
+        profiles: {
+          first_name: profileData.first_name,
+          last_name: profileData.last_name,
+          email: profileData.id ? profileData.id : undefined,
+        }
+      } as FinancialEntry;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['financialEntries', { obraId: data.obra_id }] });
