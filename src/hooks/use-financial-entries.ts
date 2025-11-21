@@ -37,7 +37,7 @@ const fetchFinancialEntries = async ({ obraId, startDate, endDate, categoryId, p
     .select(`
       *,
       categorias_despesa (id, nome),
-      user:user_id (profiles (first_name, last_name, id))
+      profiles (first_name, last_name, id)
     `)
     .eq('obra_id', obraId)
     .order('data_gasto', { ascending: false });
@@ -63,9 +63,8 @@ const fetchFinancialEntries = async ({ obraId, startDate, endDate, categoryId, p
   
   // Map user data from profiles join
   const entries = data.map(entry => {
-    // The join structure is complex: lancamentos_financeiros -> auth.users (aliased as 'user') -> profiles
-    // We need to extract the profile data from the nested structure
-    const profileData = (entry as any).user?.profiles?.[0] || {};
+    // The join structure is now simpler: lancamentos_financeiros -> profiles
+    const profileData = (entry as any).profiles || {};
 
     return {
       ...entry,
@@ -78,14 +77,6 @@ const fetchFinancialEntries = async ({ obraId, startDate, endDate, categoryId, p
   }) as FinancialEntry[];
 
   return entries;
-};
-
-export const useFinancialEntries = (params: FetchEntriesParams) => {
-  return useQuery<FinancialEntry[], Error>({
-    queryKey: ['financialEntries', params],
-    queryFn: () => fetchFinancialEntries(params),
-    enabled: !!params.obraId,
-  });
 };
 
 // --- Mutations ---
@@ -115,7 +106,7 @@ export const useCreateFinancialEntry = () => {
         .select(`
           *,
           categorias_despesa (id, nome),
-          user:user_id (profiles (first_name, last_name, id))
+          profiles (first_name, last_name, id)
         `)
         .single();
 
@@ -124,7 +115,7 @@ export const useCreateFinancialEntry = () => {
       }
       
       // Manually map the nested profile data for the return type
-      const profileData = (data as any).user?.profiles?.[0] || {};
+      const profileData = (data as any).profiles || {};
       
       return {
         ...data,
@@ -159,7 +150,7 @@ export const useUpdateFinancialEntry = () => {
         .select(`
           *,
           categorias_despesa (id, nome),
-          user:user_id (profiles (first_name, last_name, id))
+          profiles (first_name, last_name, id)
         `)
         .single();
 
@@ -168,7 +159,7 @@ export const useUpdateFinancialEntry = () => {
       }
       
       // Manually map the nested profile data for the return type
-      const profileData = (data as any).user?.profiles?.[0] || {};
+      const profileData = (data as any).profiles || {};
       
       return {
         ...data,
