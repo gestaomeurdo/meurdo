@@ -1,0 +1,264 @@
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Obra, useCreateObra, useUpdateObra } from "@/hooks/use-obras";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { showSuccess, showError } from "@/utils/toast";
+import { CalendarIcon } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+
+const ObraSchema = z.object({
+  nome: z.string().min(3, "O nome é obrigatório."),
+  endereco: z.string().optional(),
+  dono_cliente: z.string().optional(),
+  responsavel_tecnico: z.string().optional(),
+  data_inicio: z.date({ required_error: "Data de início é obrigatória." }),
+  previsao_entrega: z.date().optional().nullable(),
+  orcamento_inicial: z.coerce.number().min(0, "O orçamento deve ser positivo."),
+  status: z.enum(['ativa', 'concluida', 'pausada']),
+});
+
+type ObraFormValues = z.infer<typeof ObraSchema>;
+
+interface ObraFormProps {
+  initialData?: Obra;
+  onSuccess: () => void;
+}
+
+const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
+  const isEditing = !!initialData;
+  const createMutation = useCreateObra();
+  const updateMutation = useUpdateObra();
+
+  const form = useForm<ObraFormValues>({
+    resolver: zodResolver(ObraSchema),
+    defaultValues: {
+      nome: initialData?.nome || "",
+      endereco: initialData?.endereco || "",
+      dono_cliente: initialData?.dono_cliente || "",
+      responsavel_tecnico: initialData?.responsavel_tecnico || "",
+      data_inicio: initialData?.data_inicio ? new Date(initialData.data_inicio) : undefined,
+      previsao_entrega: initialData?.previsao_entrega ? new Date(initialData.previsao_entrega) : undefined,
+      orcamento_inicial: initialData?.orcamento_inicial || 0,
+      status: initialData?.status || 'ativa',
+    },
+  });
+
+  const onSubmit = async (values: ObraFormValues) => {
+    const dataToSubmit = {
+      ...values,
+      data_inicio: format(values.data_inicio, 'yyyy-MM-dd'),
+      previsao_entrega: values.previsao_entrega ? format(values.previsao_entrega, 'yyyy-MM-dd') : undefined,
+      orcamento_inicial: values.orcamento_inicial,
+    };
+
+    try {
+      if (isEditing && initialData) {
+        await updateMutation.mutateAsync({ ...dataToSubmit, id: initialData.id } as Obra & { id: string });
+        showSuccess("Obra atualizada com sucesso!");
+      } else {
+        await createMutation.mutateAsync(dataToSubmit);
+        showSuccess("Obra criada com sucesso!");
+      }
+      onSuccess();
+    } catch (error) {
+      showError(`Erro ao salvar obra: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+    }
+  };
+
+  const isLoading = createMutation.isPending || updateMutation.isPending;
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="nome"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nome da Obra</FormLabel>
+              <FormControl>
+                <Input placeholder="Ex: Residência Alphaville" {...field} disabled={isLoading} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="endereco"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Endereço</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Rua, número, bairro..." {...field} disabled={isLoading} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="dono_cliente"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Dono/Cliente</FormLabel>
+                <FormControl>
+                  <Input placeholder="Nome do cliente" {...field} disabled={isLoading} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="responsavel_tecnico"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Responsável Técnico</FormLabel>
+                <FormControl>
+                  <Input placeholder="Nome do engenheiro/arquiteto" {...field} disabled={isLoading} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <FormField
+            control={form.control}
+            name="data_inicio"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel className="mb-1">Data de Início</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                        disabled={isLoading}
+                      >
+                        {field.value ? format(field.value, "PPP") : <span>Selecione a data</span>}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="previsao_entrega"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel className="mb-1">Previsão de Entrega</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                        disabled={isLoading}
+                      >
+                        {field.value ? format(field.value, "PPP") : <span>Selecione a data</span>}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value || undefined}
+                      onSelect={field.onChange}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Status</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o status" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="ativa">Ativa</SelectItem>
+                    <SelectItem value="concluida">Concluída</SelectItem>
+                    <SelectItem value="pausada">Pausada</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="orcamento_inicial"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Orçamento Inicial (R$)</FormLabel>
+              <FormControl>
+                <Input 
+                  type="number" 
+                  step="0.01" 
+                  placeholder="0.00" 
+                  {...field} 
+                  onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                  disabled={isLoading} 
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? "Salvando..." : isEditing ? "Salvar Alterações" : "Criar Obra"}
+        </Button>
+      </form>
+    </Form>
+  );
+};
+
+export default ObraForm;
