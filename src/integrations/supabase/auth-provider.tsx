@@ -35,25 +35,20 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
         if (event === 'SIGNED_IN') {
           showSuccess("Login realizado com sucesso!");
           // Redirect authenticated users to the dashboard
-          navigate("/dashboard");
+          navigate("/dashboard", { replace: true });
         } else if (event === 'SIGNED_OUT') {
           showSuccess("Sessão encerrada.");
           // Redirect unauthenticated users to the login page
-          navigate("/login");
+          navigate("/login", { replace: true });
         }
       }
     );
 
-    // Fetch initial session
+    // Fetch initial session without redirecting from here
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setIsLoading(false);
-      if (session && window.location.pathname === "/login") {
-        navigate("/dashboard");
-      } else if (!session && window.location.pathname !== "/login") {
-        navigate("/login");
-      }
     });
 
     return () => {
