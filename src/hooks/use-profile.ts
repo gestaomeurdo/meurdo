@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/integrations/supabase/auth-provider";
 
@@ -10,7 +9,7 @@ export interface Profile {
   role: 'administrator' | 'obra_user' | 'view_only';
 }
 
-const fetchProfile = async (userId: string): Promise<Profile> => {
+export const fetchProfile = async (userId: string): Promise<Profile | null> => {
   const { data, error } = await supabase
     .from('profiles')
     .select('id, first_name, last_name, avatar_url, role')
@@ -18,23 +17,18 @@ const fetchProfile = async (userId: string): Promise<Profile> => {
     .single();
 
   if (error) {
-    throw new Error(error.message);
+    console.error("Error fetching profile:", error.message);
+    // Return null instead of throwing, so the app doesn't crash if profile is missing
+    return null;
   }
   
-  // Ensure role is one of the expected types, defaulting if necessary
-  const role = data.role as Profile['role'];
+  if (!data) return null;
 
+  const role = data.role as Profile['role'];
   return { ...data, role };
 };
 
 export const useProfile = () => {
-  const { user, session } = useAuth();
-  const userId = user?.id;
-
-  return useQuery<Profile, Error>({
-    queryKey: ['profile', userId],
-    queryFn: () => fetchProfile(userId!),
-    enabled: !!userId && !!session,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
+  const { profile, isLoading } = useAuth();
+  return { data: profile, isLoading };
 };
