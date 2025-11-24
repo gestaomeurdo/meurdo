@@ -14,58 +14,14 @@ interface DashboardData {
   chartData: ChartData[];
 }
 
-const fetchDashboardData = async (userId: string): Promise<DashboardData> => {
-  // 1. Fetch all obras for the user
-  const { data: obras, error: obrasError } = await supabase
-    .from('obras')
-    .select('id, nome, status, orcamento_inicial')
-    .eq('user_id', userId);
+const fetchDashboardData = async (): Promise<DashboardData> => {
+  const { data, error } = await supabase.functions.invoke('dashboard-metrics');
 
-  if (obrasError) {
-    throw new Error(obrasError.message);
+  if (error) {
+    throw new Error(`Error fetching dashboard metrics: ${error.message}`);
   }
 
-  if (!obras || obras.length === 0) {
-    return {
-      activeObrasCount: 0,
-      totalInitialBudget: 0,
-      chartData: [],
-    };
-  }
-
-  // 2. Fetch all financial entries for the user's obras
-  const { data: entries, error: entriesError } = await supabase
-    .from('lancamentos_financeiros')
-    .select('obra_id, valor')
-    .in('obra_id', obras.map(o => o.id));
-
-  if (entriesError) {
-    throw new Error(entriesError.message);
-  }
-
-  // 3. Process metrics
-  const activeObrasCount = obras.filter(obra => obra.status === 'ativa').length;
-  const totalInitialBudget = obras.reduce((sum, obra) => sum + (obra.orcamento_inicial || 0), 0);
-
-  // 4. Process chart data
-  const expensesByObra = entries.reduce((acc, entry) => {
-    if (entry.obra_id) {
-      acc[entry.obra_id] = (acc[entry.obra_id] || 0) + entry.valor;
-    }
-    return acc;
-  }, {} as Record<string, number>);
-
-  const chartData = obras.map(obra => ({
-    name: obra.nome,
-    Orçamento: obra.orcamento_inicial || 0,
-    Gasto: expensesByObra[obra.id] || 0,
-  }));
-
-  return {
-    activeObrasCount,
-    totalInitialBudget,
-    chartData,
-  };
+  return data;
 };
 
 export const useDashboardData = () => {
@@ -73,8 +29,8 @@ export const useDashboardData = () => {
   const userId = user?.id;
 
   return useQuery<DashboardData, Error>({
-    queryKey: ['dashboardData', userId],
-    queryFn: () => fetchDashboardData(userId!),
+    queryKey: ['dashboardData', userId], // Keep userId in key to refetch on user change
+    queryFn: fetchDashboardData,
     enabled: !!userId,
     staleTime: 1000 * 60 * 1, // 1 minute
   });
