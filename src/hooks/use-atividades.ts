@@ -12,7 +12,8 @@ export interface Atividade {
   descricao: string;
   tempo_gasto: number | null; // in minutes
   status: AtividadeStatus;
-  anexos: { name: string; url: string }[] | null;
+  pedagio: number | null;
+  km_rodado: number | null;
   created_at: string;
 }
 

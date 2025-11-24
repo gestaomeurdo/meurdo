@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Atividade, useDeleteAtividade, AtividadeStatus } from "@/hooks/use-atividades";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Clock, Paperclip, MoreVertical, Calendar, CheckCircle, AlertCircle } from "lucide-react";
+import { Edit, Trash2, Clock, MoreVertical, Calendar, CheckCircle, AlertCircle, DollarSign, Route } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { showSuccess, showError } from "@/utils/toast";
@@ -32,6 +31,11 @@ const AtividadesTable = ({ atividades, obraId }: AtividadesTableProps) => {
     const mins = minutos % 60;
     return `${hours}h ${mins}m`;
   };
+
+  const formatCurrency = (value: number | null) => {
+    if (value === null || value === undefined) return "N/A";
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  }
 
   const handleDelete = async (id: string) => {
     try {
@@ -88,15 +92,15 @@ const AtividadesTable = ({ atividades, obraId }: AtividadesTableProps) => {
                 <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
                 <strong>Tempo Gasto:</strong><span className="ml-1">{formatTempo(atividade.tempo_gasto)}</span>
               </div>
+              <div className="flex items-center text-sm">
+                <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
+                <strong>Pedágio:</strong><span className="ml-1">{formatCurrency(atividade.pedagio)}</span>
+              </div>
+              <div className="flex items-center text-sm">
+                <Route className="h-4 w-4 mr-2 text-muted-foreground" />
+                <strong>Distância:</strong><span className="ml-1">{atividade.km_rodado ?? 'N/A'} km</span>
+              </div>
             </CardContent>
-            <CardFooter>
-              {atividade.anexos && atividade.anexos.length > 0 && (
-                <div className="flex items-center gap-2 text-sm text-primary">
-                  <Paperclip className="h-4 w-4" />
-                  <span>{atividade.anexos.length} anexo(s)</span>
-                </div>
-              )}
-            </CardFooter>
           </Card>
         );
       })}
