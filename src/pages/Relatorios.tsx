@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { useReportData, ReportData } from "@/hooks/use-report-data";
 import KpiCard from "@/components/relatorios/KpiCard";
 import ExportDialog from "@/components/relatorios/ExportDialog";
-import { useActivitiesInPeriod } from "@/hooks/use-activities-in-period";
+import { useActivitiesInPeriod, AtividadeWithProfile } from "@/hooks/use-activities-in-period";
 import ActivityCostChart from "@/components/relatorios/ActivityCostChart";
 import { formatCurrency } from "@/utils/formatters";
 import { useKmCost } from "@/hooks/use-km-cost";
@@ -46,11 +46,13 @@ const Relatorios = () => {
     endDateString
   );
 
-  const { data: activities, isLoading: isLoadingActivities } = useActivitiesInPeriod(
+  const { data: activitiesRaw, isLoading: isLoadingActivities } = useActivitiesInPeriod(
     selectedObraId || '',
     startDateString,
     endDateString
   );
+  
+  const activities: AtividadeWithProfile[] = activitiesRaw || [];
 
   const totalKmCost = (reportData?.totalMileagePeriod || 0) * (kmCost || 1.50);
   const totalActivityCost = (reportData?.totalTollsPeriod || 0) + totalKmCost;
