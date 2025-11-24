@@ -4,6 +4,7 @@ import { useAuth } from "@/integrations/supabase/auth-provider";
 
 export interface Profile {
   id: string;
+  email: string | null;
   first_name: string | null;
   last_name: string | null;
   avatar_url: string | null;
@@ -13,7 +14,7 @@ export interface Profile {
 const fetchProfile = async (userId: string): Promise<Profile> => {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, first_name, last_name, avatar_url, role')
+    .select('id, email, first_name, last_name, avatar_url, role')
     .eq('id', userId)
     .single();
 
