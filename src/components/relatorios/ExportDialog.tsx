@@ -8,15 +8,14 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { showError, showSuccess } from "@/utils/toast";
 import { ReportData } from "@/hooks/use-report-data";
-import { Atividade } from "@/hooks/use-atividades";
-import { AtividadeWithProfile } from "@/hooks/use-activities-in-period"; // Importando o novo tipo
+import { AtividadeWithProfile } from "@/hooks/use-activities-in-period";
 import { formatCurrency, formatDate } from "@/utils/formatters";
 
 interface ExportDialogProps {
   obraNome: string;
   periodo: string;
   reportData: ReportData | undefined;
-  activities: AtividadeWithProfile[] | undefined; // Usando o novo tipo
+  activities: AtividadeWithProfile[] | undefined;
   kmCost: number | undefined;
   isLoading: boolean;
 }
@@ -63,6 +62,8 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities, kmCost, isLoa
       doc.text(`Total Pedágio: ${formatCurrency(reportData.totalTollsPeriod)}`, margin, y);
       y += lineHeight;
       doc.text(`Total KM Rodado: ${(reportData.totalMileagePeriod || 0).toFixed(0)} km (Custo: ${formatCurrency(totalKmCost)})`, margin, y);
+      y += lineHeight;
+      doc.text(`Atividades Concluídas: ${reportData.activitiesCompleted}`, margin, y);
       y += lineHeight * 2;
 
       // --- Activities List ---
@@ -70,44 +71,50 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities, kmCost, isLoa
       doc.text("Detalhes das Atividades (Lista)", margin, y);
       y += lineHeight;
 
-      activities.forEach((atividade, index) => {
-        const activityKmCost = (atividade.km_rodado || 0) * currentKmCost;
-        const activityTotalCost = (atividade.pedagio || 0) + activityKmCost;
-        
-        const responsibleName = `${atividade.profiles?.first_name || ''} ${atividade.profiles?.last_name || ''}`.trim() || 'N/A';
-        
-        // Check if we need a new page
-        if (y > doc.internal.pageSize.getHeight() - margin * 2) {
-          doc.addPage();
-          y = margin;
-        }
-
-        doc.setFontSize(12);
-        doc.text(`--- Atividade ${index + 1} ---`, margin, y);
-        y += lineHeight;
-        
+      if (activities.length === 0) {
         doc.setFontSize(10);
-        
-        // Bullet list items
-        doc.text(`• Atividade realizada: ${atividade.descricao}`, margin + 5, y);
+        doc.text("Nenhuma atividade registrada neste período.", margin, y);
         y += lineHeight;
-        doc.text(`• Data: ${formatDate(atividade.data_atividade)} (Status: ${atividade.status})`, margin + 5, y);
-        y += lineHeight;
-        doc.text(`• Responsável: ${responsibleName}`, margin + 5, y);
-        y += lineHeight;
-        doc.text(`• Valor gasto (Pedágio + KM): ${formatCurrency(activityTotalCost)}`, margin + 5, y);
-        y += lineHeight;
-        doc.text(`• Detalhe de Custos: Pedágio (${formatCurrency(atividade.pedagio)}) + KM (${(atividade.km_rodado || 0).toFixed(0)} km @ ${formatCurrency(currentKmCost)}/km)`, margin + 5, y);
-        y += lineHeight;
-        
-        // Campos não disponíveis no esquema atual
-        doc.text(`• Materiais utilizados: N/A (Não registrado)`, margin + 5, y);
-        y += lineHeight;
-        doc.text(`• Horas trabalhadas: N/A (Não registrado)`, margin + 5, y);
-        y += lineHeight;
-        doc.text(`• Observações gerais: N/A`, margin + 5, y);
-        y += lineHeight * 1.5; // Extra space after each activity
-      });
+      } else {
+        activities.forEach((atividade, index) => {
+          const activityKmCost = (atividade.km_rodado || 0) * currentKmCost;
+          const activityTotalCost = (atividade.pedagio || 0) + activityKmCost;
+          
+          const responsibleName = `${atividade.profiles?.first_name || ''} ${atividade.profiles?.last_name || ''}`.trim() || 'N/A';
+          
+          // Check if we need a new page
+          if (y > doc.internal.pageSize.getHeight() - margin * 2) {
+            doc.addPage();
+            y = margin;
+          }
+
+          doc.setFontSize(12);
+          doc.text(`--- Atividade ${index + 1} ---`, margin, y);
+          y += lineHeight;
+          
+          doc.setFontSize(10);
+          
+          // Bullet list items
+          doc.text(`• Atividade realizada: ${atividade.descricao}`, margin + 5, y, { maxWidth: pageWidth - margin * 2 - 5 });
+          y += lineHeight;
+          doc.text(`• Data: ${formatDate(atividade.data_atividade)} (Status: ${atividade.status})`, margin + 5, y);
+          y += lineHeight;
+          doc.text(`• Responsável: ${responsibleName}`, margin + 5, y);
+          y += lineHeight;
+          doc.text(`• Valor gasto (Pedágio + KM): ${formatCurrency(activityTotalCost)}`, margin + 5, y);
+          y += lineHeight;
+          doc.text(`• Detalhe de Custos: Pedágio (${formatCurrency(atividade.pedagio)}) + KM (${(atividade.km_rodado || 0).toFixed(0)} km @ ${formatCurrency(currentKmCost)}/km)`, margin + 5, y);
+          y += lineHeight;
+          
+          // Campos não disponíveis no esquema atual
+          doc.text(`• Materiais utilizados: N/A (Não registrado)`, margin + 5, y);
+          y += lineHeight;
+          doc.text(`• Horas trabalhadas: N/A (Não registrado)`, margin + 5, y);
+          y += lineHeight;
+          doc.text(`• Observações gerais: N/A`, margin + 5, y);
+          y += lineHeight * 1.5; // Extra space after each activity
+        });
+      }
 
       // Save the PDF
       const filename = `Relatorio_Atividades_Lista_${obraNome.replace(/\s/g, '_')}_${periodo.replace(/\s/g, '')}.pdf`;
@@ -123,13 +130,14 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities, kmCost, isLoa
     }
   };
 
-  // Check if data is ready for export
-  const canExport = !isLoading && reportData && activities && activities.length > 0;
+  // The button should be disabled if data is loading or if reportData is missing (meaning no obra selected or RPC failed)
+  const isDataReady = !!reportData && !!activities;
+  const isDisabled = isLoading || isExporting || !isDataReady;
 
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button disabled={isLoading || isExporting || !canExport}>
+        <Button disabled={isDisabled}>
           {isLoading || isExporting ? (
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
           ) : (
@@ -165,7 +173,7 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities, kmCost, isLoa
           <Button 
             type="button" 
             onClick={handleExportPdf} 
-            disabled={isExporting || !canExport}
+            disabled={isExporting || !isDataReady}
           >
             {isExporting ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
