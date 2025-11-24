@@ -49,8 +49,8 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: SidebarProps) => {
       )}
     >
       <div className="p-4 h-full flex flex-col">
-        <div className="text-xl font-bold text-sidebar-primary mb-6">
-          Power Construtor
+        <div className="mb-6">
+          <img src="https://i.ibb.co/7dmMx016/Gemini-Generated-Image-qkvwxnqkvwxnqkvw-upscayl-2x-upscayl-standard-4x.png" alt="Power Construtor Logo" className="h-12 mx-auto" />
         </div>
         <nav className="flex-grow space-y-1">
           {filteredNavItems.map((item) => (

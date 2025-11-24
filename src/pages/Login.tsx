@@ -5,11 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Login = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl text-center">
-            Gestão de Obras – Power Construtor
+        <CardHeader className="items-center">
+          <img src="https://i.ibb.co/7dmMx016/Gemini-Generated-Image-qkvwxnqkvwxnqkvw-upscayl-2x-upscayl-standard-4x.png" alt="Power Construtor Logo" className="h-16" />
+          <CardTitle className="text-2xl text-center pt-4">
+            Gestão de Obras
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -27,7 +28,7 @@ const Login = () => {
                 },
               },
             }}
-            theme="light"
+            theme="dark"
             view="sign_in"
             localization={{
               variables: {
