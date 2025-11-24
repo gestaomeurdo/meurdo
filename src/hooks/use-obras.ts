@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/integrations/supabase/auth-provider";
-import { useProfile } from "./use-profile";
 
 export interface Obra {
   id: string;
@@ -18,37 +17,11 @@ export interface Obra {
 }
 
 // --- Fetching ---
-const fetchObras = async (userId: string, userRole: string | undefined): Promise<Obra[]> => {
-  // Admins can see all obras
-  if (userRole === 'administrator') {
-    const { data, error } = await supabase
-      .from('obras')
-      .select('*')
-      .order('data_inicio', { ascending: false });
-    if (error) throw new Error(error.message);
-    return data as Obra[];
-  }
-
-  // Non-admins see obras they have explicit access to
-  const { data: accessData, error: accessError } = await supabase
-    .from('obra_user_access')
-    .select('obra_id')
-    .eq('user_id', userId);
-
-  if (accessError) {
-    throw new Error(accessError.message);
-  }
-
-  if (!accessData || accessData.length === 0) {
-    return []; // User has no access to any obra
-  }
-
-  const obraIds = accessData.map(item => item.obra_id);
-
+const fetchObras = async (userId: string): Promise<Obra[]> => {
   const { data, error } = await supabase
     .from('obras')
     .select('*')
-    .in('id', obraIds)
+    .eq('user_id', userId)
     .order('data_inicio', { ascending: false });
 
   if (error) {
@@ -59,14 +32,12 @@ const fetchObras = async (userId: string, userRole: string | undefined): Promise
 
 export const useObras = () => {
   const { user } = useAuth();
-  const { data: profile } = useProfile();
   const userId = user?.id;
-  const userRole = profile?.role;
 
   return useQuery<Obra[], Error>({
-    queryKey: ['obras', userId, userRole],
-    queryFn: () => fetchObras(userId!, userRole),
-    enabled: !!userId && !!userRole,
+    queryKey: ['obras', userId],
+    queryFn: () => fetchObras(userId!),
+    enabled: !!userId,
   });
 };
 
@@ -104,7 +75,7 @@ export const useCreateObra = () => {
       return data as Obra;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['obras'] });
+      queryClient.invalidateQueries({ queryKey: ['obras', userId] });
     },
   });
 };
@@ -132,7 +103,7 @@ export const useUpdateObra = () => {
       return data as Obra;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['obras'] });
+      queryClient.invalidateQueries({ queryKey: ['obras', userId] });
       queryClient.setQueryData(['obras', userId], (old: Obra[] | undefined) => 
         old ? old.map(o => o.id === data.id ? data : o) : [data]
       );
@@ -160,7 +131,7 @@ export const useDeleteObra = () => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['obras'] });
+      queryClient.invalidateQueries({ queryKey: ['obras', userId] });
     },
   });
 };

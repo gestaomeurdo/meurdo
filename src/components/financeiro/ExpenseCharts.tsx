@@ -1,49 +1,56 @@
+import { FinancialEntry } from "@/hooks/use-financial-entries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line } from 'recharts';
+import { useMemo } from "react";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { Loader2 } from "lucide-react";
 
 interface ExpenseChartsProps {
-  data: {
-    categoryData: { name: string; value: number }[];
-    monthlyData: { name: string; Gasto: number }[];
-  } | undefined;
-  isLoading: boolean;
+  entries: FinancialEntry[] | undefined;
 }
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#d0ed57'];
 
-const ExpenseCharts = ({ data, isLoading }: ExpenseChartsProps) => {
+const ExpenseCharts = ({ entries }: ExpenseChartsProps) => {
   const formatCurrency = (value: number) => 
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(value);
 
-  const formattedMonthlyData = data?.monthlyData.map(item => ({
-    ...item,
-    name: format(new Date(item.name + '-02'), 'MMM/yy', { locale: ptBR }), // Use day 02 to avoid timezone issues
-  }));
+  const { categoryData, monthlyData } = useMemo(() => {
+    if (!entries || entries.length === 0) {
+      return { categoryData: [], monthlyData: [] };
+    }
 
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader><CardTitle className="text-lg">Gastos por Categoria</CardTitle></CardHeader>
-          <CardContent className="h-[350px] flex justify-center items-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle className="text-lg">Evolução Mensal dos Gastos</CardTitle></CardHeader>
-          <CardContent className="h-[350px] flex justify-center items-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+    // 1. Data for Pie Chart (Category Breakdown)
+    const categoryMap = entries.reduce((acc, entry) => {
+      const categoryName = entry.categorias_despesa?.nome || 'Outros';
+      acc[categoryName] = (acc[categoryName] || 0) + entry.valor;
+      return acc;
+    }, {} as Record<string, number>);
 
-  if (!data || (data.categoryData.length === 0 && data.monthlyData.length === 0)) {
-    return null; // Don't render empty charts
+    const categoryData = Object.entries(categoryMap).map(([name, value]) => ({
+      name,
+      value,
+    })).sort((a, b) => b.value - a.value);
+
+    // 2. Data for Line Chart (Monthly Evolution)
+    const monthlyMap = entries.reduce((acc, entry) => {
+      const monthKey = format(new Date(entry.data_gasto), 'yyyy-MM');
+      acc[monthKey] = (acc[monthKey] || 0) + entry.valor;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const monthlyData = Object.entries(monthlyMap)
+      .map(([key, value]) => ({
+        name: format(new Date(key + '-01'), 'MMM/yy'),
+        Gasto: value,
+        sortKey: key,
+      }))
+      .sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+
+    return { categoryData, monthlyData };
+  }, [entries]);
+
+  if (!entries || entries.length === 0) {
+    return null;
   }
 
   return (
@@ -57,7 +64,7 @@ const ExpenseCharts = ({ data, isLoading }: ExpenseChartsProps) => {
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={data.categoryData}
+                data={categoryData}
                 dataKey="value"
                 nameKey="name"
                 cx="50%"
@@ -67,7 +74,7 @@ const ExpenseCharts = ({ data, isLoading }: ExpenseChartsProps) => {
                 labelLine={false}
                 label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
               >
-                {data.categoryData.map((_, index) => (
+                {categoryData.map((_, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
@@ -88,7 +95,7 @@ const ExpenseCharts = ({ data, isLoading }: ExpenseChartsProps) => {
         </CardHeader>
         <CardContent className="h-[350px] p-4">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={formattedMonthlyData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+            <LineChart data={monthlyData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis dataKey="name" stroke="hsl(var(--foreground))" />
               <YAxis 
