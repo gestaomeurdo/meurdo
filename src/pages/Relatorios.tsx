@@ -28,6 +28,7 @@ const Relatorios = () => {
     to: new Date(),
   });
 
+  // 1. Set the first obra as default when they load
   useEffect(() => {
     if (obras && obras.length > 0 && !selectedObraId) {
       setSelectedObraId(obras[0].id);
@@ -63,16 +64,27 @@ const Relatorios = () => {
       return (
         <div className="flex justify-center items-center h-full py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-2">Carregando configurações e obras...</span>
         </div>
       );
     }
 
-    if (!selectedObra || !selectedObraId || !startDateString || !endDateString) {
+    if (!selectedObra || !selectedObraId) {
       return (
         <div className="text-center py-12 border border-dashed rounded-lg bg-muted/50">
-          <p className="text-muted-foreground">Selecione uma obra e um período válido para gerar um relatório.</p>
+          <p className="text-muted-foreground">Selecione uma obra no menu acima para gerar um relatório.</p>
         </div>
       );
+    }
+    
+    // If obra is selected but data is loading
+    if (isLoadingReport || isLoadingActivities) {
+        return (
+            <div className="flex justify-center items-center h-full py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2">Carregando dados do relatório...</span>
+            </div>
+        );
     }
 
     return (
