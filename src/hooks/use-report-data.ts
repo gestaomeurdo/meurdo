@@ -6,6 +6,9 @@ export interface ReportData {
   budgetUsedPercent: number;
   activitiesCompleted: number;
   initialBudget: number;
+  // New activity metrics
+  totalTollsPeriod: number;
+  totalMileagePeriod: number;
 }
 
 const fetchReportData = async (obraId: string, startDate: string, endDate: string): Promise<ReportData> => {
