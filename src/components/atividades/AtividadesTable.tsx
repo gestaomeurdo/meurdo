@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Atividade, useDeleteAtividade, AtividadeStatus } from "@/hooks/use-atividades";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Clock, MoreVertical, Calendar, CheckCircle, AlertCircle, DollarSign, Route } from "lucide-react";
+import { Edit, Trash2, MoreVertical, Calendar, CheckCircle, AlertCircle, DollarSign, Route, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { showSuccess, showError } from "@/utils/toast";
@@ -24,13 +24,6 @@ const statusMap: Record<AtividadeStatus, { label: string; color: "default" | "se
 
 const AtividadesTable = ({ atividades, obraId }: AtividadesTableProps) => {
   const deleteMutation = useDeleteAtividade();
-
-  const formatTempo = (minutos: number | null) => {
-    if (minutos === null || minutos === undefined) return "N/A";
-    const hours = Math.floor(minutos / 60);
-    const mins = minutos % 60;
-    return `${hours}h ${mins}m`;
-  };
 
   const formatCurrency = (value: number | null) => {
     if (value === null || value === undefined) return "N/A";
@@ -88,10 +81,6 @@ const AtividadesTable = ({ atividades, obraId }: AtividadesTableProps) => {
             </CardHeader>
             <CardContent className="flex-grow space-y-3">
               <p className="text-sm text-muted-foreground line-clamp-4">{atividade.descricao}</p>
-              <div className="flex items-center text-sm">
-                <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                <strong>Tempo Gasto:</strong><span className="ml-1">{formatTempo(atividade.tempo_gasto)}</span>
-              </div>
               <div className="flex items-center text-sm">
                 <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
                 <strong>Pedágio:</strong><span className="ml-1">{formatCurrency(atividade.pedagio)}</span>

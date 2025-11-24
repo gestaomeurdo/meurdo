@@ -10,7 +10,6 @@ export interface Atividade {
   obra_id: string;
   data_atividade: string; // Date string
   descricao: string;
-  tempo_gasto: number | null; // in minutes
   status: AtividadeStatus;
   pedagio: number | null;
   km_rodado: number | null;

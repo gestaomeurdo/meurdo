@@ -20,7 +20,6 @@ const AtividadeSchema = z.object({
   obra_id: z.string().uuid("Obra inválida."),
   data_atividade: z.date({ required_error: "A data é obrigatória." }),
   descricao: z.string().min(10, "A descrição deve ter pelo menos 10 caracteres."),
-  tempo_gasto: z.coerce.number().positive("O tempo deve ser um número positivo.").optional().nullable(),
   status: z.enum(statusOptions),
   pedagio: z.coerce.number().nonnegative("O valor do pedágio não pode ser negativo.").optional().nullable(),
   km_rodado: z.coerce.number().nonnegative("O valor de KM não pode ser negativo.").optional().nullable(),
@@ -45,7 +44,6 @@ const AtividadeForm = ({ obraId, initialData, onSuccess }: AtividadeFormProps) =
       obra_id: obraId,
       data_atividade: initialData?.data_atividade ? new Date(initialData.data_atividade) : new Date(),
       descricao: initialData?.descricao || "",
-      tempo_gasto: initialData?.tempo_gasto || undefined,
       status: initialData?.status || 'Em andamento',
       pedagio: initialData?.pedagio || undefined,
       km_rodado: initialData?.km_rodado || undefined,
@@ -77,40 +75,24 @@ const AtividadeForm = ({ obraId, initialData, onSuccess }: AtividadeFormProps) =
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="data_atividade"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Data da Atividade</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {field.value ? format(field.value, "dd/MM/yyyy") : <span>Selecione a data</span>}
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField control={form.control} name="descricao" render={({ field }) => (
-            <FormItem>
-              <FormLabel>Descrição do que foi feito</FormLabel>
-              <FormControl><Textarea placeholder="Detalhe as tarefas realizadas, problemas encontrados, etc." {...field} rows={5} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
         <div className="grid grid-cols-2 gap-4">
-          <FormField control={form.control} name="tempo_gasto" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tempo Gasto (minutos)</FormLabel>
-                <FormControl><Input type="number" placeholder="Ex: 120" {...field} value={field.value ?? ''} /></FormControl>
+          <FormField
+            control={form.control}
+            name="data_atividade"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Data da Atividade</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {field.value ? format(field.value, "dd/MM/yyyy") : <span>Selecione a data</span>}
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
+                </Popover>
                 <FormMessage />
               </FormItem>
             )}
@@ -127,6 +109,14 @@ const AtividadeForm = ({ obraId, initialData, onSuccess }: AtividadeFormProps) =
             )}
           />
         </div>
+        <FormField control={form.control} name="descricao" render={({ field }) => (
+            <FormItem>
+              <FormLabel>Descrição do que foi feito</FormLabel>
+              <FormControl><Textarea placeholder="Detalhe as tarefas realizadas, problemas encontrados, etc." {...field} rows={5} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <div className="grid grid-cols-2 gap-4">
           <FormField control={form.control} name="pedagio" render={({ field }) => (
               <FormItem>
