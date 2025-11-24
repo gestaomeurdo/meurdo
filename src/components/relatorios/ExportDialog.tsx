@@ -1,3 +1,6 @@
+import jsPDF from 'jspdf';
+import 'jspdf-autotable'; // Import for side effects to extend jsPDF
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { FileText, Download, Loader2 } from "lucide-react";
@@ -5,8 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { showError, showSuccess } from "@/utils/toast";
-import jsPDF from 'jspdf';
-import 'jspdf-autotable'; // Import for side effects to extend jsPDF
 import { ReportData } from "@/hooks/use-report-data";
 import { Atividade } from "@/hooks/use-atividades";
 import { formatCurrency, formatDate } from "@/utils/formatters";
