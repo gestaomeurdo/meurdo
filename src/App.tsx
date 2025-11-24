@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Obras from "./pages/Obras";
 import Financeiro from "./pages/Financeiro";
+import Atividades from "./pages/Atividades";
 import Materiais from "./pages/Materiais";
 import MaoDeObra from "./pages/MaoDeObra";
 import Documentacao from "./pages/Documentacao";
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/obras" element={<Obras />} />
             <Route path="/financeiro" element={<Financeiro />} />
+            <Route path="/atividades" element={<Atividades />} />
             <Route path="/materiais" element={<Materiais />} />
             <Route path="/mao-de-obra" element={<MaoDeObra />} />
             <Route path="/documentacao" element={<Documentacao />} />
