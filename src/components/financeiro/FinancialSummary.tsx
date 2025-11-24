@@ -4,6 +4,7 @@ import { Obra } from "@/hooks/use-obras";
 import { AlertTriangle, DollarSign, TrendingUp, Percent } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
+import { formatCurrency } from "@/utils/formatters";
 
 interface FinancialSummaryProps {
   obra: Obra;
@@ -11,9 +12,6 @@ interface FinancialSummaryProps {
 }
 
 const FinancialSummary = ({ obra, entries }: FinancialSummaryProps) => {
-  const formatCurrency = (value: number) => 
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-
   const totalGasto = entries?.reduce((sum, entry) => sum + entry.valor, 0) || 0;
   const orcamentoInicial = obra.orcamento_inicial || 0;
   const saldoDisponivel = orcamentoInicial - totalGasto;

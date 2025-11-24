@@ -2,6 +2,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { ChartData } from '@/hooks/use-dashboard-data';
+import { formatCurrency } from '@/utils/formatters';
 
 interface BudgetChartProps {
   data: ChartData[] | undefined;
@@ -9,8 +10,8 @@ interface BudgetChartProps {
 }
 
 const BudgetChart = ({ data, isLoading }: BudgetChartProps) => {
-  const formatCurrency = (value: number) => 
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(value);
+  // Use formatCurrency utility with option to remove fraction digits for YAxis
+  const formatYAxis = (value: number) => formatCurrency(value, { maximumFractionDigits: 0 });
 
   if (isLoading) {
     return (
@@ -57,7 +58,7 @@ const BudgetChart = ({ data, isLoading }: BudgetChartProps) => {
             />
             <YAxis 
               stroke="hsl(var(--foreground))" 
-              tickFormatter={formatCurrency}
+              tickFormatter={formatYAxis}
               tick={{ fontSize: 12 }}
             />
             <Tooltip 

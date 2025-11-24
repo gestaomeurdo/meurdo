@@ -1,7 +1,7 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useObras } from "@/hooks/use-obras";
 import { useState, useEffect } from "react";
-import { Loader2, DollarSign, Percent, ClipboardCheck, Route } from "lucide-react";
+import { Loader2, DollarSign, ClipboardCheck, Route } from "lucide-react";
 import ObraSelector from "@/components/financeiro/ObraSelector";
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarIcon } from "lucide-react";
@@ -15,6 +15,7 @@ import KpiCard from "@/components/relatorios/KpiCard";
 import ExportDialog from "@/components/relatorios/ExportDialog";
 import { useActivitiesInPeriod } from "@/hooks/use-activities-in-period";
 import ActivityCostChart from "@/components/relatorios/ActivityCostChart";
+import { formatCurrency } from "@/utils/formatters";
 
 const Relatorios = () => {
   const { data: obras, isLoading: isLoadingObras } = useObras();
@@ -46,11 +47,6 @@ const Relatorios = () => {
     startDateString,
     endDateString
   );
-
-  const formatCurrency = (value: number | undefined) => {
-    if (value === undefined) return "R$ 0,00";
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-  };
 
   const periodoString = date?.from && date?.to 
     ? `${format(date.from, "dd/MM/yy")} a ${format(date.to, "dd/MM/yy")}`

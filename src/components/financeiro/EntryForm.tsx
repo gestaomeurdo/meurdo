@@ -16,23 +16,9 @@ import { useExpenseCategories, ExpenseCategory } from "@/hooks/use-expense-categ
 import { FinancialEntry, PaymentMethod, useCreateFinancialEntry, useUpdateFinancialEntry } from "@/hooks/use-financial-entries";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
+import { parseCurrencyInput, formatCurrencyForInput } from "@/utils/formatters";
 
 const paymentMethods: PaymentMethod[] = ['Pix', 'Dinheiro', 'Cartão', 'Boleto', 'Transferência'];
-
-// Utility functions for currency handling (copied from ObraForm)
-const parseCurrencyInput = (value: string): number => {
-  if (!value) return 0;
-  const cleanedValue = value.replace(/\./g, '').replace(',', '.');
-  return parseFloat(cleanedValue) || 0;
-};
-
-const formatCurrencyForInput = (value: number | undefined): string => {
-  if (value === undefined || value === null) return "";
-  return new Intl.NumberFormat('pt-BR', { 
-    minimumFractionDigits: 2, 
-    maximumFractionDigits: 2 
-  }).format(value);
-};
 
 const EntrySchema = z.object({
   obra_id: z.string().uuid("Obra inválida."),

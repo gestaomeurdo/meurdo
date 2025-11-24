@@ -5,10 +5,9 @@ import ObraDialog from "@/components/obras/ObraDialog";
 import { useDeleteObra, useObras, Obra } from "@/hooks/use-obras";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { showSuccess, showError } from "@/utils/toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { formatCurrency, formatDate } from "@/utils/formatters";
 
 const statusMap: Record<Obra['status'], string> = {
   ativa: "Ativa",
@@ -99,15 +98,15 @@ const Obras = () => {
                     <span className="font-medium">Cliente:</span> {obra.dono_cliente || "N/A"}
                   </p>
                   <p>
-                    <span className="font-medium">Orçamento Inicial:</span> {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(obra.orcamento_inicial)}
+                    <span className="font-medium">Orçamento Inicial:</span> {formatCurrency(obra.orcamento_inicial)}
                   </p>
                   <p className="flex items-center">
                     <Calendar className="w-4 h-4 mr-1 text-muted-foreground" />
-                    <span className="font-medium">Início:</span> {format(new Date(obra.data_inicio), 'dd/MM/yyyy', { locale: ptBR })}
+                    <span className="font-medium">Início:</span> {formatDate(obra.data_inicio)}
                     {obra.previsao_entrega && (
                       <>
                         <span className="mx-2 text-muted-foreground">|</span>
-                        <span className="font-medium">Entrega:</span> {format(new Date(obra.previsao_entrega), 'dd/MM/yyyy', { locale: ptBR })}
+                        <span className="font-medium">Entrega:</span> {formatDate(obra.previsao_entrega)}
                       </>
                     )}
                   </p>

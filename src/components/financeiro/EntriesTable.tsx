@@ -1,18 +1,17 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { FinancialEntry, useDeleteFinancialEntry, PaymentMethod } from "@/hooks/use-financial-entries";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2, Download, Loader2, Filter, CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { showSuccess, showError } from "@/utils/toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import EntryDialog from "./EntryDialog";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useExpenseCategories } from "@/hooks/use-expense-categories";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { formatCurrency, formatDate } from "@/utils/formatters";
 
 interface EntriesTableProps {
   entries: FinancialEntry[] | undefined;
@@ -31,9 +30,6 @@ const EntriesTable = ({ entries, obraId, isLoading, refetch, setFilters }: Entri
   const [dateRange, setDateRange] = useState<{ from: Date | undefined, to: Date | undefined }>({ from: undefined, to: undefined });
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | undefined>(undefined);
-
-  const formatCurrency = (value: number) => 
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
   const handleDelete = async (id: string, descricao: string) => {
     try {
@@ -106,7 +102,7 @@ const EntriesTable = ({ entries, obraId, isLoading, refetch, setFilters }: Entri
             <Button
               id="date"
               variant={"outline"}
-              className="w-[240px] justify-start text-left font-normal"
+              className="w-full md:w-[240px] justify-start text-left font-normal"
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
               {dateRange?.from ? (
@@ -137,7 +133,7 @@ const EntriesTable = ({ entries, obraId, isLoading, refetch, setFilters }: Entri
 
         {/* Category Filter */}
         <Select value={selectedCategory || "all"} onValueChange={handleCategoryChange}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full md:w-[180px]">
             <SelectValue placeholder="Filtrar por Categoria" />
           </SelectTrigger>
           <SelectContent>
@@ -150,7 +146,7 @@ const EntriesTable = ({ entries, obraId, isLoading, refetch, setFilters }: Entri
 
         {/* Payment Method Filter */}
         <Select value={selectedPaymentMethod || "all"} onValueChange={handlePaymentMethodChange}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full md:w-[180px]">
             <SelectValue placeholder="Filtrar por Pagamento" />
           </SelectTrigger>
           <SelectContent>
@@ -180,7 +176,7 @@ const EntriesTable = ({ entries, obraId, isLoading, refetch, setFilters }: Entri
           <TableBody>
             {entries.map((entry) => (
               <TableRow key={entry.id}>
-                <TableCell>{format(new Date(entry.data_gasto), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
+                <TableCell>{formatDate(entry.data_gasto)}</TableCell>
                 <TableCell className="font-medium">{entry.categorias_despesa?.nome || 'N/A'}</TableCell>
                 <TableCell className="max-w-xs truncate">{entry.descricao}</TableCell>
                 <TableCell className="text-right font-semibold text-destructive">

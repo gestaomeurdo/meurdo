@@ -1,15 +1,13 @@
-import { useState } from "react";
 import { Atividade, useDeleteAtividade, AtividadeStatus } from "@/hooks/use-atividades";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2, MoreVertical, Calendar, CheckCircle, AlertCircle, DollarSign, Route, Clock } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { showSuccess, showError } from "@/utils/toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import AtividadeDialog from "./AtividadeDialog";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { formatCurrency, formatDate } from "@/utils/formatters";
 
 interface AtividadesTableProps {
   atividades: Atividade[];
@@ -24,11 +22,6 @@ const statusMap: Record<AtividadeStatus, { label: string; color: "default" | "se
 
 const AtividadesTable = ({ atividades, obraId }: AtividadesTableProps) => {
   const deleteMutation = useDeleteAtividade();
-
-  const formatCurrency = (value: number | null) => {
-    if (value === null || value === undefined) return "N/A";
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-  }
 
   const handleDelete = async (id: string) => {
     try {
@@ -50,7 +43,7 @@ const AtividadesTable = ({ atividades, obraId }: AtividadesTableProps) => {
                 <CardTitle className="text-lg">
                   <div className="flex items-center gap-2">
                     <Calendar className="h-5 w-5 text-muted-foreground" />
-                    {format(new Date(atividade.data_atividade), 'dd/MM/yyyy', { locale: ptBR })}
+                    {formatDate(atividade.data_atividade)}
                   </div>
                 </CardTitle>
                 <DropdownMenu>

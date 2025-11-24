@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 import { Atividade } from '@/hooks/use-atividades';
 import { useMemo } from 'react';
 import { format } from 'date-fns';
+import { formatCurrency } from '@/utils/formatters';
 
 interface ActivityCostChartProps {
   activities: Atividade[] | undefined;
@@ -11,8 +12,8 @@ interface ActivityCostChartProps {
 }
 
 const ActivityCostChart = ({ activities, isLoading }: ActivityCostChartProps) => {
-  const formatCurrency = (value: number) => 
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(value);
+  // Use formatCurrency utility with option to remove fraction digits for YAxis
+  const formatYAxis = (value: number) => formatCurrency(value, { maximumFractionDigits: 0 });
 
   const chartData = useMemo(() => {
     if (!activities || activities.length === 0) return [];
@@ -72,7 +73,7 @@ const ActivityCostChart = ({ activities, isLoading }: ActivityCostChartProps) =>
             <YAxis 
               yAxisId="left" 
               stroke="hsl(var(--foreground))" 
-              tickFormatter={formatCurrency}
+              tickFormatter={formatYAxis}
               label={{ value: 'Pedágio (R$)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: 'hsl(var(--foreground))' } }}
             />
             <YAxis 

@@ -5,6 +5,7 @@ import { useProfile } from "@/hooks/use-profile";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
 import { Loader2, Construction, DollarSign, AlertTriangle, Clock } from "lucide-react";
 import BudgetChart from "@/components/dashboard/BudgetChart";
+import { formatCurrency } from "@/utils/formatters";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -12,9 +13,6 @@ const Dashboard = () => {
   const { data, isLoading } = useDashboardData();
   
   const firstName = profile?.first_name || user?.email?.split('@')[0] || "Usuário";
-
-  const formatCurrency = (value: number) => 
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
   const MetricCard = ({ title, value, description, icon: Icon, loading }) => (
     <Card>

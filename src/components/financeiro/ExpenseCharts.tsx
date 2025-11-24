@@ -1,8 +1,9 @@
 import { FinancialEntry } from "@/hooks/use-financial-entries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { useMemo } from "react";
 import { format } from "date-fns";
+import { formatCurrency } from "@/utils/formatters";
 
 interface ExpenseChartsProps {
   entries: FinancialEntry[] | undefined;
@@ -11,9 +12,6 @@ interface ExpenseChartsProps {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#d0ed57'];
 
 const ExpenseCharts = ({ entries }: ExpenseChartsProps) => {
-  const formatCurrency = (value: number) => 
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(value);
-
   const { categoryData, monthlyData } = useMemo(() => {
     if (!entries || entries.length === 0) {
       return { categoryData: [], monthlyData: [] };
@@ -100,7 +98,7 @@ const ExpenseCharts = ({ entries }: ExpenseChartsProps) => {
               <XAxis dataKey="name" stroke="hsl(var(--foreground))" />
               <YAxis 
                 stroke="hsl(var(--foreground))" 
-                tickFormatter={(value: number) => formatCurrency(value)}
+                tickFormatter={(value: number) => formatCurrency(value, { maximumFractionDigits: 0 })}
               />
               <Tooltip 
                 contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '0.5rem' }}
