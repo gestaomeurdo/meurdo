@@ -1,15 +1,23 @@
-import { useUsers } from "@/hooks/use-users";
+import { useUsers, UserWithAccess } from "@/hooks/use-users";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Loader2, Edit, UserPlus } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import UserEditDialog from "./UserEditDialog";
 import InviteUserDialog from "./InviteUserDialog";
+import { Profile } from "@/hooks/use-profile";
 
-const roleMap: Record<string, string> = {
+const roleMap: Record<Profile['role'], string> = {
   administrator: "Administrador",
   obra_user: "Usuário da Obra",
   view_only: "Visualizador",
+};
+
+// Helper function to get user's full name
+const getUserFullName = (user: UserWithAccess) => {
+  if (user.first_name || user.last_name) {
+    return `${user.first_name || ''} ${user.last_name || ''}`.trim();
+  }
+  return 'N/A';
 };
 
 const UsersTable = () => {
@@ -48,11 +56,11 @@ const UsersTable = () => {
             {users?.map((user) => (
               <TableRow key={user.id}>
                 <TableCell className="font-medium">
-                  {user.first_name || user.last_name ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : 'N/A'}
+                  {getUserFullName(user)}
                 </TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>
-                  <Badge variant="secondary">{roleMap[user.role] || user.role}</TableCell>
+                  <Badge variant="secondary">{roleMap[user.role] || user.role}</Badge>
                 </TableCell>
                 <TableCell>{user.obra_access?.length || 0}</TableCell>
                 <TableCell className="text-right">
