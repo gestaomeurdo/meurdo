@@ -34,6 +34,8 @@ const Login = () => {
                 sign_in: {
                   email_label: 'Email',
                   password_label: 'Senha',
+                  email_input_placeholder: 'Seu email',
+                  password_input_placeholder: 'Sua senha',
                   button_label: 'Entrar',
                   social_provider_text: 'Ou entre com',
                   link_text: 'Já tem uma conta? Entre',
@@ -41,6 +43,8 @@ const Login = () => {
                 sign_up: {
                   email_label: 'Email',
                   password_label: 'Crie sua senha',
+                  email_input_placeholder: 'Seu email',
+                  password_input_placeholder: 'Crie uma senha forte',
                   button_label: 'Cadastrar',
                   link_text: 'Não tem uma conta? Cadastre-se',
                 },
