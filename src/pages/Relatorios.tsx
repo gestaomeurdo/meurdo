@@ -16,9 +16,11 @@ import ExportDialog from "@/components/relatorios/ExportDialog";
 import { useActivitiesInPeriod } from "@/hooks/use-activities-in-period";
 import ActivityCostChart from "@/components/relatorios/ActivityCostChart";
 import { formatCurrency } from "@/utils/formatters";
+import { useKmCost } from "@/hooks/use-km-cost";
 
 const Relatorios = () => {
   const { data: obras, isLoading: isLoadingObras } = useObras();
+  const { data: kmCost, isLoading: isLoadingKmCost } = useKmCost();
   const [selectedObraId, setSelectedObraId] = useState<string | undefined>(undefined);
   const [date, setDate] = useState<DateRange | undefined>({
     from: startOfMonth(new Date()),
@@ -48,12 +50,15 @@ const Relatorios = () => {
     endDateString
   );
 
+  const totalKmCost = (reportData?.totalMileagePeriod || 0) * (kmCost || 1.50);
+  const totalActivityCost = (reportData?.totalTollsPeriod || 0) + totalKmCost;
+
   const periodoString = date?.from && date?.to 
     ? `${format(date.from, "dd/MM/yy")} a ${format(date.to, "dd/MM/yy")}`
     : "N/A";
 
   const renderContent = () => {
-    if (isLoadingObras) {
+    if (isLoadingObras || isLoadingKmCost) {
       return (
         <div className="flex justify-center items-center h-full py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -71,7 +76,14 @@ const Relatorios = () => {
 
     return (
       <div className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-4">
+          <KpiCard
+            title="Custo Total Atividades (Período)"
+            value={formatCurrency(totalActivityCost)}
+            description={`Inclui pedágio e KM rodado (R$ ${kmCost?.toFixed(2)}/km).`}
+            icon={DollarSign}
+            isLoading={isLoadingReport}
+          />
           <KpiCard
             title="Total Pedágio (Período)"
             value={formatCurrency(reportData?.totalTollsPeriod)}
@@ -82,7 +94,7 @@ const Relatorios = () => {
           <KpiCard
             title="Total KM Rodado (Período)"
             value={`${(reportData?.totalMileagePeriod || 0).toFixed(0)} km`}
-            description="Distância total percorrida registrada nas atividades."
+            description={`Custo de KM: ${formatCurrency(totalKmCost)}`}
             icon={Route}
             isLoading={isLoadingReport}
           />
