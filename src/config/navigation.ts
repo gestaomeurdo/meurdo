@@ -30,7 +30,7 @@ export const navItems: NavItem[] = [
     title: "Atividades",
     href: "/atividades",
     icon: ClipboardList,
-    roles: ["administrator", "obra_user"],
+    roles: ["administrator", "obra_user", "view_only"],
   },
   {
     title: "Materiais",
