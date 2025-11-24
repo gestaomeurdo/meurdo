@@ -38,6 +38,7 @@ export const useObras = () => {
     queryKey: ['obras', userId],
     queryFn: () => fetchObras(userId!),
     enabled: !!userId,
+    staleTime: 1000 * 60 * 1, // Cache data for 1 minute to improve navigation speed
   });
 };
 

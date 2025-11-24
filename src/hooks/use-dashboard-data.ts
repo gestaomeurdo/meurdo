@@ -14,57 +14,24 @@ interface DashboardData {
   chartData: ChartData[];
 }
 
+// This function now calls a database function (RPC) for much better performance.
+// The database will do the heavy lifting of calculating metrics.
 const fetchDashboardData = async (userId: string): Promise<DashboardData> => {
-  // 1. Fetch all obras for the user
-  const { data: obras, error: obrasError } = await supabase
-    .from('obras')
-    .select('id, nome, status, orcamento_inicial')
-    .eq('user_id', userId);
+  const { data, error } = await supabase.rpc('get_dashboard_data', {
+    p_user_id: userId,
+  });
 
-  if (obrasError) {
-    throw new Error(obrasError.message);
+  if (error) {
+    console.error("Error fetching dashboard data:", error);
+    throw new Error(error.message);
   }
 
-  if (!obras || obras.length === 0) {
-    return {
-      activeObrasCount: 0,
-      totalInitialBudget: 0,
-      chartData: [],
-    };
-  }
-
-  // 2. Fetch all financial entries for the user's obras
-  const { data: entries, error: entriesError } = await supabase
-    .from('lancamentos_financeiros')
-    .select('obra_id, valor')
-    .in('obra_id', obras.map(o => o.id));
-
-  if (entriesError) {
-    throw new Error(entriesError.message);
-  }
-
-  // 3. Process metrics
-  const activeObrasCount = obras.filter(obra => obra.status === 'ativa').length;
-  const totalInitialBudget = obras.reduce((sum, obra) => sum + (obra.orcamento_inicial || 0), 0);
-
-  // 4. Process chart data
-  const expensesByObra = entries.reduce((acc, entry) => {
-    if (entry.obra_id) {
-      acc[entry.obra_id] = (acc[entry.obra_id] || 0) + entry.valor;
-    }
-    return acc;
-  }, {} as Record<string, number>);
-
-  const chartData = obras.map(obra => ({
-    name: obra.nome,
-    Orçamento: obra.orcamento_inicial || 0,
-    Gasto: expensesByObra[obra.id] || 0,
-  }));
-
+  // The RPC returns the data in the exact shape we need.
+  // If no obras exist, it might return null fields, so we provide defaults.
   return {
-    activeObrasCount,
-    totalInitialBudget,
-    chartData,
+    activeObrasCount: data.activeObrasCount ?? 0,
+    totalInitialBudget: data.totalInitialBudget ?? 0,
+    chartData: data.chartData ?? [],
   };
 };
 

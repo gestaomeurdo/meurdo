@@ -83,6 +83,7 @@ export const useFinancialEntries = (params: FetchEntriesParams) => {
     queryKey: ['financialEntries', params],
     queryFn: () => fetchFinancialEntries(params),
     enabled: !!params.obraId,
+    staleTime: 1000 * 60 * 1, // Cache data for 1 minute
   });
 };
 
