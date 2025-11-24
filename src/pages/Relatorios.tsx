@@ -10,13 +10,14 @@ import { format, startOfMonth } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { useReportData } from "@/hooks/use-report-data";
+import { useReportData, ReportData } from "@/hooks/use-report-data";
 import KpiCard from "@/components/relatorios/KpiCard";
 import ExportDialog from "@/components/relatorios/ExportDialog";
 import { useActivitiesInPeriod } from "@/hooks/use-activities-in-period";
 import ActivityCostChart from "@/components/relatorios/ActivityCostChart";
 import { formatCurrency } from "@/utils/formatters";
 import { useKmCost } from "@/hooks/use-km-cost";
+import { Atividade } from "@/hooks/use-atividades";
 
 const Relatorios = () => {
   const { data: obras, isLoading: isLoadingObras } = useObras();
@@ -112,10 +113,11 @@ const Relatorios = () => {
         <div className="flex justify-end">
           <ExportDialog 
             obraNome={selectedObra.nome} 
-            obraId={selectedObraId}
             periodo={periodoString} 
-            startDate={startDateString}
-            endDate={endDateString}
+            reportData={reportData}
+            activities={activities}
+            kmCost={kmCost}
+            isLoading={isLoadingReport || isLoadingActivities}
           />
         </div>
       </div>

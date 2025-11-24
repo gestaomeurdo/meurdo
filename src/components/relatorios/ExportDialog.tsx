@@ -1,150 +1,167 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { FileText, Download, Loader2 } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { useState } from "react";
-import { useAuth } from "@/integrations/supabase/auth-provider";
 import { showError, showSuccess } from "@/utils/toast";
+import jsPDF from 'jspdf';
+import { ReportData } from "@/hooks/use-report-data";
+import { Atividade } from "@/hooks/use-atividades";
+import { formatCurrency, formatDate } from "@/utils/formatters";
 
 interface ExportDialogProps {
   obraNome: string;
-  obraId: string;
   periodo: string;
-  startDate: string;
-  endDate: string;
+  reportData: ReportData | undefined;
+  activities: Atividade[] | undefined;
+  kmCost: number | undefined;
+  isLoading: boolean;
 }
 
-const ExportDialog = ({ obraNome, obraId, periodo, startDate, endDate }: ExportDialogProps) => {
+const ExportDialog = ({ obraNome, periodo, reportData, activities, kmCost, isLoading }: ExportDialogProps) => {
   const [isExporting, setIsExporting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'pdf' | 'csv'>('csv');
-  const { session } = useAuth();
 
-  const handleExportCsv = async () => {
-    if (!session) {
-      showError("Você precisa estar logado para exportar dados.");
+  const handleExportPdf = () => {
+    if (!reportData || !activities) {
+      showError("Dados do relatório não estão disponíveis.");
       return;
     }
-    
+
     setIsExporting(true);
     
     try {
-      // NOTE: Replace with your actual Supabase Project ID
-      const SUPABASE_PROJECT_ID = "edguowimanbdjyubspas";
-      const EDGE_FUNCTION_URL = `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/export-activities-csv`;
+      const doc = new jsPDF();
+      let y = 20;
+      const margin = 10;
+      const lineHeight = 7;
+      const pageWidth = doc.internal.pageSize.getWidth();
 
-      const response = await fetch(EDGE_FUNCTION_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          obraId,
-          startDate,
-          endDate,
-        }),
+      // Title
+      doc.setFontSize(18);
+      doc.text(`Relatório de Atividades - ${obraNome}`, margin, y);
+      y += lineHeight;
+      
+      doc.setFontSize(12);
+      doc.text(`Período: ${periodo}`, margin, y);
+      y += lineHeight * 2;
+
+      // Summary KPIs
+      doc.setFontSize(14);
+      doc.text("Resumo de Custos e Atividades", margin, y);
+      y += lineHeight;
+      
+      doc.setFontSize(10);
+      
+      const totalKmCost = (reportData.totalMileagePeriod || 0) * (kmCost || 1.50);
+      const totalActivityCost = (reportData.totalTollsPeriod || 0) + totalKmCost;
+
+      doc.text(`Custo Total de Atividades: ${formatCurrency(totalActivityCost)}`, margin, y);
+      doc.text(`Total Pedágio: ${formatCurrency(reportData.totalTollsPeriod)}`, pageWidth / 2, y);
+      y += lineHeight;
+      
+      doc.text(`Total KM Rodado: ${(reportData.totalMileagePeriod || 0).toFixed(0)} km`, margin, y);
+      doc.text(`Custo por KM: ${formatCurrency(kmCost)}`, pageWidth / 2, y);
+      y += lineHeight;
+
+      doc.text(`Atividades Concluídas: ${reportData.activitiesCompleted}`, margin, y);
+      y += lineHeight * 2;
+
+      // Activities Table
+      doc.setFontSize(14);
+      doc.text("Detalhes das Atividades", margin, y);
+      y += lineHeight;
+
+      const tableColumns = ["Data", "Status", "Pedágio (R$)", "KM Rodado", "Descrição"];
+      const tableRows = activities.map(a => [
+        formatDate(a.data_atividade),
+        a.status,
+        formatCurrency(a.pedagio, { currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace('R$', '').trim(),
+        (a.km_rodado || 0).toFixed(0),
+        a.descricao.substring(0, 50) + (a.descricao.length > 50 ? '...' : ''),
+      ]);
+
+      (doc as any).autoTable({
+        startY: y,
+        head: [tableColumns],
+        body: tableRows,
+        theme: 'grid',
+        styles: { fontSize: 8, cellPadding: 1.5 },
+        headStyles: { fillColor: [255, 122, 0], textColor: [255, 255, 255] },
+        margin: { left: margin, right: margin },
+        columnStyles: {
+          0: { cellWidth: 20 },
+          1: { cellWidth: 20 },
+          2: { cellWidth: 25, halign: 'right' },
+          3: { cellWidth: 20, halign: 'right' },
+          4: { cellWidth: 'auto' },
+        }
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Erro na exportação: ${errorText}`);
-      }
+      // Save the PDF
+      const filename = `Relatorio_Atividades_${obraNome.replace(/\s/g, '_')}_${periodo.replace(/\s/g, '')}.pdf`;
+      doc.save(filename);
 
-      // Get the filename from the Content-Disposition header if available, otherwise use a default
-      const contentDisposition = response.headers.get('Content-Disposition');
-      let filename = `relatorio_atividades_${startDate}_a_${endDate}.csv`;
-      if (contentDisposition) {
-        const match = contentDisposition.match(/filename="(.+)"/);
-        if (match && match[1]) {
-          filename = match[1];
-        }
-      }
-
-      // Create a blob from the response and trigger download
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-
-      showSuccess("Relatório CSV gerado e baixado com sucesso!");
+      showSuccess("Relatório PDF gerado e baixado com sucesso!");
 
     } catch (error) {
-      console.error("Export error:", error);
-      showError(`Falha ao exportar relatório: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+      console.error("PDF generation error:", error);
+      showError(`Falha ao gerar relatório PDF: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
     } finally {
       setIsExporting(false);
     }
   };
 
+  // Check if data is ready for export
+  const canExport = !isLoading && reportData && activities && activities.length > 0;
+
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button disabled={isExporting}>
-          {isExporting ? (
+        <Button disabled={isLoading || isExporting || !canExport}>
+          {isLoading || isExporting ? (
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
           ) : (
             <FileText className="w-4 h-4 mr-2" />
           )}
-          Exportar Relatório
+          {isLoading ? "Carregando Dados..." : "Exportar Relatório PDF"}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Exportar Relatório</DialogTitle>
+          <DialogTitle>Exportar Relatório PDF</DialogTitle>
           <DialogDescription>
-            Exporte o relatório de {obraNome} para o período de {periodo}.
+            Gere o relatório formatado de {obraNome} para o período de {periodo}.
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
-          <Tabs defaultValue="csv" onValueChange={(value) => setActiveTab(value as 'pdf' | 'csv')}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="pdf">PDF (Em Breve)</TabsTrigger>
-              <TabsTrigger value="csv">CSV (Dados Brutos)</TabsTrigger>
-            </TabsList>
-            <TabsContent value="pdf" className="mt-4">
-              <div className="border rounded-lg p-4 h-64 bg-muted/50 flex flex-col items-center justify-center">
-                <FileText className="w-16 h-16 text-muted-foreground mb-4" />
-                <h3 className="font-semibold">Exportação de PDF (Em Breve)</h3>
-                <p className="text-sm text-muted-foreground text-center">A geração de relatórios formatados em PDF com gráficos está em desenvolvimento.</p>
-              </div>
-            </TabsContent>
-            <TabsContent value="csv" className="mt-4">
-              <div className="border rounded-lg p-4 h-64 bg-muted/50 flex flex-col items-center justify-center">
-                <p className="text-sm text-center text-muted-foreground">
-                  Os dados de atividades (descrição, status, pedágio, KM rodado e custos calculados) serão exportados em formato de planilha (CSV).
-                </p>
-              </div>
-            </TabsContent>
-          </Tabs>
+          <div className="border rounded-lg p-4 h-48 bg-muted/50 flex flex-col items-center justify-center">
+            <FileText className="w-16 h-16 text-muted-foreground mb-4" />
+            <h3 className="font-semibold">Relatório de Atividades em PDF</h3>
+            <p className="text-sm text-muted-foreground text-center">
+              O documento incluirá o resumo de custos e a lista detalhada de atividades.
+            </p>
+          </div>
           <div className="mt-6 space-y-4">
             <div className="space-y-2">
               <Label htmlFor="filename">Nome do Arquivo</Label>
               <Input id="filename" defaultValue={`Relatorio_Atividades_${obraNome.replace(/\s/g, '_')}_${periodo.replace(/\s/g, '')}`} readOnly />
             </div>
-            {/* Removendo campos de email e agendamento para simplificar o escopo inicial */}
           </div>
         </div>
         <DialogFooter>
-          <Button type="button" variant="secondary" onClick={() => { /* Close dialog logic if needed */ }}>Cancelar</Button>
+          <Button type="button" variant="secondary">Cancelar</Button>
           <Button 
             type="button" 
-            onClick={handleExportCsv} 
-            disabled={isExporting || activeTab !== 'csv'}
+            onClick={handleExportPdf} 
+            disabled={isExporting || !canExport}
           >
             {isExporting ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             ) : (
               <Download className="w-4 h-4 mr-2" />
             )}
-            {isExporting ? "Gerando CSV..." : "Gerar e Baixar CSV"}
+            {isExporting ? "Gerando PDF..." : "Gerar e Baixar PDF"}
           </Button>
         </DialogFooter>
       </DialogContent>
