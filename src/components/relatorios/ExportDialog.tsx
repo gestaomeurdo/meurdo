@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { showError, showSuccess } from "@/utils/toast";
 import jsPDF from 'jspdf';
+import 'jspdf-autotable'; // Import for side effects to extend jsPDF
 import { ReportData } from "@/hooks/use-report-data";
 import { Atividade } from "@/hooks/use-atividades";
 import { formatCurrency, formatDate } from "@/utils/formatters";
@@ -31,6 +32,7 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities, kmCost, isLoa
     setIsExporting(true);
     
     try {
+      // Initialize jsPDF
       const doc = new jsPDF();
       let y = 20;
       const margin = 10;
@@ -53,7 +55,8 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities, kmCost, isLoa
       
       doc.setFontSize(10);
       
-      const totalKmCost = (reportData.totalMileagePeriod || 0) * (kmCost || 1.50);
+      const currentKmCost = kmCost || 1.50;
+      const totalKmCost = (reportData.totalMileagePeriod || 0) * currentKmCost;
       const totalActivityCost = (reportData.totalTollsPeriod || 0) + totalKmCost;
 
       doc.text(`Custo Total de Atividades: ${formatCurrency(totalActivityCost)}`, margin, y);
@@ -61,7 +64,7 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities, kmCost, isLoa
       y += lineHeight;
       
       doc.text(`Total KM Rodado: ${(reportData.totalMileagePeriod || 0).toFixed(0)} km`, margin, y);
-      doc.text(`Custo por KM: ${formatCurrency(kmCost)}`, pageWidth / 2, y);
+      doc.text(`Custo por KM: ${formatCurrency(currentKmCost)}`, pageWidth / 2, y);
       y += lineHeight;
 
       doc.text(`Atividades Concluídas: ${reportData.activitiesCompleted}`, margin, y);
@@ -72,14 +75,21 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities, kmCost, isLoa
       doc.text("Detalhes das Atividades", margin, y);
       y += lineHeight;
 
-      const tableColumns = ["Data", "Status", "Pedágio (R$)", "KM Rodado", "Descrição"];
-      const tableRows = activities.map(a => [
-        formatDate(a.data_atividade),
-        a.status,
-        formatCurrency(a.pedagio, { currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace('R$', '').trim(),
-        (a.km_rodado || 0).toFixed(0),
-        a.descricao.substring(0, 50) + (a.descricao.length > 50 ? '...' : ''),
-      ]);
+      const tableColumns = ["Data", "Status", "Pedágio (R$)", "KM Rodado", "Custo KM (R$)", "Custo Total (R$)", "Descrição"];
+      const tableRows = activities.map(a => {
+        const activityKmCost = (a.km_rodado || 0) * currentKmCost;
+        const activityTotalCost = (a.pedagio || 0) + activityKmCost;
+        
+        return [
+          formatDate(a.data_atividade),
+          a.status,
+          formatCurrency(a.pedagio, { currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace('R$', '').trim(),
+          (a.km_rodado || 0).toFixed(0),
+          formatCurrency(activityKmCost, { currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace('R$', '').trim(),
+          formatCurrency(activityTotalCost, { currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace('R$', '').trim(),
+          a.descricao.substring(0, 50) + (a.descricao.length > 50 ? '...' : ''),
+        ];
+      });
 
       (doc as any).autoTable({
         startY: y,
@@ -87,14 +97,16 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities, kmCost, isLoa
         body: tableRows,
         theme: 'grid',
         styles: { fontSize: 8, cellPadding: 1.5 },
-        headStyles: { fillColor: [255, 122, 0], textColor: [255, 255, 255] },
+        headStyles: { fillColor: [255, 122, 0], textColor: [255, 255, 255] }, // Using primary color (orange)
         margin: { left: margin, right: margin },
         columnStyles: {
-          0: { cellWidth: 20 },
-          1: { cellWidth: 20 },
-          2: { cellWidth: 25, halign: 'right' },
-          3: { cellWidth: 20, halign: 'right' },
-          4: { cellWidth: 'auto' },
+          0: { cellWidth: 18 }, // Data
+          1: { cellWidth: 20 }, // Status
+          2: { cellWidth: 20, halign: 'right' }, // Pedágio
+          3: { cellWidth: 20, halign: 'right' }, // KM Rodado
+          4: { cellWidth: 20, halign: 'right' }, // Custo KM
+          5: { cellWidth: 25, halign: 'right' }, // Custo Total
+          6: { cellWidth: 'auto' }, // Descrição
         }
       });
 
@@ -145,7 +157,7 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities, kmCost, isLoa
           <div className="mt-6 space-y-4">
             <div className="space-y-2">
               <Label htmlFor="filename">Nome do Arquivo</Label>
-              <Input id="filename" defaultValue={`Relatorio_Atividades_${obraNome.replace(/\s/g, '_')}_${periodo.replace(/\s/g, '')}`} readOnly />
+              <Input id="filename" defaultValue={`Relatorio_Atividades_${obraNome.replace(/\s/g, '_')}_${periodo.replace(/\s/g, '')}.pdf`} readOnly />
             </div>
           </div>
         </div>
