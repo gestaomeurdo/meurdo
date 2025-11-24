@@ -15,6 +15,7 @@ import Materiais from "./pages/Materiais";
 import MaoDeObra from "./pages/MaoDeObra";
 import Documentacao from "./pages/Documentacao";
 import Settings from "./pages/Settings";
+import Relatorios from "./pages/Relatorios";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/obras" element={<Obras />} />
             <Route path="/financeiro" element={<Financeiro />} />
+            <Route path="/relatorios" element={<Relatorios />} />
             <Route path="/atividades" element={<Atividades />} />
             <Route path="/materiais" element={<Materiais />} />
             <Route path="/mao-de-obra" element={<MaoDeObra />} />
