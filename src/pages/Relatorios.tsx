@@ -66,10 +66,10 @@ const Relatorios = () => {
       );
     }
 
-    if (!selectedObra) {
+    if (!selectedObra || !selectedObraId || !startDateString || !endDateString) {
       return (
         <div className="text-center py-12 border border-dashed rounded-lg bg-muted/50">
-          <p className="text-muted-foreground">Selecione uma obra para gerar um relatório.</p>
+          <p className="text-muted-foreground">Selecione uma obra e um período válido para gerar um relatório.</p>
         </div>
       );
     }
@@ -110,7 +110,13 @@ const Relatorios = () => {
         <ActivityCostChart activities={activities} isLoading={isLoadingActivities} />
 
         <div className="flex justify-end">
-          <ExportDialog obraNome={selectedObra.nome} periodo={periodoString} />
+          <ExportDialog 
+            obraNome={selectedObra.nome} 
+            obraId={selectedObraId}
+            periodo={periodoString} 
+            startDate={startDateString}
+            endDate={endDateString}
+          />
         </div>
       </div>
     );
