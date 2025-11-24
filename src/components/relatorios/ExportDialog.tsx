@@ -1,5 +1,4 @@
 import jsPDF from 'jspdf';
-import 'jspdf-autotable'; // Import for side effects to extend jsPDF
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -10,20 +9,14 @@ import { useState } from "react";
 import { showError, showSuccess } from "@/utils/toast";
 import { ReportData } from "@/hooks/use-report-data";
 import { Atividade } from "@/hooks/use-atividades";
+import { AtividadeWithProfile } from "@/hooks/use-activities-in-period"; // Importando o novo tipo
 import { formatCurrency, formatDate } from "@/utils/formatters";
-
-// Extend jsPDF interface for TypeScript to recognize autoTable
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: any) => jsPDF;
-  }
-}
 
 interface ExportDialogProps {
   obraNome: string;
   periodo: string;
   reportData: ReportData | undefined;
-  activities: Atividade[] | undefined;
+  activities: AtividadeWithProfile[] | undefined; // Usando o novo tipo
   kmCost: number | undefined;
   isLoading: boolean;
 }
@@ -40,14 +33,13 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities, kmCost, isLoa
     setIsExporting(true);
     
     try {
-      // Initialize jsPDF
       const doc = new jsPDF();
       let y = 20;
       const margin = 10;
       const lineHeight = 7;
       const pageWidth = doc.internal.pageSize.getWidth();
 
-      // Title
+      // --- Header ---
       doc.setFontSize(18);
       doc.text(`Relatório de Atividades - ${obraNome}`, margin, y);
       y += lineHeight;
@@ -56,74 +48,72 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities, kmCost, isLoa
       doc.text(`Período: ${periodo}`, margin, y);
       y += lineHeight * 2;
 
-      // Summary KPIs
-      doc.setFontSize(14);
-      doc.text("Resumo de Custos e Atividades", margin, y);
-      y += lineHeight;
-      
-      doc.setFontSize(10);
-      
+      // --- Summary ---
       const currentKmCost = kmCost || 1.50;
       const totalKmCost = (reportData.totalMileagePeriod || 0) * currentKmCost;
       const totalActivityCost = (reportData.totalTollsPeriod || 0) + totalKmCost;
 
-      doc.text(`Custo Total de Atividades: ${formatCurrency(totalActivityCost)}`, margin, y);
-      doc.text(`Total Pedágio: ${formatCurrency(reportData.totalTollsPeriod)}`, pageWidth / 2, y);
+      doc.setFontSize(14);
+      doc.text("Resumo de Custos", margin, y);
       y += lineHeight;
       
-      doc.text(`Total KM Rodado: ${(reportData.totalMileagePeriod || 0).toFixed(0)} km`, margin, y);
-      doc.text(`Custo por KM: ${formatCurrency(currentKmCost)}`, pageWidth / 2, y);
+      doc.setFontSize(10);
+      doc.text(`Custo Total de Atividades: ${formatCurrency(totalActivityCost)}`, margin, y);
       y += lineHeight;
-
-      doc.text(`Atividades Concluídas: ${reportData.activitiesCompleted}`, margin, y);
+      doc.text(`Total Pedágio: ${formatCurrency(reportData.totalTollsPeriod)}`, margin, y);
+      y += lineHeight;
+      doc.text(`Total KM Rodado: ${(reportData.totalMileagePeriod || 0).toFixed(0)} km (Custo: ${formatCurrency(totalKmCost)})`, margin, y);
       y += lineHeight * 2;
 
-      // Activities Table
+      // --- Activities List ---
       doc.setFontSize(14);
-      doc.text("Detalhes das Atividades", margin, y);
+      doc.text("Detalhes das Atividades (Lista)", margin, y);
       y += lineHeight;
 
-      const tableColumns = ["Data", "Status", "Pedágio (R$)", "KM Rodado", "Custo KM (R$)", "Custo Total (R$)", "Descrição"];
-      const tableRows = activities.map(a => {
-        const activityKmCost = (a.km_rodado || 0) * currentKmCost;
-        const activityTotalCost = (a.pedagio || 0) + activityKmCost;
+      activities.forEach((atividade, index) => {
+        const activityKmCost = (atividade.km_rodado || 0) * currentKmCost;
+        const activityTotalCost = (atividade.pedagio || 0) + activityKmCost;
         
-        return [
-          formatDate(a.data_atividade),
-          a.status,
-          formatCurrency(a.pedagio, { currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace('R$', '').trim(),
-          (a.km_rodado || 0).toFixed(0),
-          formatCurrency(activityKmCost, { currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace('R$', '').trim(),
-          formatCurrency(activityTotalCost, { currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace('R$', '').trim(),
-          a.descricao.substring(0, 50) + (a.descricao.length > 50 ? '...' : ''),
-        ];
-      });
-
-      // Use the autoTable function, now correctly typed/extended
-      doc.autoTable({
-        startY: y,
-        head: [tableColumns],
-        body: tableRows,
-        theme: 'grid',
-        styles: { fontSize: 8, cellPadding: 1.5 },
-        headStyles: { fillColor: [255, 122, 0], textColor: [255, 255, 255] }, // Using primary color (orange)
-        margin: { left: margin, right: margin },
-        columnStyles: {
-          0: { cellWidth: 18 }, // Data
-          1: { cellWidth: 20 }, // Status
-          2: { cellWidth: 20, halign: 'right' }, // Pedágio
-          3: { cellWidth: 20, halign: 'right' }, // KM Rodado
-          4: { cellWidth: 20, halign: 'right' }, // Custo KM
-          5: { cellWidth: 25, halign: 'right' }, // Custo Total
-          6: { cellWidth: 'auto' }, // Descrição
+        const responsibleName = `${atividade.profiles?.first_name || ''} ${atividade.profiles?.last_name || ''}`.trim() || 'N/A';
+        
+        // Check if we need a new page
+        if (y > doc.internal.pageSize.getHeight() - margin * 2) {
+          doc.addPage();
+          y = margin;
         }
+
+        doc.setFontSize(12);
+        doc.text(`--- Atividade ${index + 1} ---`, margin, y);
+        y += lineHeight;
+        
+        doc.setFontSize(10);
+        
+        // Bullet list items
+        doc.text(`• Atividade realizada: ${atividade.descricao}`, margin + 5, y);
+        y += lineHeight;
+        doc.text(`• Data: ${formatDate(atividade.data_atividade)} (Status: ${atividade.status})`, margin + 5, y);
+        y += lineHeight;
+        doc.text(`• Responsável: ${responsibleName}`, margin + 5, y);
+        y += lineHeight;
+        doc.text(`• Valor gasto (Pedágio + KM): ${formatCurrency(activityTotalCost)}`, margin + 5, y);
+        y += lineHeight;
+        doc.text(`• Detalhe de Custos: Pedágio (${formatCurrency(atividade.pedagio)}) + KM (${(atividade.km_rodado || 0).toFixed(0)} km @ ${formatCurrency(currentKmCost)}/km)`, margin + 5, y);
+        y += lineHeight;
+        
+        // Campos não disponíveis no esquema atual
+        doc.text(`• Materiais utilizados: N/A (Não registrado)`, margin + 5, y);
+        y += lineHeight;
+        doc.text(`• Horas trabalhadas: N/A (Não registrado)`, margin + 5, y);
+        y += lineHeight;
+        doc.text(`• Observações gerais: N/A`, margin + 5, y);
+        y += lineHeight * 1.5; // Extra space after each activity
       });
 
       // Save the PDF
-      const filename = `Relatorio_Atividades_${obraNome.replace(/\s/g, '_')}_${periodo.replace(/\s/g, '')}.pdf`;
+      const filename = `Relatorio_Atividades_Lista_${obraNome.replace(/\s/g, '_')}_${periodo.replace(/\s/g, '')}.pdf`;
       doc.save(filename);
 
-      showSuccess("Relatório PDF gerado e baixado com sucesso!");
+      showSuccess("Relatório PDF em formato de lista gerado e baixado com sucesso!");
 
     } catch (error) {
       console.error("PDF generation error:", error);
@@ -145,28 +135,28 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities, kmCost, isLoa
           ) : (
             <FileText className="w-4 h-4 mr-2" />
           )}
-          {isLoading ? "Carregando Dados..." : "Exportar Relatório PDF"}
+          {isLoading ? "Carregando Dados..." : "Exportar Relatório PDF (Lista)"}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Exportar Relatório PDF</DialogTitle>
+          <DialogTitle>Exportar Relatório PDF (Lista)</DialogTitle>
           <DialogDescription>
-            Gere o relatório formatado de {obraNome} para o período de {periodo}.
+            Gere o relatório formatado de {obraNome} para o período de {periodo} em formato de lista.
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
           <div className="border rounded-lg p-4 h-48 bg-muted/50 flex flex-col items-center justify-center">
             <FileText className="w-16 h-16 text-muted-foreground mb-4" />
-            <h3 className="font-semibold">Relatório de Atividades em PDF</h3>
+            <h3 className="font-semibold">Relatório de Atividades em Lista</h3>
             <p className="text-sm text-muted-foreground text-center">
-              O documento incluirá o resumo de custos e a lista detalhada de atividades.
+              O documento será gerado em formato de lista simples, com os dados disponíveis.
             </p>
           </div>
           <div className="mt-6 space-y-4">
             <div className="space-y-2">
               <Label htmlFor="filename">Nome do Arquivo</Label>
-              <Input id="filename" defaultValue={`Relatorio_Atividades_${obraNome.replace(/\s/g, '_')}_${periodo.replace(/\s/g, '')}.pdf`} readOnly />
+              <Input id="filename" defaultValue={`Relatorio_Atividades_Lista_${obraNome.replace(/\s/g, '_')}_${periodo.replace(/\s/g, '')}.pdf`} readOnly />
             </div>
           </div>
         </div>
