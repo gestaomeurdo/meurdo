@@ -8,6 +8,7 @@ import FinancialSummary from "@/components/financeiro/FinancialSummary";
 import EntriesTable from "@/components/financeiro/EntriesTable";
 import EntryDialog from "@/components/financeiro/EntryDialog";
 import { useFinancialEntries } from "@/hooks/use-financial-entries";
+import { useFinancialAnalytics } from "@/hooks/use-financial-analytics";
 import ExpenseCharts from "@/components/financeiro/ExpenseCharts";
 import { Button } from "@/components/ui/button";
 
@@ -16,7 +17,6 @@ const Financeiro = () => {
   const [selectedObraId, setSelectedObraId] = useState<string | undefined>(undefined);
   const [filters, setFilters] = useState({});
 
-  // Set the first obra as default when they load
   useEffect(() => {
     if (obras && obras.length > 0 && !selectedObraId) {
       setSelectedObraId(obras[0].id);
@@ -27,10 +27,19 @@ const Financeiro = () => {
     return obras?.find(o => o.id === selectedObraId);
   }, [obras, selectedObraId]);
 
-  const { data: entries, isLoading: isLoadingEntries, refetch } = useFinancialEntries({
+  const { 
+    data: entries, 
+    isLoading: isLoadingEntries, 
+    refetch 
+  } = useFinancialEntries({
     obraId: selectedObraId || '',
     ...filters,
   });
+
+  const { 
+    data: analyticsData, 
+    isLoading: isLoadingAnalytics 
+  } = useFinancialAnalytics(selectedObraId);
 
   if (isLoadingObras) {
     return (
@@ -58,13 +67,10 @@ const Financeiro = () => {
           <>
             <h2 className="text-xl font-semibold text-primary truncate">Obra Selecionada: {selectedObra.nome}</h2>
             
-            {/* 3. Resumo Financeiro e Alertas */}
-            <FinancialSummary obra={selectedObra} entries={entries} />
+            <FinancialSummary data={analyticsData?.summary} isLoading={isLoadingAnalytics} />
 
-            {/* 4. Gráficos Financeiros */}
-            <ExpenseCharts entries={entries} />
+            <ExpenseCharts data={analyticsData?.charts} isLoading={isLoadingAnalytics} />
 
-            {/* 2. Tabela Completa de Lançamentos */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-xl">Lançamentos de Despesas</CardTitle>
@@ -89,7 +95,6 @@ const Financeiro = () => {
         )}
       </div>
       
-      {/* 7. Botão Flutuante */}
       {selectedObraId && (
         <div className="fixed bottom-6 right-6 z-10">
           <EntryDialog 
