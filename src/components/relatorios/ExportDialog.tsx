@@ -11,6 +11,13 @@ import { ReportData } from "@/hooks/use-report-data";
 import { Atividade } from "@/hooks/use-atividades";
 import { formatCurrency, formatDate } from "@/utils/formatters";
 
+// Extend jsPDF interface for TypeScript to recognize autoTable
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: any) => jsPDF;
+  }
+}
+
 interface ExportDialogProps {
   obraNome: string;
   periodo: string;
@@ -91,7 +98,8 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities, kmCost, isLoa
         ];
       });
 
-      (doc as any).autoTable({
+      // Use the autoTable function, now correctly typed/extended
+      doc.autoTable({
         startY: y,
         head: [tableColumns],
         body: tableRows,
