@@ -25,7 +25,7 @@ const Header = ({ setSidebarOpen }: HeaderProps) => {
           </Button>
         )}
         <h1 className="text-xl font-semibold text-primary">
-          Gestão de Obras
+          Diário de Obra
         </h1>
       </div>
       

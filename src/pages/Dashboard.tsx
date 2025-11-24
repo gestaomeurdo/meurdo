@@ -40,7 +40,7 @@ const Dashboard = () => {
       <div className="p-6">
         <h1 className="text-3xl font-bold mb-2">Bem-vindo(a), {firstName}!</h1>
         <p className="text-lg text-muted-foreground mb-6">
-          Visão geral do Gestão de Obras – Power Construtor.
+          Visão geral do Diário de Obra.
         </p>
         
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">

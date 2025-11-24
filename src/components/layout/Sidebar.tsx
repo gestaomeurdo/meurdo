@@ -50,7 +50,7 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: SidebarProps) => {
     >
       <div className="p-4 h-full flex flex-col">
         <div className="mb-6">
-          <img src="https://i.ibb.co/7dmMx016/Gemini-Generated-Image-qkvwxnqkvwxnqkvw-upscayl-2x-upscayl-standard-4x.png" alt="Power Construtor Logo" className="h-12 mx-auto" />
+          <img src="https://i.ibb.co/7dmMx016/Gemini-Generated-Image-qkvwxnqkvwxnqkvw-upscayl-2x-upscayl-standard-4x.png" alt="Diário de Obra Logo" className="h-12 mx-auto" />
         </div>
         <nav className="flex-grow space-y-1">
           {filteredNavItems.map((item) => (

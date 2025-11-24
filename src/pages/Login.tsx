@@ -8,9 +8,9 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="items-center">
-          <img src="https://i.ibb.co/7dmMx016/Gemini-Generated-Image-qkvwxnqkvwxnqkvw-upscayl-2x-upscayl-standard-4x.png" alt="Power Construtor Logo" className="h-16" />
+          <img src="https://i.ibb.co/7dmMx016/Gemini-Generated-Image-qkvwxnqkvwxnqkvw-upscayl-2x-upscayl-standard-4x.png" alt="Diário de Obra Logo" className="h-16" />
           <CardTitle className="text-2xl text-center pt-4">
-            Gestão de Obras
+            Diário de Obra
           </CardTitle>
         </CardHeader>
         <CardContent>
