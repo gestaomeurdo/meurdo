@@ -66,7 +66,6 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
   const onSubmit = async (values: ObraFormValues) => {
     const parsedOrcamento = parseCurrencyInput(values.orcamento_inicial);
 
-    // Preparamos o payload explicitamente para evitar lixo de dados ou tipos incompatíveis
     const payload = {
       nome: values.nome,
       endereco: values.endereco || null,
@@ -89,7 +88,7 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
       onSuccess();
     } catch (error) {
       console.error("[ObraForm] Submit error:", error);
-      showError(`Erro ao salvar obra: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+      showError(`Erro ao salvar obra: ${error instanceof Error ? error.message : "Erro interno"}`);
     }
   };
 
