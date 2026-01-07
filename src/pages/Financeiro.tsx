@@ -2,7 +2,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useObras, Obra } from "@/hooks/use-obras";
 import { useState, useMemo, useEffect } from "react";
-import { Loader2, Plus, Clipboard, FileUp, Filter } from "lucide-react";
+import { Loader2, Plus, Clipboard, FileUp, Filter, AlertTriangle } from "lucide-react";
 import ObraSelector from "@/components/financeiro/ObraSelector";
 import FinancialSummary from "@/components/financeiro/FinancialSummary";
 import EntriesTable from "@/components/financeiro/EntriesTable";
@@ -12,6 +12,7 @@ import ExpenseCharts from "@/components/financeiro/ExpenseCharts";
 import { Button } from "@/components/ui/button";
 import PasteImportDialog from "@/components/financeiro/PasteImportDialog";
 import ImportDialog from "@/components/financeiro/ImportDialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const Financeiro = () => {
   const { data: obras, isLoading: isLoadingObras } = useObras();
@@ -28,7 +29,7 @@ const Financeiro = () => {
     return obras?.find(o => o.id === selectedObraId);
   }, [obras, selectedObraId]);
 
-  const { data: entries, isLoading: isLoadingEntries, refetch } = useFinancialEntries({
+  const { data: entries, isLoading: isLoadingEntries, error: entriesError, refetch } = useFinancialEntries({
     obraId: selectedObraId || '',
     ...filters,
   });
@@ -54,6 +55,19 @@ const Financeiro = () => {
             Por favor, selecione uma obra no menu acima para visualizar e gerenciar os lançamentos financeiros.
           </p>
         </div>
+      );
+    }
+    
+    if (entriesError) {
+      return (
+        <Alert variant="destructive" className="mt-6">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Erro ao carregar lançamentos</AlertTitle>
+          <AlertDescription>
+            Ocorreu um erro ao buscar os dados financeiros. Verifique as permissões (RLS) ou a conexão.
+            <p className="mt-2 text-sm italic">Detalhe: {entriesError.message}</p>
+          </AlertDescription>
+        </Alert>
       );
     }
 
