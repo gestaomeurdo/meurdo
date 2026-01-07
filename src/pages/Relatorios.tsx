@@ -1,7 +1,7 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useObras } from "@/hooks/use-obras";
 import { useState, useEffect } from "react";
-import { Loader2, DollarSign, ClipboardCheck, Route } from "lucide-react";
+import { Loader2, DollarSign, ClipboardCheck, Route, AlertTriangle } from "lucide-react";
 import ObraSelector from "@/components/financeiro/ObraSelector";
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarIcon } from "lucide-react";
@@ -17,7 +17,7 @@ import { useActivitiesInPeriod, AtividadeWithProfile } from "@/hooks/use-activit
 import ActivityCostChart from "@/components/relatorios/ActivityCostChart";
 import { formatCurrency } from "@/utils/formatters";
 import { useKmCost } from "@/hooks/use-km-cost";
-import { Atividade } from "@/hooks/use-atividades";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const Relatorios = () => {
   const { data: obras, isLoading: isLoadingObras } = useObras();
@@ -40,13 +40,13 @@ const Relatorios = () => {
   const startDateString = date?.from ? format(date.from, 'yyyy-MM-dd') : '';
   const endDateString = date?.to ? format(date.to, 'yyyy-MM-dd') : '';
 
-  const { data: reportData, isLoading: isLoadingReport } = useReportData(
+  const { data: reportData, isLoading: isLoadingReport, error: reportError } = useReportData(
     selectedObraId || '',
     startDateString,
     endDateString
   );
 
-  const { data: activitiesRaw, isLoading: isLoadingActivities } = useActivitiesInPeriod(
+  const { data: activitiesRaw, isLoading: isLoadingActivities, error: activitiesError } = useActivitiesInPeriod(
     selectedObraId || '',
     startDateString,
     endDateString
@@ -77,6 +77,21 @@ const Relatorios = () => {
           <p className="text-muted-foreground">Selecione uma obra no menu acima para gerar um relatório.</p>
         </div>
       );
+    }
+    
+    // Check for errors in data fetching
+    if (reportError || activitiesError) {
+        const error = reportError || activitiesError;
+        return (
+            <Alert variant="destructive" className="mt-6">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Erro ao carregar dados do Relatório</AlertTitle>
+                <AlertDescription>
+                    Ocorreu um erro ao buscar os dados. Verifique as permissões (RLS) ou a função RPC.
+                    <p className="mt-2 text-sm italic">Detalhe: {error.message}</p>
+                </AlertDescription>
+            </Alert>
+        );
     }
     
     // If obra is selected but data is loading
@@ -141,7 +156,7 @@ const Relatorios = () => {
   return (
     <DashboardLayout>
       <div className="p-6 space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
           <div>
             <h1 className="text-3xl font-bold">Relatórios de Atividades</h1>
             <p className="text-muted-foreground">Gere e exporte relatórios detalhados sobre as visitas e custos de deslocamento.</p>
