@@ -34,7 +34,7 @@ export const navItems: NavItem[] = [
   },
   {
     title: "Gestão de RDO",
-    href: "/getao-rdo",
+    href: "/gestao-rdo",
     icon: FileText,
     roles: ["administrator", "obra_user", "view_only"],
   },
@@ -66,6 +66,6 @@ export const navItems: NavItem[] = [
     title: "Configurações",
     href: "/settings",
     icon: Settings,
-    roles: ["administrator", "obra_user", "view_only"], // Habilitado para view_only para seu teste
+    roles: ["administrator", "obra_user", "view_only"],
   },
 ];
