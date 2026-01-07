@@ -17,7 +17,7 @@ import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
 import RdoEquipmentForm from "./RdoEquipmentForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useMemo, useState } from "react";
+import { useMemo, useEffect } from "react";
 import { formatCurrency } from "@/utils/formatters";
 import { generateRdoPdf } from "@/utils/rdo-pdf";
 import { useObras } from "@/hooks/use-obras";
@@ -97,6 +97,28 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
       })) || [],
     },
   });
+
+  // Auto-populate from previous day if creating new RDO and previous data exists
+  useEffect(() => {
+    if (!isEditing && previousRdoData && form.getValues("mao_de_obra")?.length === 0) {
+      if (previousRdoData.rdo_mao_de_obra && previousRdoData.rdo_mao_de_obra.length > 0) {
+        form.setValue("mao_de_obra", previousRdoData.rdo_mao_de_obra.map(m => ({
+          funcao: m.funcao,
+          quantidade: m.quantidade,
+          custo_unitario: m.custo_unitario || 0,
+        })));
+        showSuccess("Equipe copiada do dia anterior para facilitar o preenchimento.");
+      }
+      
+      if (previousRdoData.rdo_equipamentos && previousRdoData.rdo_equipamentos.length > 0) {
+        form.setValue("equipamentos", previousRdoData.rdo_equipamentos.map(e => ({
+          equipamento: e.equipamento,
+          horas_trabalhadas: e.horas_trabalhadas,
+          horas_paradas: e.horas_paradas,
+        })));
+      }
+    }
+  }, [previousRdoData, isEditing, form]);
 
   const watchManpower = form.watch("mao_de_obra");
   const estimatedDailyCost = useMemo(() => {
