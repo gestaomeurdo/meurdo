@@ -41,12 +41,12 @@ const Import = () => {
       skipEmptyLines: true,
       dynamicTyping: false, // Manter valores como strings para análise de moeda
       complete: async (results) => {
-        // Filtra linhas que não são despesas (onde a coluna Descrição está vazia)
-        const rawEntries = (results.data as RawCostEntry[]).filter(e => e.Descricao);
+        // Filtra linhas que parecem ser lançamentos de despesa (têm Descricao e Pagamentos)
+        const rawEntries = (results.data as RawCostEntry[]).filter(e => e.Descricao && e.Pagamentos);
         const totalCount = rawEntries.length;
 
         if (totalCount === 0) {
-          showError("O arquivo CSV está vazio ou não pôde ser lido.");
+          showError("O arquivo CSV está vazio ou não contém lançamentos válidos nas colunas esperadas (Data, Descricao, Pagamentos).");
           setIsLoading(false);
           setIsProcessing(false);
           return;

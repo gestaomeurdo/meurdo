@@ -124,7 +124,6 @@ export async function importFinancialEntries(rawEntries: RawCostEntry[], userId:
 
   // 2. Identifica nomes de Obra e obtém/cria IDs
   const targetObraName = "Golden BTS";
-  // No seu CSV, a coluna Obra não existe, então forçamos o uso de Golden BTS
   const obraId = await getObraId(targetObraName, userId);
   
   // 3. Processa e prepara entradas para inserção
@@ -137,8 +136,8 @@ export async function importFinancialEntries(rawEntries: RawCostEntry[], userId:
       // Determina o valor a ser usado (Pagamentos ou Valor)
       const rawValue = entry.Pagamentos || entry.Valor;
       
-      // Validação básica de dados
-      if (!entry.Data || !entry.Descricao || !rawValue) {
+      // Validação básica de dados: Apenas processa se tiver Data, Descricao E um valor de pagamento/valor
+      if (!entry.Data || !entry.Descricao || !rawValue || rawValue.trim() === '') {
           errorCount++;
           continue;
       }
@@ -154,18 +153,17 @@ export async function importFinancialEntries(rawEntries: RawCostEntry[], userId:
           continue;
       }
       
-      // Validação de data
-      // O formato de data no CSV é DD/MM/YYYY. new Date() pode ter problemas com isso.
-      // Vamos tentar converter DD/MM/YYYY para YYYY-MM-DD
+      // Conversão de data DD/MM/YYYY para YYYY-MM-DD
       const parts = entry.Data.split('/');
       if (parts.length !== 3) {
           errorCount++;
           continue;
       }
+      // Note: Date constructor is unreliable with DD/MM/YYYY. We manually construct the ISO string.
       const dateString = `${parts[2]}-${parts[1]}-${parts[0]}`;
-      const dateObj = new Date(dateString);
       
-      if (isNaN(dateObj.getTime())) {
+      // Basic check if the resulting string is a valid date format
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
           errorCount++;
           continue;
       }
@@ -173,7 +171,7 @@ export async function importFinancialEntries(rawEntries: RawCostEntry[], userId:
       entriesToInsert.push({
         obra_id: obraId,
         user_id: userId,
-        data_gasto: format(dateObj, 'yyyy-MM-dd'),
+        data_gasto: dateString, // Usando a string YYYY-MM-DD
         categoria_id: categoryId,
         descricao: entry.Descricao.trim(),
         valor: parsedValue,
@@ -206,6 +204,7 @@ export async function importFinancialEntries(rawEntries: RawCostEntry[], userId:
 
     if (insertError) {
       console.error("[Importer] Erro na inserção em massa:", insertError);
+      // Se houver erro na inserção em massa, assumimos que todas as entradas falharam
       throw new Error(`Falha na inserção em massa: ${insertError.message}`);
     }
     successCount = uniqueEntries.length;
