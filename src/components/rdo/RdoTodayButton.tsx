@@ -17,7 +17,7 @@ const RdoTodayButton = ({ obraId }: RdoTodayButtonProps) => {
         trigger={
           <Button size="lg" className="rounded-full shadow-lg bg-secondary hover:bg-secondary/80 text-secondary-foreground">
             <FileText className="w-6 h-6 mr-2" />
-            RDO Hoje
+            Cadastrar RDO
           </Button>
         }
       />
