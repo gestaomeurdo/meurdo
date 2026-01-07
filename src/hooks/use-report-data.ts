@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface ReportData {
-  totalSpent: number;
+  totalSpentPeriod: number;
+  totalSpentObra: number;
   budgetUsedPercent: number;
   activitiesCompleted: number;
   initialBudget: number;

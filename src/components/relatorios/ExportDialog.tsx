@@ -1,5 +1,4 @@
 import jsPDF from 'jspdf';
-
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { FileText, Download, Loader2 } from "lucide-react";
@@ -10,6 +9,7 @@ import { showError, showSuccess } from "@/utils/toast";
 import { ReportData } from "@/hooks/use-report-data";
 import { AtividadeWithProfile } from "@/hooks/use-activities-in-period";
 import { formatCurrency, formatDate } from "@/utils/formatters";
+import { Obra } from "@/hooks/use-obras";
 
 interface ExportDialogProps {
   obraNome: string;
@@ -18,13 +18,16 @@ interface ExportDialogProps {
   activities: AtividadeWithProfile[] | undefined;
   kmCost: number | undefined;
   isLoading: boolean;
+  selectedObra: Obra | undefined;
 }
 
-const ExportDialog = ({ obraNome, periodo, reportData, activities, kmCost, isLoading }: ExportDialogProps) => {
+const LOGO_URL = "https://i.ibb.co/7dmMx016/Gemini-Generated-Image-qkvwxnqkvwxnqkvw-upscayl-2x-upscayl-standard-4x.png";
+
+const ExportDialog = ({ obraNome, periodo, reportData, activities, kmCost, isLoading, selectedObra }: ExportDialogProps) => {
   const [isExporting, setIsExporting] = useState(false);
 
-  const handleExportPdf = () => {
-    if (!reportData || !activities) {
+  const handleExportPdf = async () => {
+    if (!reportData || !activities || !selectedObra) {
       showError("Dados do relatório não estão disponíveis.");
       return;
     }
@@ -38,22 +41,58 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities, kmCost, isLoa
       const lineHeight = 7;
       const pageWidth = doc.internal.pageSize.getWidth();
 
+      // --- Load Logo ---
+      const logoImg = new Image();
+      logoImg.src = LOGO_URL;
+      
+      // Wait for image to load (or timeout)
+      await new Promise<void>((resolve) => {
+          logoImg.onload = () => resolve();
+          logoImg.onerror = () => resolve();
+          setTimeout(resolve, 1000); 
+      });
+
       // --- Header ---
-      doc.setFontSize(18);
-      doc.text(`Relatório de Atividades - ${obraNome}`, margin, y);
+      if (logoImg.complete && logoImg.naturalWidth > 0) {
+          const logoWidth = 15;
+          const logoHeight = 15;
+          doc.addImage(logoImg, 'PNG', margin, y - 5, logoWidth, logoHeight);
+          doc.setFontSize(18);
+          doc.text(`Diário de Obra - Relatório`, margin + logoWidth + 5, y);
+      } else {
+          doc.setFontSize(18);
+          doc.text(`Diário de Obra - Relatório`, margin, y);
+      }
       y += lineHeight;
       
-      doc.setFontSize(12);
-      doc.text(`Período: ${periodo}`, margin, y);
+      doc.setFontSize(14);
+      doc.text(`Obra: ${obraNome}`, margin, y);
+      y += lineHeight;
+      doc.text(`Período de Análise: ${periodo}`, margin, y);
       y += lineHeight * 2;
 
-      // --- Summary ---
+      // --- Overall Project Summary ---
+      doc.setFontSize(16);
+      doc.text("Resumo Geral da Obra", margin, y);
+      y += lineHeight;
+      
+      doc.setFontSize(10);
+      doc.text(`Status: ${selectedObra.status.charAt(0).toUpperCase() + selectedObra.status.slice(1)}`, margin, y);
+      y += lineHeight;
+      doc.text(`Orçamento Inicial: ${formatCurrency(reportData.initialBudget)}`, margin, y);
+      y += lineHeight;
+      doc.text(`Gasto Total (Acumulado): ${formatCurrency(reportData.totalSpentObra)}`, margin, y);
+      y += lineHeight;
+      doc.text(`Uso do Orçamento: ${reportData.budgetUsedPercent.toFixed(1)}%`, margin, y);
+      y += lineHeight * 2;
+
+      // --- Period Summary ---
       const currentKmCost = kmCost || 1.50;
       const totalKmCost = (reportData.totalMileagePeriod || 0) * currentKmCost;
       const totalActivityCost = (reportData.totalTollsPeriod || 0) + totalKmCost;
 
-      doc.setFontSize(14);
-      doc.text("Resumo de Custos", margin, y);
+      doc.setFontSize(16);
+      doc.text(`Métricas de Atividades no Período`, margin, y);
       y += lineHeight;
       
       doc.setFontSize(10);
@@ -68,7 +107,7 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities, kmCost, isLoa
 
       // --- Activities List ---
       doc.setFontSize(14);
-      doc.text("Detalhes das Atividades (Lista)", margin, y);
+      doc.text("Detalhes das Atividades", margin, y);
       y += lineHeight;
 
       if (activities.length === 0) {
@@ -89,29 +128,21 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities, kmCost, isLoa
           }
 
           doc.setFontSize(12);
-          doc.text(`--- Atividade ${index + 1} ---`, margin, y);
+          doc.text(`--- Atividade ${index + 1} (${formatDate(atividade.data_atividade)}) ---`, margin, y);
           y += lineHeight;
           
           doc.setFontSize(10);
           
           // Bullet list items
-          doc.text(`• Atividade realizada: ${atividade.descricao}`, margin + 5, y, { maxWidth: pageWidth - margin * 2 - 5 });
+          doc.text(`• Descrição: ${atividade.descricao}`, margin + 5, y, { maxWidth: pageWidth - margin * 2 - 5 });
           y += lineHeight;
-          doc.text(`• Data: ${formatDate(atividade.data_atividade)} (Status: ${atividade.status})`, margin + 5, y);
+          doc.text(`• Status: ${atividade.status}`, margin + 5, y);
           y += lineHeight;
           doc.text(`• Responsável: ${responsibleName}`, margin + 5, y);
           y += lineHeight;
-          doc.text(`• Valor gasto (Pedágio + KM): ${formatCurrency(activityTotalCost)}`, margin + 5, y);
+          doc.text(`• Custo Total: ${formatCurrency(activityTotalCost)}`, margin + 5, y);
           y += lineHeight;
-          doc.text(`• Detalhe de Custos: Pedágio (${formatCurrency(atividade.pedagio)}) + KM (${(atividade.km_rodado || 0).toFixed(0)} km @ ${formatCurrency(currentKmCost)}/km)`, margin + 5, y);
-          y += lineHeight;
-          
-          // Campos não disponíveis no esquema atual
-          doc.text(`• Materiais utilizados: N/A (Não registrado)`, margin + 5, y);
-          y += lineHeight;
-          doc.text(`• Horas trabalhadas: N/A (Não registrado)`, margin + 5, y);
-          y += lineHeight;
-          doc.text(`• Observações gerais: N/A`, margin + 5, y);
+          doc.text(`• Detalhe: Pedágio (${formatCurrency(atividade.pedagio)}) + KM (${(atividade.km_rodado || 0).toFixed(0)} km)`, margin + 5, y);
           y += lineHeight * 1.5; // Extra space after each activity
         });
       }
@@ -131,7 +162,7 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities, kmCost, isLoa
   };
 
   // The button should be disabled if data is loading or if reportData is missing (meaning no obra selected or RPC failed)
-  const isDataReady = !!reportData && !!activities;
+  const isDataReady = !!reportData && !!activities && !!selectedObra;
   const isDisabled = isLoading || isExporting || !isDataReady;
 
   return (
@@ -169,7 +200,7 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities, kmCost, isLoa
           </div>
         </div>
         <DialogFooter>
-          <Button type="button" variant="secondary">Cancelar</Button>
+          <Button type="button" variant="secondary" onClick={() => setOpen(false)}>Cancelar</Button>
           <Button 
             type="button" 
             onClick={handleExportPdf} 
