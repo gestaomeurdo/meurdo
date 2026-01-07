@@ -1,15 +1,10 @@
 import { useCallback } from "react";
 import { UseFormSetValue, UseFormGetValues } from "react-hook-form";
-import { parseCurrencyInput, formatCurrencyForInput } from "@/utils/formatters";
+import { formatCurrencyForInput } from "@/utils/formatters";
 
 /**
- * Hook para gerenciar a formatação de moeda em tempo real em campos de input.
- * Garante que o valor exibido seja formatado (ex: 1.000,00) enquanto o valor
- * real (numérico) no formulário seja o valor limpo (ex: 1000.00).
- * 
- * @param name O nome do campo no formulário (ex: 'orcamento_inicial').
- * @param setValue A função setValue do useForm.
- * @param getValues A função getValues do useForm.
+ * Hook para gerenciar a formatação de moeda em tempo real.
+ * Utiliza a lógica de "máscara de banco" (digita os números e eles deslocam para a esquerda).
  */
 export const useCurrencyInput = (
   name: string,
@@ -18,22 +13,29 @@ export const useCurrencyInput = (
 ) => {
 
   const handleCurrencyChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = event.target.value;
+    let rawValue = event.target.value;
     
-    // 1. Limpa o valor para obter o número real
-    const numericValue = parseCurrencyInput(rawValue);
+    // Remove tudo que não for dígito
+    const digitsOnly = rawValue.replace(/\D/g, '');
     
-    // 2. Formata o valor numérico de volta para a string de exibição (ex: 1000.00 -> 1.000,00)
+    if (!digitsOnly) {
+      setValue(name, "0,00", { shouldValidate: true });
+      return;
+    }
+
+    // Converte para número (ex: 1000 -> 10.00)
+    const numericValue = parseInt(digitsOnly, 10) / 100;
+    
+    // Formata para a string de exibição (ex: 10.00 -> 10,00)
     const formattedValue = formatCurrencyForInput(numericValue);
 
-    // 3. Atualiza o valor do campo no formulário com a string formatada
+    // Atualiza o valor do campo no formulário
     setValue(name, formattedValue, { shouldValidate: true });
   }, [name, setValue]);
 
-  // Função para obter o valor formatado atual para o input
   const getFormattedValue = () => {
     const value = getValues(name);
-    return value || '';
+    return value || '0,00';
   };
 
   return {
