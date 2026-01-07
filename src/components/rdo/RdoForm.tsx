@@ -1,10 +1,26 @@
-import { useForm, FormProvider } from "react-hook-form";
+"use client";
+
+import React, { useMemo, useEffect } from "react";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  Form, 
+  FormControl, 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormMessage 
+} from "@/components/ui/form";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { showSuccess, showError } from "@/utils/toast";
 import { CalendarIcon, Loader2, Save, FileDown, DollarSign, Trash2 } from "lucide-react";
@@ -12,16 +28,32 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { DiarioObra, RdoClima, RdoStatusDia, useCreateRdo, useUpdateRdo, useDeleteRdo } from "@/hooks/use-rdo";
+import { 
+  DiarioObra, 
+  RdoClima, 
+  RdoStatusDia, 
+  useCreateRdo, 
+  useUpdateRdo, 
+  useDeleteRdo 
+} from "@/hooks/use-rdo";
 import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
 import RdoEquipmentForm from "./RdoEquipmentForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useMemo, useEffect } from "react";
 import { formatCurrency } from "@/utils/formatters";
 import { generateRdoPdf } from "@/utils/rdo-pdf";
 import { useObras } from "@/hooks/use-obras";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle, 
+  AlertDialogTrigger 
+} from "@/components/ui/alert-dialog";
 
 const statusOptions: RdoStatusDia[] = ['Operacional', 'Parcialmente Paralisado', 'Totalmente Paralisado - Não Praticável'];
 const climaOptions: RdoClima[] = ['Sol', 'Nublado', 'Chuva Leve', 'Chuva Forte'];
@@ -164,7 +196,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
   };
 
   return (
-    <FormProvider {...form}>
+    <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-primary/10 rounded-xl border border-primary/20 gap-4">
           <div className="flex items-center gap-3">
@@ -213,25 +245,44 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <FormField control={form.control} name="data_rdo" render={({ field }) => (
+          <FormField
+            control={form.control}
+            name="data_rdo"
+            render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel>Data do Relatório</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {field.value ? format(field.value, "dd/MM/yyyy") : <span>Selecione a data</span>}
                     </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField control={form.control} name="status_dia" render={({ field }) => (
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+          <FormField
+            control={form.control}
+            name="status_dia"
+            render={({ field }) => (
               <FormItem>
                 <FormLabel>Status do Dia</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -248,7 +299,11 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
               </FormItem>
             )}
           />
-          <FormField control={form.control} name="clima_condicoes" render={({ field }) => (
+
+          <FormField
+            control={form.control}
+            name="clima_condicoes"
+            render={({ field }) => (
               <FormItem>
                 <FormLabel>Clima / Condições</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
@@ -288,20 +343,36 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
           </TabsContent>
           
           <TabsContent value="ocorrencias" className="pt-4 space-y-4">
-            <FormField control={form.control} name="impedimentos_comentarios" render={({ field }) => (
+            <FormField
+              control={form.control}
+              name="impedimentos_comentarios"
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel>Impedimentos ou Paralisações</FormLabel>
                   <FormControl>
-                    <Textarea {...field} value={field.value || ""} placeholder="Descreva problemas com fornecedores, greves, falta de material..." rows={4} />
+                    <Textarea 
+                      {...field} 
+                      value={field.value || ""} 
+                      placeholder="Descreva problemas com fornecedores, greves, falta de material..." 
+                      rows={4} 
+                    />
                   </FormControl>
                 </FormItem>
               )}
             />
-            <FormField control={form.control} name="observacoes_gerais" render={({ field }) => (
+            <FormField
+              control={form.control}
+              name="observacoes_gerais"
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel>Observações Gerais</FormLabel>
                   <FormControl>
-                    <Textarea {...field} value={field.value || ""} placeholder="Outras informações relevantes do dia..." rows={4} />
+                    <Textarea 
+                      {...field} 
+                      value={field.value || ""} 
+                      placeholder="Outras informações relevantes do dia..." 
+                      rows={4} 
+                    />
                   </FormControl>
                 </FormItem>
               )}
@@ -309,7 +380,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
           </TabsContent>
         </Tabs>
       </form>
-    </FormProvider>
+    </Form>
   );
 };
 
