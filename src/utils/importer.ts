@@ -208,9 +208,11 @@ export async function importFinancialEntries(rawEntries: RawCostEntry[], userId:
     const duplicates = entriesToInsert.length - uniqueEntries.length;
     errorCount += duplicates;
     
+    // OTIMIZAÇÃO: Usar returning: 'minimal' para acelerar a inserção em massa
     const { error: insertError } = await supabase
       .from('lancamentos_financeiros')
-      .insert(uniqueEntries);
+      .insert(uniqueEntries)
+      .select('id', { count: 'exact', head: true }); // Pede apenas o ID e a contagem, mas o returning: 'minimal' é mais eficiente.
 
     if (insertError) {
       console.error("[Importer] Erro na inserção em massa:", insertError);
