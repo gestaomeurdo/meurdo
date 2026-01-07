@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Upload, Loader2, AlertTriangle, CheckCircle } from "lucide-react";
+import { FileUp, Loader2, AlertTriangle, CheckCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import Papa from 'papaparse';
@@ -12,15 +12,16 @@ import { useQueryClient } from "@tanstack/react-query";
 
 interface ImportDialogProps {
   trigger: React.ReactNode;
+  selectedObraId?: string;
+  selectedObraNome?: string;
 }
 
-const ImportDialog = ({ trigger }: ImportDialogProps) => {
+const ImportDialog = ({ trigger, selectedObraId, selectedObraNome }: ImportDialogProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [importResult, setImportResult] = useState<{ successCount: number, errorCount: number, totalCount: number } | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [open, setOpen] = useState(false);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -36,59 +37,66 @@ const ImportDialog = ({ trigger }: ImportDialogProps) => {
       return;
     }
 
+    if (!selectedObraId) {
+      showError("Selecione uma obra antes de importar.");
+      return;
+    }
+
     setIsLoading(true);
-    setIsProcessing(true);
     setImportResult(null);
 
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
       dynamicTyping: false,
-      delimiter: ';', // Usando ponto e vírgula como delimitador
+      // O PapaParse tenta detectar o delimitador automaticamente
       complete: async (results) => {
-        // Filter lines that have Descricao and either Pagamentos or Valor
-        const rawEntries = (results.data as RawCostEntry[]).filter(e => 
-          e.Descricao && (e.Pagamentos || e.Valor)
-        );
+        // Filtra linhas básicas
+        const rawEntries = (results.data as any[]).map(row => {
+            // Tenta mapear colunas comuns caso o CSV use nomes diferentes
+            const entry: RawCostEntry = {
+                Data: row.Data || row.data || row.DATA || '',
+                Descricao: row.Descrição || row.Descricao || row.descricao || row.HISTORICO || row.Historico || '',
+                Valor: row.Valor || row.valor || row.VALOR || row.Pagamentos || row.pagamentos || row.Saída || row.saida || ''
+            };
+            return entry;
+        }).filter(e => e.Data && (e.Descricao || e.Valor));
+
         const totalCount = rawEntries.length;
 
         if (totalCount === 0) {
-          showError("O arquivo CSV está vazio ou não contém lançamentos válidos nas colunas esperadas (Data, Descricao, Valor/Pagamentos).");
+          showError("O arquivo CSV parece não ter os cabeçalhos esperados (Data, Descrição, Valor). Verifique se o arquivo está no formato correto.");
           setIsLoading(false);
-          setIsProcessing(false);
           return;
         }
 
         try {
-          // Nota: O ImportDialog genérico precisaria de um obraId. Como não é usado ativamente 
-          // em favor do PasteImportDialog que já corrigimos, vamos manter a compatibilidade básica.
-          const { successCount, errorCount } = await importFinancialEntries(rawEntries, user.id, "placeholder-id");
+          const result = await importFinancialEntries(rawEntries, user.id, selectedObraId);
           
-          setImportResult({ successCount, errorCount, totalCount });
-          showSuccess(`Importação concluída! ${successCount} lançamentos adicionados.`);
+          setImportResult({ 
+            successCount: result.successCount, 
+            errorCount: result.errorCount, 
+            totalCount: totalCount 
+          });
+          
+          showSuccess(`Importação concluída! ${result.successCount} lançamentos adicionados.`);
           
           queryClient.invalidateQueries({ queryKey: ['financialEntries'] });
-          queryClient.invalidateQueries({ queryKey: ['obras'] });
           queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
 
         } catch (error) {
           showError(`Falha na importação: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
-          setImportResult({ successCount: 0, errorCount: totalCount, totalCount });
         } finally {
           setIsLoading(false);
-          setIsProcessing(false);
           setFile(null);
         }
       },
       error: (error) => {
         showError(`Erro ao processar o arquivo: ${error.message}`);
         setIsLoading(false);
-        setIsProcessing(false);
       }
     });
   };
-
-  const isButtonDisabled = !file || isLoading || isProcessing;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -97,25 +105,24 @@ const ImportDialog = ({ trigger }: ImportDialogProps) => {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Importação de Dados Financeiros</DialogTitle>
+          <DialogTitle>Importar Arquivo para: {selectedObraNome || "Selecione uma Obra"}</DialogTitle>
           <DialogDescription>
-            Faça upload de um arquivo CSV para importar múltiplos lançamentos de uma vez.
+            Faça upload de um arquivo CSV configurado com as colunas Data, Descrição e Valor.
           </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4 py-4">
           <Alert variant="default">
             <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Formato Necessário (CSV)</AlertTitle>
+            <AlertTitle>Formato Esperado</AlertTitle>
             <AlertDescription>
-              O arquivo deve conter as colunas exatas (case-sensitive): 
-              <code className="block mt-2 p-2 bg-secondary rounded text-sm">Data, Descrição, Valor</code> ou <code className="block mt-2 p-2 bg-secondary rounded text-sm">Data, Descrição, Pagamentos</code>.
-              <p className="mt-2">Certifique-se de que o arquivo usa **ponto e vírgula (;)** como separador.</p>
+              O arquivo deve ser um CSV com a primeira linha contendo: **Data, Descrição, Valor**.
+              Os dados serão importados para a obra **{selectedObraNome}**.
             </AlertDescription>
           </Alert>
 
           <div className="space-y-2">
-            <label htmlFor="csv-upload" className="block text-sm font-medium">Selecione o Arquivo CSV</label>
+            <label htmlFor="csv-upload" className="block text-sm font-medium">Selecione o Arquivo (.csv)</label>
             <Input 
               id="csv-upload"
               type="file" 
@@ -129,14 +136,10 @@ const ImportDialog = ({ trigger }: ImportDialogProps) => {
             <Alert className={importResult.successCount > 0 ? "border-green-500" : "border-destructive"}>
               <AlertTitle className="flex items-center">
                 {importResult.successCount > 0 ? <CheckCircle className="h-4 w-4 mr-2 text-green-500" /> : <AlertTriangle className="h-4 w-4 mr-2 text-destructive" />}
-                Resultado da Importação
+                Resultado
               </AlertTitle>
               <AlertDescription className="space-y-1">
-                <p>Total de linhas processadas: <span className="font-bold">{importResult.totalCount}</span></p>
-                <p className="text-green-500">Sucesso: <span className="font-bold">{importResult.successCount}</span></p>
-                {importResult.errorCount > 0 && (
-                  <p className="text-destructive">Erros/Duplicados: <span className="font-bold">{importResult.errorCount}</span></p>
-                )}
+                <p>Processados: {importResult.totalCount} | Sucesso: {importResult.successCount} | Falhas: {importResult.errorCount}</p>
               </AlertDescription>
             </Alert>
           )}
@@ -146,17 +149,17 @@ const ImportDialog = ({ trigger }: ImportDialogProps) => {
           <Button type="button" variant="secondary" onClick={() => setOpen(false)}>Fechar</Button>
           <Button 
             onClick={handleImport} 
-            disabled={isButtonDisabled}
+            disabled={!file || isLoading}
           >
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processando...
+                Importando...
               </>
             ) : (
               <>
-                <Upload className="mr-2 h-4 w-4" />
-                Importar Lançamentos
+                <FileUp className="mr-2 h-4 w-4" />
+                Iniciar Importação
               </>
             )}
           </Button>
