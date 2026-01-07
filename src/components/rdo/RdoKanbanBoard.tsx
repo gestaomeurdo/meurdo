@@ -3,7 +3,7 @@ import { DiarioObra } from "@/hooks/use-rdo";
 import { format, parseISO } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Sun, Cloud, CloudRain, CloudLightning, Users, Calendar } from "lucide-react";
+import { Sun, Cloud, CloudRain, CloudLightning, Users, Calendar, AlertTriangle } from "lucide-react";
 import RdoDialog from "./RdoDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 
