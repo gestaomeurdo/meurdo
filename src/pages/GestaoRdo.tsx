@@ -9,7 +9,7 @@ import { useRdoList } from "@/hooks/use-rdo";
 import RdoListTable from "@/components/rdo/RdoListTable";
 import RdoCalendar from "@/components/rdo/RdoCalendar";
 import KpiCard from "@/components/relatorios/KpiCard";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isSameMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -31,17 +31,19 @@ const GestaoRdo = () => {
 
   const summaryMetrics = useMemo(() => {
     if (!rdoList) return { daysWorked: 0, daysOfRain: 0 };
-    const currentMonth = format(currentDate, 'yyyy-MM');
-    let daysWorked = 0;
-    let daysOfRain = 0;
-    rdoList.forEach(rdo => {
-      const rdoMonth = format(parseISO(rdo.data_rdo), 'yyyy-MM');
-      if (rdoMonth === currentMonth) {
-        daysWorked++;
-        if (rdo.clima_condicoes?.includes('Chuva')) daysOfRain++;
-      }
+    
+    // Filtra RDOs apenas do mês/ano que está sendo visualizado no calendário
+    const filteredList = rdoList.filter(rdo => {
+        const rdoDate = parseISO(rdo.data_rdo);
+        return isSameMonth(rdoDate, currentDate);
     });
-    return { daysWorked, daysOfRain };
+
+    const daysOfRain = filteredList.filter(rdo => rdo.clima_condicoes?.includes('Chuva')).length;
+    
+    return { 
+        daysWorked: filteredList.length, 
+        daysOfRain 
+    };
   }, [rdoList, currentDate]);
 
   if (isLoadingObras) {
@@ -50,20 +52,6 @@ const GestaoRdo = () => {
         <div className="p-6 flex flex-col justify-center items-center h-[60vh] gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
           <p className="text-muted-foreground animate-pulse">Carregando obras...</p>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  if (obrasError) {
-    return (
-      <DashboardLayout>
-        <div className="p-6">
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Erro ao carregar obras</AlertTitle>
-            <AlertDescription>{obrasError.message}</AlertDescription>
-          </Alert>
         </div>
       </DashboardLayout>
     );
@@ -81,7 +69,9 @@ const GestaoRdo = () => {
             <ObraSelector selectedObraId={selectedObraId} onSelectObra={setSelectedObraId} />
             {selectedObraId && (
               <RdoDialog obraId={selectedObraId} date={new Date()} trigger={
-                  <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg font-semibold"><Plus className="w-5 h-5 mr-2" /> Novo RDO (Hoje)</Button>
+                  <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg font-semibold">
+                    <Plus className="w-5 h-5 mr-2" /> Novo RDO (Hoje)
+                  </Button>
               } />
             )}
           </div>
@@ -91,43 +81,61 @@ const GestaoRdo = () => {
           <Card className="border-dashed py-20 text-center">
             <CardContent>
               <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">Nenhuma obra selecionada ou cadastrada.</p>
+              <p className="text-muted-foreground">Selecione uma obra para gerenciar os RDOs.</p>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-6">
-            {rdoError && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Erro ao carregar histórico de RDO</AlertTitle>
-                <AlertDescription>{rdoError.message}</AlertDescription>
-              </Alert>
-            )}
-
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <KpiCard title="Dias de Obra (Mês)" value={summaryMetrics.daysWorked} icon={FileText} isLoading={isLoadingRdoList} />
-              <KpiCard title="Ocorrências de Chuva" value={summaryMetrics.daysOfRain} icon={CloudRain} isLoading={isLoadingRdoList} />
-              <KpiCard title="Mão de Obra Média" value="Ver RDO" icon={Users} isLoading={false} />
-              <KpiCard title="Status Geral" value={selectedObra?.status === 'ativa' ? 'Ativa' : 'Parada'} icon={ClipboardCheck} isLoading={false} />
+              <KpiCard 
+                title="Registros no Mês" 
+                value={summaryMetrics.daysWorked} 
+                description={format(currentDate, 'MMMM yyyy', { locale: ptBR })}
+                icon={FileText} 
+                isLoading={isLoadingRdoList} 
+              />
+              <KpiCard 
+                title="Ocorrências de Chuva" 
+                value={summaryMetrics.daysOfRain} 
+                icon={CloudRain} 
+                isLoading={isLoadingRdoList} 
+              />
+              <KpiCard 
+                title="Status Geral" 
+                value={selectedObra?.status === 'ativa' ? 'Ativa' : 'Parada'} 
+                icon={ClipboardCheck} 
+                isLoading={false} 
+              />
+              <KpiCard 
+                title="Total de Registros" 
+                value={rdoList?.length || 0} 
+                description="Histórico completo da obra"
+                icon={Users} 
+                isLoading={isLoadingRdoList} 
+              />
             </div>
 
-            <div className="bg-card border rounded-xl p-1 inline-flex">
-              <Button variant={view === "calendario" ? "secondary" : "ghost"} onClick={() => setView("calendario")} size="sm"><LayoutGrid className="w-4 h-4 mr-2" /> Calendário</Button>
-              <Button variant={view === "lista" ? "secondary" : "ghost"} onClick={() => setView("lista")} size="sm"><List className="w-4 h-4 mr-2" /> Lista</Button>
+            <div className="flex justify-between items-center">
+                <div className="bg-card border rounded-xl p-1 inline-flex">
+                    <Button variant={view === "calendario" ? "secondary" : "ghost"} onClick={() => setView("calendario")} size="sm">
+                        <LayoutGrid className="w-4 h-4 mr-2" /> Calendário
+                    </Button>
+                    <Button variant={view === "lista" ? "secondary" : "ghost"} onClick={() => setView("lista")} size="sm">
+                        <List className="w-4 h-4 mr-2" /> Lista
+                    </Button>
+                </div>
+                
+                {view === "calendario" && (
+                    <div className="flex gap-2 items-center bg-card p-1 border rounded-lg">
+                        <Button variant="ghost" size="sm" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}>Anterior</Button>
+                        <span className="text-sm font-bold px-2 capitalize">{format(currentDate, 'MMMM yyyy', { locale: ptBR })}</span>
+                        <Button variant="ghost" size="sm" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}>Próximo</Button>
+                    </div>
+                )}
             </div>
 
             {view === "calendario" ? (
-              <div className="space-y-4">
-                <div className="flex justify-between items-center bg-card p-4 rounded-xl border">
-                  <h2 className="text-xl font-bold capitalize">{format(currentDate, 'MMMM yyyy', { locale: ptBR })}</h2>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}>Anterior</Button>
-                    <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())}>Hoje</Button>
-                    <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}>Próximo</Button>
-                  </div>
-                </div>
-                <RdoCalendar obraId={selectedObraId} rdoList={rdoList || []} currentDate={currentDate} />
-              </div>
+              <RdoCalendar obraId={selectedObraId} rdoList={rdoList || []} currentDate={currentDate} />
             ) : (
               <RdoListTable rdoList={rdoList || []} obraId={selectedObraId} isLoading={isLoadingRdoList} />
             )}
