@@ -21,7 +21,13 @@ export async function importCargos(
     try {
       const nome = entry.Nome?.trim();
       const rawCusto = entry.Custo?.toString().trim();
-      const tipo = (entry.Tipo?.trim() === 'Empreiteiro') ? 'Empreiteiro' : 'Próprio';
+      
+      // Mapeia o tipo, aceitando variações comuns
+      let tipo: 'Próprio' | 'Empreiteiro' = 'Próprio';
+      const rawTipo = entry.Tipo?.trim().toLowerCase();
+      if (rawTipo === 'empreiteiro' || rawTipo === 'terceiro' || rawTipo === 'externo') {
+        tipo = 'Empreiteiro';
+      }
 
       if (!nome || !rawCusto) {
         errorCount++;
@@ -49,6 +55,7 @@ export async function importCargos(
       .insert(entriesToInsert);
 
     if (insertError) {
+      console.error("[CargoImporter] Erro no Supabase:", insertError);
       throw new Error(`Erro ao inserir no banco: ${insertError.message}`);
     }
     

@@ -9,7 +9,6 @@ import { showError, showSuccess } from "@/utils/toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useQueryClient } from "@tanstack/react-query";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface CargoImportDialogProps {
   trigger: React.ReactNode;
@@ -30,8 +29,9 @@ const CargoImportDialog = ({ trigger }: CargoImportDialogProps) => {
     }
 
     setIsLoading(true);
+    setImportResult(null);
     
-    // Detectar delimitador
+    // Detectar delimitador de forma mais inteligente
     let delimiter = "";
     if (csvText.includes('\t')) delimiter = '\t';
     else if (csvText.includes(';')) delimiter = ';';
@@ -41,33 +41,44 @@ const CargoImportDialog = ({ trigger }: CargoImportDialogProps) => {
       delimiter: delimiter,
       header: true,
       skipEmptyLines: 'greedy',
+      transformHeader: (header) => header.trim(), // Remove espaços extras dos nomes das colunas
       complete: async (results) => {
-        const rawEntries = (results.data as any[]).map(row => ({
-          Nome: row.Nome || row.nome || row.Cargo || row.cargo || '',
-          Custo: row.Custo || row.custo || row.Valor || row.valor || row.Salario || row.salario || '',
-          Tipo: row.Tipo || row.tipo || 'Próprio'
-        })).filter(e => e.Nome && e.Custo);
-
-        if (rawEntries.length === 0) {
-          showError("Nenhum cargo válido encontrado. Use cabeçalhos como: Nome;Custo;Tipo");
-          setIsLoading(false);
-          return;
-        }
-
         try {
+          const rawEntries = (results.data as any[]).map(row => ({
+            Nome: row.Nome || row.nome || row.Cargo || row.cargo || '',
+            Custo: row.Custo || row.custo || row.Valor || row.valor || row.Salario || row.salario || '',
+            Tipo: row.Tipo || row.tipo || 'Próprio'
+          })).filter(e => e.Nome && e.Custo);
+
+          if (rawEntries.length === 0) {
+            showError("Nenhum cargo válido identificado. Verifique os nomes das colunas (Nome, Custo).");
+            setIsLoading(false);
+            return;
+          }
+
           const result = await importCargos(rawEntries, user.id);
           setImportResult({ 
             successCount: result.successCount, 
             errorCount: result.errorCount, 
             totalCount: rawEntries.length 
           });
-          showSuccess(`${result.successCount} cargos importados.`);
-          queryClient.invalidateQueries({ queryKey: ['cargos'] });
+          
+          if (result.successCount > 0) {
+            showSuccess(`${result.successCount} cargos importados com sucesso.`);
+            queryClient.invalidateQueries({ queryKey: ['cargos'] });
+          } else {
+            showError("Nenhum registro pôde ser salvo. Verifique o formato.");
+          }
         } catch (error) {
+          console.error("[ImportDialog] Erro:", error);
           showError(`Erro: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
         } finally {
           setIsLoading(false);
         }
+      },
+      error: (error) => {
+        showError(`Erro no processamento do texto: ${error.message}`);
+        setIsLoading(false);
       }
     });
   };
@@ -86,7 +97,8 @@ const CargoImportDialog = ({ trigger }: CargoImportDialogProps) => {
             <AlertTriangle className="h-4 w-4 text-primary" />
             <AlertTitle>Formato Esperado</AlertTitle>
             <AlertDescription className="text-xs">
-              O cabeçalho deve conter: <code className="bg-muted px-1">Nome</code>, <code className="bg-muted px-1">Custo</code> e opcionalmente <code className="bg-muted px-1">Tipo</code> (Próprio ou Empreiteiro).
+              O cabeçalho deve conter: <code className="bg-muted px-1">Nome</code> e <code className="bg-muted px-1">Custo</code>.<br/>
+              Ex: Mestre de Obras; 350,00
             </AlertDescription>
           </Alert>
 
@@ -94,7 +106,10 @@ const CargoImportDialog = ({ trigger }: CargoImportDialogProps) => {
             placeholder="Nome;Custo;Tipo&#10;Pedreiro;150,00;Próprio&#10;Servente;100,00;Próprio"
             rows={8}
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={(e) => {
+                setContent(e.target.value);
+                setImportResult(null);
+            }}
             className="font-mono text-xs"
           />
 
@@ -102,7 +117,7 @@ const CargoImportDialog = ({ trigger }: CargoImportDialogProps) => {
             <Alert className={importResult.successCount > 0 ? "border-green-500" : "border-destructive"}>
               <AlertTitle className="flex items-center text-sm font-bold">
                 {importResult.successCount > 0 ? <CheckCircle className="h-4 w-4 mr-2 text-green-500" /> : <AlertTriangle className="h-4 w-4 mr-2 text-destructive" />}
-                Resultado do Processamento
+                Relatório de Importação
               </AlertTitle>
               <AlertDescription className="text-xs">
                 Processados: {importResult.totalCount} | Sucesso: {importResult.successCount} | Falhas: {importResult.errorCount}
