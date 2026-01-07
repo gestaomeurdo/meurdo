@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Upload, Loader2, AlertTriangle, CheckCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -60,12 +60,13 @@ const ImportDialog = ({ trigger }: ImportDialogProps) => {
         }
 
         try {
-          const { successCount, errorCount } = await importFinancialEntries(rawEntries, user.id);
+          // Nota: O ImportDialog genérico precisaria de um obraId. Como não é usado ativamente 
+          // em favor do PasteImportDialog que já corrigimos, vamos manter a compatibilidade básica.
+          const { successCount, errorCount } = await importFinancialEntries(rawEntries, user.id, "placeholder-id");
           
           setImportResult({ successCount, errorCount, totalCount });
           showSuccess(`Importação concluída! ${successCount} lançamentos adicionados.`);
           
-          // Invalida consultas relevantes para atualizar o dashboard e financeiro
           queryClient.invalidateQueries({ queryKey: ['financialEntries'] });
           queryClient.invalidateQueries({ queryKey: ['obras'] });
           queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
@@ -97,6 +98,9 @@ const ImportDialog = ({ trigger }: ImportDialogProps) => {
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Importação de Dados Financeiros</DialogTitle>
+          <DialogDescription>
+            Faça upload de um arquivo CSV para importar múltiplos lançamentos de uma vez.
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4 py-4">
@@ -107,7 +111,6 @@ const ImportDialog = ({ trigger }: ImportDialogProps) => {
               O arquivo deve conter as colunas exatas (case-sensitive): 
               <code className="block mt-2 p-2 bg-secondary rounded text-sm">Data, Descrição, Valor</code> ou <code className="block mt-2 p-2 bg-secondary rounded text-sm">Data, Descrição, Pagamentos</code>.
               <p className="mt-2">Certifique-se de que o arquivo usa **ponto e vírgula (;)** como separador.</p>
-              <p className="mt-2">Todos os lançamentos serão atribuídos à obra padrão: **Golden BTS**.</p>
             </AlertDescription>
           </Alert>
 

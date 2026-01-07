@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import ObraForm from "./ObraForm";
@@ -31,6 +31,11 @@ const ObraDialog = ({ initialData, trigger }: ObraDialogProps) => {
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>{isEditing ? "Editar Obra" : "Criar Nova Obra"}</DialogTitle>
+          <DialogDescription>
+            {isEditing 
+              ? "Atualize as informações da obra selecionada." 
+              : "Preencha os campos abaixo para cadastrar uma nova obra no sistema."}
+          </DialogDescription>
         </DialogHeader>
         <ObraForm initialData={initialData} onSuccess={handleSuccess} />
       </DialogContent>

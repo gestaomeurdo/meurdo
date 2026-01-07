@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import AtividadeForm from "./AtividadeForm";
@@ -32,6 +32,11 @@ const AtividadeDialog = ({ obraId, initialData, trigger }: AtividadeDialogProps)
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>{isEditing ? "Editar Atividade" : "Registrar Nova Atividade"}</DialogTitle>
+          <DialogDescription>
+            {isEditing 
+              ? "Atualize os detalhes do registro de atividade." 
+              : "Descreva o que foi realizado na obra nesta data, incluindo custos de deslocamento."}
+          </DialogDescription>
         </DialogHeader>
         <AtividadeForm obraId={obraId} initialData={initialData} onSuccess={handleSuccess} />
       </DialogContent>
