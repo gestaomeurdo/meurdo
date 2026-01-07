@@ -1,22 +1,21 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useObras } from "@/hooks/use-obras";
 import { useState, useEffect, useMemo } from "react";
-import { Loader2, FileText, Plus, CloudRain, Users, Calendar as CalendarIcon, ClipboardCheck, Info, LayoutGrid, List } from "lucide-react";
+import { Loader2, FileText, Plus, CloudRain, Users, ClipboardCheck, LayoutGrid, List, AlertTriangle } from "lucide-react";
 import ObraSelector from "@/components/financeiro/ObraSelector";
 import RdoDialog from "@/components/rdo/RdoDialog";
 import { Button } from "@/components/ui/button";
-import { useRdoList, DiarioObra } from "@/hooks/use-rdo";
+import { useRdoList } from "@/hooks/use-rdo";
 import RdoListTable from "@/components/rdo/RdoListTable";
 import RdoCalendar from "@/components/rdo/RdoCalendar";
 import KpiCard from "@/components/relatorios/KpiCard";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const GestaoRdo = () => {
-  const { data: obras, isLoading: isLoadingObras } = useObras();
+  const { data: obras, isLoading: isLoadingObras, error: obrasError } = useObras();
   const [selectedObraId, setSelectedObraId] = useState<string | undefined>(undefined);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<"lista" | "calendario">("calendario");
@@ -28,9 +27,7 @@ const GestaoRdo = () => {
   }, [obras, selectedObraId]);
 
   const selectedObra = obras?.find(o => o.id === selectedObraId);
-  const { data: rdoList, isLoading: isLoadingRdoList } = useRdoList(selectedObraId || '');
-
-  const lastRdo = rdoList && rdoList.length > 0 ? rdoList[0] : null;
+  const { data: rdoList, isLoading: isLoadingRdoList, error: rdoError } = useRdoList(selectedObraId || '');
 
   const summaryMetrics = useMemo(() => {
     if (!rdoList) return { daysWorked: 0, daysOfRain: 0 };
@@ -48,7 +45,28 @@ const GestaoRdo = () => {
   }, [rdoList, currentDate]);
 
   if (isLoadingObras) {
-    return <DashboardLayout><div className="p-6 flex justify-center items-center h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div></DashboardLayout>;
+    return (
+      <DashboardLayout>
+        <div className="p-6 flex flex-col justify-center items-center h-[60vh] gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-muted-foreground animate-pulse">Carregando obras...</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (obrasError) {
+    return (
+      <DashboardLayout>
+        <div className="p-6">
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Erro ao carregar obras</AlertTitle>
+            <AlertDescription>{obrasError.message}</AlertDescription>
+          </Alert>
+        </div>
+      </DashboardLayout>
+    );
   }
 
   return (
@@ -70,9 +88,22 @@ const GestaoRdo = () => {
         </div>
 
         {!selectedObraId ? (
-          <Card className="border-dashed py-20 text-center"><CardContent><p className="text-muted-foreground">Selecione uma obra.</p></CardContent></Card>
+          <Card className="border-dashed py-20 text-center">
+            <CardContent>
+              <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">Nenhuma obra selecionada ou cadastrada.</p>
+            </CardContent>
+          </Card>
         ) : (
           <div className="space-y-6">
+            {rdoError && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Erro ao carregar histórico de RDO</AlertTitle>
+                <AlertDescription>{rdoError.message}</AlertDescription>
+              </Alert>
+            )}
+
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <KpiCard title="Dias de Obra (Mês)" value={summaryMetrics.daysWorked} icon={FileText} isLoading={isLoadingRdoList} />
               <KpiCard title="Ocorrências de Chuva" value={summaryMetrics.daysOfRain} icon={CloudRain} isLoading={isLoadingRdoList} />
@@ -90,9 +121,9 @@ const GestaoRdo = () => {
                 <div className="flex justify-between items-center bg-card p-4 rounded-xl border">
                   <h2 className="text-xl font-bold capitalize">{format(currentDate, 'MMMM yyyy', { locale: ptBR })}</h2>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() - 1)))}>Anterior</Button>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}>Anterior</Button>
                     <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())}>Hoje</Button>
-                    <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() + 1)))}>Próximo</Button>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}>Próximo</Button>
                   </div>
                 </div>
                 <RdoCalendar obraId={selectedObraId} rdoList={rdoList || []} currentDate={currentDate} />
