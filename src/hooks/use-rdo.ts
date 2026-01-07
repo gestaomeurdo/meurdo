@@ -17,7 +17,6 @@ export interface RdoMaoDeObra {
   diario_id: string;
   funcao: string;
   quantidade: number;
-  custo_unitario?: number;
 }
 
 export interface RdoEquipamento {
@@ -47,31 +46,6 @@ export interface DiarioObra {
   rdo_atividades_detalhe?: RdoAtividadeDetalhe[];
   rdo_mao_de_obra?: RdoMaoDeObra[];
   rdo_equipamentos?: RdoEquipamento[];
-}
-
-// --- Input Type for Mutations ---
-export interface RdoInput {
-  obra_id: string;
-  data_rdo: string;
-  clima_condicoes: RdoClima | null;
-  status_dia: RdoStatusDia;
-  observacoes_gerais: string | null;
-  impedimentos_comentarios: string | null;
-  atividades: {
-    descricao_servico: string;
-    avanco_percentual: number;
-    foto_anexo_url?: string | null;
-  }[];
-  mao_de_obra: {
-    funcao: string;
-    quantidade: number;
-    custo_unitario?: number;
-  }[];
-  equipamentos: {
-    equipamento: string;
-    horas_trabalhadas: number;
-    horas_paradas: number;
-  }[];
 }
 
 // --- Fetching Single RDO ---
@@ -155,6 +129,18 @@ export const fetchPreviousRdo = async (obraId: string, currentDate: Date): Promi
 };
 
 // --- Mutations ---
+export interface RdoInput {
+  obra_id: string;
+  data_rdo: string;
+  clima_condicoes: RdoClima | null;
+  status_dia: RdoStatusDia;
+  observacoes_gerais: string | null;
+  impedimentos_comentarios: string | null;
+  atividades: Omit<RdoAtividadeDetalhe, 'id' | 'diario_id'>[];
+  mao_de_obra: Omit<RdoMaoDeObra, 'id' | 'diario_id'>[];
+  equipamentos: Omit<RdoEquipamento, 'id' | 'diario_id'>[];
+}
+
 const insertRdoDetails = async (diarioId: string, details: RdoInput) => {
     if (details.atividades.length > 0) {
         const { error } = await supabase.from('rdo_atividades_detalhe').insert(details.atividades.map(a => ({ ...a, diario_id: diarioId })));
