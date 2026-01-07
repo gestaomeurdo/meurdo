@@ -2,7 +2,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useObras, Obra } from "@/hooks/use-obras";
 import { useState, useMemo, useEffect } from "react";
-import { Loader2, Plus, Clipboard, FileUp } from "lucide-react";
+import { Loader2, Plus, Clipboard, FileUp, Filter } from "lucide-react";
 import ObraSelector from "@/components/financeiro/ObraSelector";
 import FinancialSummary from "@/components/financeiro/FinancialSummary";
 import EntriesTable from "@/components/financeiro/EntriesTable";
@@ -44,6 +44,63 @@ const Financeiro = () => {
     );
   }
 
+  const hasEntries = entries && entries.length > 0;
+
+  const renderContent = () => {
+    if (!selectedObra) {
+      return (
+        <div className="text-center py-12 border border-dashed rounded-lg bg-muted/50">
+          <p className="text-muted-foreground">
+            Por favor, selecione uma obra no menu acima para visualizar e gerenciar os lançamentos financeiros.
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <>
+        <h2 className="text-xl font-semibold text-primary truncate">Obra Selecionada: {selectedObra.nome}</h2>
+        <FinancialSummary obra={selectedObra} entries={entries} />
+        
+        {isLoadingEntries ? (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-2 text-muted-foreground">Carregando lançamentos...</span>
+          </div>
+        ) : hasEntries ? (
+          <>
+            <ExpenseCharts entries={entries} />
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl">Lançamentos de Despesas</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <EntriesTable 
+                  entries={entries} 
+                  obraId={selectedObraId!} 
+                  isLoading={isLoadingEntries} 
+                  refetch={refetch}
+                  setFilters={setFilters}
+                />
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          <Card className="mt-6">
+            <CardContent className="text-center py-12">
+              <Filter className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <h2 className="text-xl font-semibold mb-2">Nenhum lançamento encontrado</h2>
+              <p className="text-muted-foreground mb-4">
+                Comece adicionando um novo lançamento financeiro ou importe dados.
+              </p>
+              <EntryDialog obraId={selectedObraId!} />
+            </CardContent>
+          </Card>
+        )}
+      </>
+    );
+  };
+
   return (
     <DashboardLayout>
       <div className="p-6 space-y-6">
@@ -79,33 +136,7 @@ const Financeiro = () => {
           </div>
         </div>
 
-        {selectedObra ? (
-          <>
-            <h2 className="text-xl font-semibold text-primary truncate">Obra Selecionada: {selectedObra.nome}</h2>
-            <FinancialSummary obra={selectedObra} entries={entries} />
-            <ExpenseCharts entries={entries} />
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl">Lançamentos de Despesas</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <EntriesTable 
-                  entries={entries} 
-                  obraId={selectedObraId!} 
-                  isLoading={isLoadingEntries} 
-                  refetch={refetch}
-                  setFilters={setFilters}
-                />
-              </CardContent>
-            </Card>
-          </>
-        ) : (
-          <div className="text-center py-12 border border-dashed rounded-lg bg-muted/50">
-            <p className="text-muted-foreground">
-              Por favor, selecione uma obra no menu acima para visualizar e gerenciar os lançamentos financeiros.
-            </p>
-          </div>
-        )}
+        {renderContent()}
       </div>
       
       {selectedObraId && (
