@@ -43,6 +43,8 @@ const PasteImportDialog = ({ trigger }: PasteImportDialogProps) => {
       header: false, // Processamos o cabeçalho manualmente
       skipEmptyLines: true,
       complete: async (results) => {
+        console.log("[ImportDialog] PapaParse Complete. Results:", results);
+        
         const rows = results.data as string[][];
         
         if (rows.length === 0) {
@@ -66,6 +68,7 @@ const PasteImportDialog = ({ trigger }: PasteImportDialogProps) => {
           if (dateIdx !== -1 && (descIdx !== -1 || amountIdx !== -1)) {
             headerRowIndex = i;
             colMap = { date: dateIdx, desc: descIdx, amount: amountIdx };
+            console.log(`[ImportDialog] Header found at row ${i}. Map:`, colMap);
             break;
           }
         }
@@ -91,14 +94,15 @@ const PasteImportDialog = ({ trigger }: PasteImportDialogProps) => {
             rawEntries.push({
               Data: rawDate,
               Descricao: rawDesc || 'Sem descrição',
-              // Usamos 'Pagamentos' para o campo de valor, pois é o que o importFinancialEntries espera
               Pagamentos: rawAmount, 
-              Valor: rawAmount, // Incluímos Valor também por segurança
+              Valor: rawAmount, 
             });
           }
         }
         
         const totalCount = rawEntries.length;
+        console.log(`[ImportDialog] Total raw entries extracted: ${totalCount}`);
+
 
         if (totalCount === 0) {
           showError("Nenhuma transação válida encontrada após o processamento do cabeçalho.");
@@ -126,6 +130,7 @@ const PasteImportDialog = ({ trigger }: PasteImportDialogProps) => {
         }
       },
       error: (error) => {
+        console.error(`[ImportDialog] Erro ao processar o conteúdo: ${error.message}`);
         showError(`Erro ao processar o conteúdo: ${error.message}`);
         setIsLoading(false);
       }
