@@ -62,7 +62,7 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
     },
   });
 
-  const { handleCurrencyChange } = useCurrencyInput('orcamento_inicial');
+  const { handleCurrencyChange } = useCurrencyInput('orcamento_inicial', form.setValue, form.getValues);
 
   const onSubmit = async (values: ObraFormValues) => {
     // Parse the currency string back to a number before submitting

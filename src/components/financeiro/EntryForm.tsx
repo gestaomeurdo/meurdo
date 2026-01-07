@@ -69,7 +69,7 @@ const EntryForm = ({ obraId, initialData, onSuccess }: EntryFormProps) => {
     },
   });
 
-  const { handleCurrencyChange } = useCurrencyInput('valor');
+  const { handleCurrencyChange } = useCurrencyInput('valor', form.setValue, form.getValues);
 
   const handleFileUpload = async (file: File): Promise<string | null> => {
     if (!file) return null;

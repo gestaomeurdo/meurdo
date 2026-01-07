@@ -34,7 +34,7 @@ const KmCostForm = () => {
     mode: 'onChange',
   });
 
-  const { handleCurrencyChange } = useCurrencyInput('valor');
+  const { handleCurrencyChange } = useCurrencyInput('valor', form.setValue, form.getValues);
 
   const onSubmit = async (values: KmCostFormValues) => {
     const parsedValor = parseCurrencyInput(values.valor);

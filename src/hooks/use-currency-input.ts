@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { useFormContext } from "react-hook-form";
+import { UseFormSetValue, UseFormGetValues } from "react-hook-form";
 import { parseCurrencyInput, formatCurrencyForInput } from "@/utils/formatters";
 
 /**
@@ -8,9 +8,14 @@ import { parseCurrencyInput, formatCurrencyForInput } from "@/utils/formatters";
  * real (numérico) no formulário seja o valor limpo (ex: 1000.00).
  * 
  * @param name O nome do campo no formulário (ex: 'orcamento_inicial').
+ * @param setValue A função setValue do useForm.
+ * @param getValues A função getValues do useForm.
  */
-export const useCurrencyInput = (name: string) => {
-  const { setValue, getValues } = useFormContext();
+export const useCurrencyInput = (
+  name: string,
+  setValue: UseFormSetValue<any>,
+  getValues: UseFormGetValues<any>
+) => {
 
   const handleCurrencyChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = event.target.value;
