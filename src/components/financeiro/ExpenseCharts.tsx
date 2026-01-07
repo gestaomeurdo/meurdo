@@ -9,7 +9,8 @@ interface ExpenseChartsProps {
   entries: FinancialEntry[] | undefined;
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#d0ed57'];
+// Cores mais vibrantes e acessíveis para o tema escuro
+const COLORS = ['#FF7A00', '#00C49F', '#FFBB28', '#0088FE', '#8884d8', '#FF8042', '#82ca9d', '#ffc658', '#d0ed57'];
 
 const ExpenseCharts = ({ entries }: ExpenseChartsProps) => {
   const { categoryData, monthlyData } = useMemo(() => {
@@ -53,7 +54,7 @@ const ExpenseCharts = ({ entries }: ExpenseChartsProps) => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      {/* Gráfico de Pizza: Gastos por Categoria */}
+      {/* Gráfico de Rosca (Donut Chart): Gastos por Categoria */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Gastos por Categoria</CardTitle>
@@ -67,6 +68,7 @@ const ExpenseCharts = ({ entries }: ExpenseChartsProps) => {
                 nameKey="name"
                 cx="50%"
                 cy="50%"
+                innerRadius={60} // Transforma em Donut Chart
                 outerRadius={100}
                 fill="#8884d8"
                 labelLine={false}
@@ -80,7 +82,8 @@ const ExpenseCharts = ({ entries }: ExpenseChartsProps) => {
                 contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '0.5rem' }}
                 formatter={(value: number, name: string) => [formatCurrency(value), name]}
               />
-              <Legend layout="vertical" align="right" verticalAlign="middle" />
+              {/* Legenda na parte inferior para melhor visualização */}
+              <Legend layout="horizontal" verticalAlign="bottom" align="center" wrapperStyle={{ paddingTop: '20px' }} />
             </PieChart>
           </ResponsiveContainer>
         </CardContent>
