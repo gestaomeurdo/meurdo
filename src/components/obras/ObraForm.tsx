@@ -64,6 +64,7 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
   const { handleCurrencyChange } = useCurrencyInput('orcamento_inicial', form.setValue, form.getValues);
 
   const onSubmit = async (values: ObraFormValues) => {
+    console.log("[ObraForm] Tentando submeter formulário:", values);
     try {
       const parsedOrcamento = parseCurrencyInput(values.orcamento_inicial);
 
@@ -85,10 +86,12 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
         await createMutation.mutateAsync(payload);
         showSuccess("Obra criada com sucesso!");
       }
+      
+      console.log("[ObraForm] Finalizado com sucesso, fechando dialog.");
       onSuccess();
     } catch (error) {
-      console.error("[ObraForm] Submit error:", error);
-      showError(`Erro ao salvar obra: ${error instanceof Error ? error.message : "Erro interno"}`);
+      console.error("[ObraForm] Erro capturado no onSubmit:", error);
+      showError(`Falha ao salvar: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
     }
   };
 
