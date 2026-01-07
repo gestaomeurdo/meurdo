@@ -34,7 +34,8 @@ import {
   RdoStatusDia, 
   useCreateRdo, 
   useUpdateRdo, 
-  useDeleteRdo 
+  useDeleteRdo,
+  RdoInput
 } from "@/hooks/use-rdo";
 import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
@@ -84,8 +85,8 @@ const RdoSchema = z.object({
   observacoes_gerais: z.string().nullable().optional(),
   impedimentos_comentarios: z.string().nullable().optional(),
   atividades: z.array(RdoDetailSchema).min(1, "Pelo menos uma atividade deve ser registrada."),
-  mao_de_obra: z.array(ManpowerSchema).optional(),
-  equipamentos: z.array(EquipmentSchema).optional(),
+  mao_de_obra: z.array(ManpowerSchema).optional().default([]),
+  equipamentos: z.array(EquipmentSchema).optional().default([]),
 });
 
 type RdoFormValues = z.infer<typeof RdoSchema>;
@@ -109,7 +110,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
     resolver: zodResolver(RdoSchema),
     defaultValues: {
       obra_id: obraId,
-      data_rdo: initialData?.data_rdo ? new Date(initialData.data_rdo) : new Date(),
+      data_rdo: initialData?.data_rdo ? new Date(initialData.data_rdo + 'T12:00:00') : new Date(),
       clima_condicoes: initialData?.clima_condicoes || undefined,
       status_dia: initialData?.status_dia || 'Operacional',
       observacoes_gerais: initialData?.observacoes_gerais || "",
@@ -176,17 +177,23 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
 
   const onSubmit = async (values: RdoFormValues) => {
     try {
-      const dataToSubmit = {
-        ...values,
+      const dataToSubmit: RdoInput = {
+        obra_id: values.obra_id,
         data_rdo: format(values.data_rdo, 'yyyy-MM-dd'),
+        clima_condicoes: values.clima_condicoes || null,
+        status_dia: values.status_dia,
+        observacoes_gerais: values.observacoes_gerais || null,
+        impedimentos_comentarios: values.impedimentos_comentarios || null,
+        atividades: values.atividades,
         mao_de_obra: values.mao_de_obra?.map(m => ({ ...m, custo_unitario: m.custo_unitario || 0 })) || [],
+        equipamentos: values.equipamentos || [],
       };
 
       if (isEditing && initialData) {
         await updateMutation.mutateAsync({ ...dataToSubmit, id: initialData.id });
         showSuccess("RDO atualizado!");
       } else {
-        await createMutation.mutateAsync(dataToSubmit as any);
+        await createMutation.mutateAsync(dataToSubmit);
         showSuccess("RDO criado!");
       }
       onSuccess();
