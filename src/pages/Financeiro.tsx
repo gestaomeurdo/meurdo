@@ -2,7 +2,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useObras, Obra } from "@/hooks/use-obras";
 import { useState, useMemo, useEffect } from "react";
-import { Loader2, Plus, Upload } from "lucide-react";
+import { Loader2, Plus, Clipboard } from "lucide-react";
 import ObraSelector from "@/components/financeiro/ObraSelector";
 import FinancialSummary from "@/components/financeiro/FinancialSummary";
 import EntriesTable from "@/components/financeiro/EntriesTable";
@@ -10,7 +10,7 @@ import EntryDialog from "@/components/financeiro/EntryDialog";
 import { useFinancialEntries } from "@/hooks/use-financial-entries";
 import ExpenseCharts from "@/components/financeiro/ExpenseCharts";
 import { Button } from "@/components/ui/button";
-import ImportDialog from "@/components/financeiro/ImportDialog";
+import PasteImportDialog from "@/components/financeiro/PasteImportDialog"; // Importando o novo componente
 
 const Financeiro = () => {
   const { data: obras, isLoading: isLoadingObras } = useObras();
@@ -54,11 +54,11 @@ const Financeiro = () => {
               selectedObraId={selectedObraId} 
               onSelectObra={setSelectedObraId} 
             />
-            <ImportDialog 
+            <PasteImportDialog // Usando o novo dialog de colar
               trigger={
                 <Button variant="outline" className="flex items-center">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Importar CSV
+                  <Clipboard className="w-4 h-4 mr-2" />
+                  Colar CSV
                 </Button>
               }
             />
