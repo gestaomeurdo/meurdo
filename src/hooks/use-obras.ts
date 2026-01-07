@@ -56,18 +56,14 @@ export const useCreateObra = () => {
   return useMutation<any, Error, ObraInput>({
     mutationFn: async (newObra) => {
       if (!user) throw new Error("Usuário não identificado.");
-      console.log("[useCreateObra] Enviando payload:", newObra);
-
+      
       const { data, error } = await supabase
         .from('obras')
         .insert({ ...newObra, user_id: user.id })
         .select()
         .single();
 
-      if (error) {
-        console.error("[useCreateObra] Erro do Supabase:", error);
-        throw new Error(error.message);
-      }
+      if (error) throw new Error(error.message);
       return data;
     },
     onSuccess: () => {
@@ -79,29 +75,24 @@ export const useCreateObra = () => {
 
 export const useUpdateObra = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
-  return useMutation<Obra, Error, Partial<ObraInput> & { id: string }>({
+  return useMutation<void, Error, Partial<ObraInput> & { id: string }>({
     mutationFn: async (payload) => {
       const { id, ...updateData } = payload;
-      console.log("[useUpdateObra] Iniciando update para ID:", id, "Dados:", updateData);
 
-      const { data, error } = await supabase
+      // Usamos returning: 'minimal' para ser o mais rápido possível e evitar erros de permissão na leitura pós-gravação
+      const { error } = await supabase
         .from('obras')
         .update(updateData)
-        .eq('id', id)
-        .select()
-        .single();
+        .eq('id', id);
 
       if (error) {
-        console.error("[useUpdateObra] Erro do Supabase:", error);
+        console.error("[useUpdateObra] Erro:", error);
         throw new Error(error.message);
       }
-      
-      console.log("[useUpdateObra] Sucesso! Resposta:", data);
-      return data as Obra;
     },
     onSuccess: () => {
+      // Forçamos a atualização da lista para garantir que os novos dados apareçam
       queryClient.invalidateQueries({ queryKey: ['obras'] });
       queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
     },
