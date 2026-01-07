@@ -56,15 +56,10 @@ export const useCreateObra = () => {
 
   return useMutation<Obra, Error, ObraInput>({
     mutationFn: async (newObra) => {
-      // Obtemos o usuário atualizado direto da sessão do Supabase para evitar closures antigas
-      const { data: { session } } = await supabase.auth.getSession();
-      const userId = session?.user?.id;
+      if (!user?.id) throw new Error("Usuário não autenticado.");
       
-      if (!userId) throw new Error("Sessão expirada ou usuário não autenticado.");
-      
-      const payload = { ...newObra, user_id: userId };
+      const payload = { ...newObra, user_id: user.id };
 
-      // Inserimos sem o .single() inicialmente para ver se o erro é no select
       const { data, error } = await supabase
         .from('obras')
         .insert(payload)
@@ -72,8 +67,7 @@ export const useCreateObra = () => {
         .single();
 
       if (error) {
-        console.error("[useCreateObra] Erro detalhado:", error);
-        if (error.code === '23505') throw new Error("Já existe uma obra com este nome.");
+        console.error("[useCreateObra] Erro ao inserir obra:", error);
         throw new Error(error.message);
       }
       
@@ -92,16 +86,14 @@ export const useUpdateObra = () => {
 
   return useMutation<Obra, Error, Partial<ObraInput> & { id: string }>({
     mutationFn: async (payload) => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const userId = session?.user?.id;
-      if (!userId) throw new Error("Sessão expirada.");
+      if (!user?.id) throw new Error("Sessão expirada.");
 
       const { id, ...updateData } = payload;
       const { data, error } = await supabase
         .from('obras')
         .update(updateData)
         .eq('id', id)
-        .eq('user_id', userId)
+        .eq('user_id', user.id)
         .select()
         .single();
 
@@ -121,15 +113,13 @@ export const useDeleteObra = () => {
 
   return useMutation<void, Error, string>({
     mutationFn: async (obraId) => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const userId = session?.user?.id;
-      if (!userId) throw new Error("Não autorizado.");
+      if (!user?.id) throw new Error("Não autorizado.");
 
       const { error } = await supabase
         .from('obras')
         .delete()
         .eq('id', obraId)
-        .eq('user_id', userId);
+        .eq('user_id', user.id);
 
       if (error) throw new Error(error.message);
     },

@@ -64,20 +64,20 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
   const { handleCurrencyChange } = useCurrencyInput('orcamento_inicial', form.setValue, form.getValues);
 
   const onSubmit = async (values: ObraFormValues) => {
-    const parsedOrcamento = parseCurrencyInput(values.orcamento_inicial);
-
-    const payload = {
-      nome: values.nome,
-      endereco: values.endereco || null,
-      dono_cliente: values.dono_cliente || null,
-      responsavel_tecnico: values.responsavel_tecnico || null,
-      data_inicio: format(values.data_inicio, 'yyyy-MM-dd'),
-      previsao_entrega: values.previsao_entrega ? format(values.previsao_entrega, 'yyyy-MM-dd') : null,
-      orcamento_inicial: parsedOrcamento,
-      status: values.status,
-    };
-
     try {
+      const parsedOrcamento = parseCurrencyInput(values.orcamento_inicial);
+
+      const payload = {
+        nome: values.nome,
+        endereco: values.endereco || null,
+        dono_cliente: values.dono_cliente || null,
+        responsavel_tecnico: values.responsavel_tecnico || null,
+        data_inicio: format(values.data_inicio, 'yyyy-MM-dd'),
+        previsao_entrega: values.previsao_entrega ? format(values.previsao_entrega, 'yyyy-MM-dd') : null,
+        orcamento_inicial: parsedOrcamento,
+        status: values.status,
+      };
+
       if (isEditing && initialData) {
         await updateMutation.mutateAsync({ ...payload, id: initialData.id });
         showSuccess("Obra atualizada com sucesso!");
