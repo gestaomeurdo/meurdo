@@ -52,6 +52,24 @@ const ExpenseCharts = ({ entries }: ExpenseChartsProps) => {
     return null;
   }
 
+  // Custom Tooltip Content for Pie Chart to show percentage
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      const total = categoryData.reduce((sum, item) => sum + item.value, 0);
+      const percentage = total > 0 ? ((data.value / total) * 100).toFixed(1) : 0;
+
+      return (
+        <div className="p-2 bg-card border border-border rounded-md shadow-lg text-sm">
+          <p className="font-semibold text-primary">{data.name}</p>
+          <p>Valor: {formatCurrency(data.value)}</p>
+          <p>Percentual: {percentage}%</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {/* Gráfico de Rosca (Donut Chart): Gastos por Categoria */}
@@ -68,19 +86,20 @@ const ExpenseCharts = ({ entries }: ExpenseChartsProps) => {
                 nameKey="name"
                 cx="50%"
                 cy="50%"
-                innerRadius={60} // Transforma em Donut Chart
+                innerRadius={60} // Donut Chart
                 outerRadius={100}
                 fill="#8884d8"
+                // Remove labels to prevent overlap
+                label={false} 
                 labelLine={false}
-                label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
               >
                 {categoryData.map((_, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip 
-                contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '0.5rem' }}
-                formatter={(value: number, name: string) => [formatCurrency(value), name]}
+                content={<CustomTooltip />}
+                wrapperStyle={{ outline: 'none' }}
               />
               {/* Legenda na parte inferior para melhor visualização */}
               <Legend layout="horizontal" verticalAlign="bottom" align="center" wrapperStyle={{ paddingTop: '20px' }} />
