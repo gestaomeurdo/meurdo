@@ -44,8 +44,7 @@ const ImportDialog = ({ trigger }: ImportDialogProps) => {
       header: true,
       skipEmptyLines: true,
       dynamicTyping: false,
-      // Adicionado para pular as duas primeiras linhas de cabeçalho irrelevantes
-      skipFirstLines: 2, 
+      delimiter: ';', // Usando ponto e vírgula como delimitador
       complete: async (results) => {
         // Filter lines that have Descricao and either Pagamentos or Valor
         const rawEntries = (results.data as RawCostEntry[]).filter(e => 
@@ -107,6 +106,7 @@ const ImportDialog = ({ trigger }: ImportDialogProps) => {
             <AlertDescription>
               O arquivo deve conter as colunas exatas (case-sensitive): 
               <code className="block mt-2 p-2 bg-secondary rounded text-sm">Data, Descrição, Valor</code> ou <code className="block mt-2 p-2 bg-secondary rounded text-sm">Data, Descrição, Pagamentos</code>.
+              <p className="mt-2">Certifique-se de que o arquivo usa **ponto e vírgula (;)** como separador.</p>
               <p className="mt-2">Todos os lançamentos serão atribuídos à obra padrão: **Golden BTS**.</p>
             </AlertDescription>
           </Alert>
