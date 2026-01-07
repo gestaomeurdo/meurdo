@@ -3,11 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, Upload, Loader2, Image as ImageIcon } from "lucide-react";
+import { Plus, Trash2, Upload, Loader2, Image as ImageIcon, FileText, X } from "lucide-react";
 import { RdoInput } from "@/hooks/use-rdo";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { showError } from "@/utils/toast";
+import { showError, showSuccess } from "@/utils/toast";
 import { cn } from "@/lib/utils";
 
 interface RdoActivitiesFormProps {
@@ -45,6 +45,7 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
         .getPublicUrl(filePath);
 
       setValue(`atividades.${index}.foto_anexo_url`, publicUrlData.publicUrl, { shouldDirty: true });
+      showSuccess("Foto anexada com sucesso!");
     } catch (error) {
       showError("Erro ao fazer upload da foto.");
       console.error("Upload error:", error);
@@ -52,80 +53,112 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
       setUploadingIndex(null);
     }
   };
+  
+  const handleRemoveFile = (index: number) => {
+    setValue(`atividades.${index}.foto_anexo_url`, null, { shouldDirty: true });
+  };
+
+  const getFileIcon = (url: string) => {
+    if (url.match(/\.(jpeg|jpg|png|gif)$/i)) {
+      return <ImageIcon className="w-4 h-4 mr-1" />;
+    }
+    return <FileText className="w-4 h-4 mr-1" />;
+  };
 
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold border-b pb-2">Atividades Realizadas</h3>
-      {fields.map((field, index) => (
-        <div key={field.id} className="p-4 border rounded-lg space-y-3 bg-secondary/10">
-          <div className="flex justify-between items-start">
-            <Label className="font-medium">Atividade #{index + 1}</Label>
-            <Button variant="ghost" size="icon" onClick={() => remove(index)} title="Remover Atividade">
-              <Trash2 className="w-4 h-4 text-destructive" />
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="md:col-span-2">
-              <Label htmlFor={`descricao-${index}`}>Descrição do Serviço</Label>
-              <Textarea
-                id={`descricao-${index}`}
-                placeholder="Ex: Assentamento de 50m² de piso cerâmico"
-                {...control.register(`atividades.${index}.descricao_servico`)}
-                rows={2}
-              />
+      {fields.map((field, index) => {
+        const photoUrl = watch(`atividades.${index}.foto_anexo_url`);
+        const isImage = photoUrl && photoUrl.match(/\.(jpeg|jpg|png|gif)$/i);
+        
+        return (
+          <div key={field.id} className="p-4 border rounded-lg space-y-3 bg-secondary/10">
+            <div className="flex justify-between items-start">
+              <Label className="font-medium">Atividade #{index + 1}</Label>
+              <Button variant="ghost" size="icon" onClick={() => remove(index)} title="Remover Atividade">
+                <Trash2 className="w-4 h-4 text-destructive" />
+              </Button>
             </div>
-            <div>
-              <Label htmlFor={`avanco-${index}`}>Avanço (%)</Label>
-              <Input
-                id={`avanco-${index}`}
-                type="number"
-                placeholder="0-100"
-                {...control.register(`atividades.${index}.avanco_percentual`, { valueAsNumber: true })}
-                min={0}
-                max={100}
-              />
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="md:col-span-2">
+                <Label htmlFor={`descricao-${index}`}>Descrição do Serviço</Label>
+                <Textarea
+                  id={`descricao-${index}`}
+                  placeholder="Ex: Assentamento de 50m² de piso cerâmico"
+                  {...control.register(`atividades.${index}.descricao_servico`)}
+                  rows={2}
+                />
+              </div>
+              <div>
+                <Label htmlFor={`avanco-${index}`}>Avanço (%)</Label>
+                <Input
+                  id={`avanco-${index}`}
+                  type="number"
+                  placeholder="0-100"
+                  {...control.register(`atividades.${index}.avanco_percentual`, { valueAsNumber: true })}
+                  min={0}
+                  max={100}
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center space-x-3">
-            <Label htmlFor={`foto-${index}`} className={cn(
-                "flex items-center justify-center p-2 border rounded-md cursor-pointer transition-colors text-sm",
-                uploadingIndex === index ? "bg-muted cursor-not-allowed" : "hover:bg-accent"
-            )}>
-                {uploadingIndex === index ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                    <Upload className="w-4 h-4 mr-2" />
+            <div className="space-y-2">
+                <Label>Anexo (Foto/Documento)</Label>
+                <div className="flex items-center space-x-3">
+                    <Label htmlFor={`foto-${index}`} className={cn(
+                        "flex items-center justify-center px-3 py-2 border rounded-md cursor-pointer transition-colors text-sm font-medium",
+                        uploadingIndex === index ? "bg-muted cursor-not-allowed" : "hover:bg-accent"
+                    )}>
+                        {uploadingIndex === index ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                            <Upload className="w-4 h-4 mr-2" />
+                        )}
+                        {uploadingIndex === index ? "Enviando..." : photoUrl ? "Mudar Anexo" : "Anexar Foto"}
+                    </Label>
+                    <Input
+                        id={`foto-${index}`}
+                        type="file"
+                        accept="image/*,application/pdf"
+                        className="hidden"
+                        onChange={(e) => {
+                            if (e.target.files?.[0]) {
+                                handleFileUpload(e.target.files[0], index);
+                            }
+                        }}
+                        disabled={uploadingIndex === index}
+                    />
+                    
+                    {photoUrl && (
+                        <div className="flex items-center space-x-2">
+                            <a 
+                                href={photoUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="text-sm text-primary hover:underline flex items-center"
+                            >
+                                {getFileIcon(photoUrl)}
+                                {isImage ? "Ver Imagem" : "Ver Documento"}
+                            </a>
+                            <Button variant="ghost" size="icon" onClick={() => handleRemoveFile(index)} title="Remover Anexo">
+                                <X className="w-4 h-4 text-destructive" />
+                            </Button>
+                        </div>
+                    )}
+                </div>
+                
+                {/* Image Preview */}
+                {isImage && (
+                    <div className="mt-3 max-w-xs border rounded-lg overflow-hidden">
+                        <img src={photoUrl} alt={`Anexo ${index + 1}`} className="w-full h-auto object-cover" />
+                    </div>
                 )}
-                {uploadingIndex === index ? "Enviando..." : "Anexar Foto"}
-            </Label>
-            <Input
-                id={`foto-${index}`}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                    if (e.target.files?.[0]) {
-                        handleFileUpload(e.target.files[0], index);
-                    }
-                }}
-                disabled={uploadingIndex === index}
-            />
-            {watch(`atividades.${index}.foto_anexo_url`) && (
-                <a 
-                    href={watch(`atividades.${index}.foto_anexo_url`) || '#'} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="text-sm text-primary hover:underline flex items-center"
-                >
-                    <ImageIcon className="w-4 h-4 mr-1" />
-                    Ver Foto Anexada
-                </a>
-            )}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
       <Button type="button" variant="outline" onClick={() => append({ descricao_servico: "", avanco_percentual: 0, foto_anexo_url: null })}>
         <Plus className="w-4 h-4 mr-2" /> Adicionar Atividade
       </Button>
