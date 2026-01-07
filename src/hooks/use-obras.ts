@@ -16,7 +16,6 @@ export interface Obra {
   criado_em: string;
 }
 
-// --- Fetching ---
 const fetchObras = async (userId: string): Promise<Obra[]> => {
   const { data, error } = await supabase
     .from('obras')
@@ -24,9 +23,7 @@ const fetchObras = async (userId: string): Promise<Obra[]> => {
     .eq('user_id', userId)
     .order('data_inicio', { ascending: false });
 
-  if (error) {
-    throw new Error(error.message);
-  }
+  if (error) throw new Error(error.message);
   return data as Obra[];
 };
 
@@ -38,11 +35,9 @@ export const useObras = () => {
     queryKey: ['obras', userId],
     queryFn: () => fetchObras(userId!),
     enabled: !!userId,
-    staleTime: 1000 * 60 * 1, // Cache data for 1 minute
+    staleTime: 1000 * 60 * 1,
   });
 };
-
-// --- Mutations ---
 
 interface ObraInput {
   nome: string;
@@ -61,16 +56,15 @@ export const useCreateObra = () => {
 
   return useMutation<Obra, Error, ObraInput>({
     mutationFn: async (newObra) => {
-      console.log("[useCreateObra] Iniciando criação de obra:", newObra);
+      // Obtemos o usuário atualizado direto da sessão do Supabase para evitar closures antigas
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
       
-      if (!user?.id) {
-        console.error("[useCreateObra] Erro: Usuário não encontrado no contexto.");
-        throw new Error("Usuário não autenticado.");
-      }
+      if (!userId) throw new Error("Sessão expirada ou usuário não autenticado.");
       
-      const payload = { ...newObra, user_id: user.id };
-      console.log("[useCreateObra] Enviando payload ao Supabase:", payload);
+      const payload = { ...newObra, user_id: userId };
 
+      // Inserimos sem o .single() inicialmente para ver se o erro é no select
       const { data, error } = await supabase
         .from('obras')
         .insert(payload)
@@ -78,16 +72,16 @@ export const useCreateObra = () => {
         .single();
 
       if (error) {
-        console.error("[useCreateObra] Erro do Supabase:", error);
+        console.error("[useCreateObra] Erro detalhado:", error);
+        if (error.code === '23505') throw new Error("Já existe uma obra com este nome.");
         throw new Error(error.message);
       }
       
-      console.log("[useCreateObra] Obra criada com sucesso:", data);
       return data as Obra;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['obras', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['dashboardData', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['obras', data.user_id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardData', data.user_id] });
     },
   });
 };
@@ -98,33 +92,25 @@ export const useUpdateObra = () => {
 
   return useMutation<Obra, Error, Partial<ObraInput> & { id: string }>({
     mutationFn: async (payload) => {
-      console.log("[useUpdateObra] Iniciando atualização de obra:", payload);
-      
-      if (!user?.id) {
-        throw new Error("Usuário não autenticado.");
-      }
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+      if (!userId) throw new Error("Sessão expirada.");
 
       const { id, ...updateData } = payload;
-
       const { data, error } = await supabase
         .from('obras')
         .update(updateData)
         .eq('id', id)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .select()
         .single();
 
-      if (error) {
-        console.error("[useUpdateObra] Erro do Supabase:", error);
-        throw new Error(error.message);
-      }
-      
-      console.log("[useUpdateObra] Obra atualizada com sucesso:", data);
+      if (error) throw new Error(error.message);
       return data as Obra;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['obras', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['dashboardData', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['obras', data.user_id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardData', data.user_id] });
     },
   });
 };
@@ -135,21 +121,21 @@ export const useDeleteObra = () => {
 
   return useMutation<void, Error, string>({
     mutationFn: async (obraId) => {
-      if (!user?.id) throw new Error("Usuário não autenticado.");
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+      if (!userId) throw new Error("Não autorizado.");
 
       const { error } = await supabase
         .from('obras')
         .delete()
         .eq('id', obraId)
-        .eq('user_id', user.id);
+        .eq('user_id', userId);
 
-      if (error) {
-        throw new Error(error.message);
-      }
+      if (error) throw new Error(error.message);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['obras', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['dashboardData', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['obras'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
     },
   });
 };
