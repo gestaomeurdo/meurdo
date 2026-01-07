@@ -6,6 +6,8 @@ export interface Cargo {
   id: string;
   nome: string;
   custo_diario: number;
+  tipo: 'Próprio' | 'Empreiteiro';
+  avatar_url?: string | null;
 }
 
 const fetchCargos = async (userId: string): Promise<Cargo[]> => {
@@ -41,6 +43,39 @@ export const useCreateCargo = () => {
         .single();
       if (error) throw new Error(error.message);
       return data as Cargo;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cargos'] });
+    },
+  });
+};
+
+export const useUpdateCargo = () => {
+  const queryClient = useQueryClient();
+  return useMutation<Cargo, Error, Cargo>({
+    mutationFn: async (updatedCargo) => {
+      const { id, ...rest } = updatedCargo;
+      const { data, error } = await supabase
+        .from('cargos')
+        .update(rest)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw new Error(error.message);
+      return data as Cargo;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cargos'] });
+    },
+  });
+};
+
+export const useDeleteCargo = () => {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: async (id) => {
+      const { error } = await supabase.from('cargos').delete().eq('id', id);
+      if (error) throw new Error(error.message);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cargos'] });
