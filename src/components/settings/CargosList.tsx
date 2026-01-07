@@ -64,7 +64,8 @@ const CargosList = () => {
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>Tipo</TableHead>
-              <TableHead className="text-right">Custo Diário</TableHead>
+              <TableHead>Unidade</TableHead>
+              <TableHead className="text-right">Custo</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -74,6 +75,7 @@ const CargosList = () => {
                 <TableRow key={cargo.id}>
                   <TableCell className="font-medium">{cargo.nome}</TableCell>
                   <TableCell><Badge variant={cargo.tipo === 'Próprio' ? "default" : "secondary"}>{cargo.tipo}</Badge></TableCell>
+                  <TableCell><Badge variant="outline">{cargo.unidade}</Badge></TableCell>
                   <TableCell className="text-right font-semibold">{formatCurrency(cargo.custo_diario)}</TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button variant="ghost" size="icon" onClick={() => { setEditingCargo(cargo); setIsDialogOpen(true); }}><Edit className="w-4 h-4" /></Button>
@@ -83,7 +85,7 @@ const CargosList = () => {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Nenhum cargo cadastrado. Use o botão acima para adicionar.</TableCell>
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhum cargo cadastrado. Use o botão acima para adicionar.</TableCell>
               </TableRow>
             )}
           </TableBody>

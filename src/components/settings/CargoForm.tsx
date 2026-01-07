@@ -13,6 +13,7 @@ const CargoSchema = z.object({
   nome: z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),
   custo_diario: z.coerce.number().min(0, "O custo não pode ser negativo."),
   tipo: z.enum(['Próprio', 'Empreiteiro']),
+  unidade: z.enum(['Diário', 'Hora']),
 });
 
 type CargoFormValues = z.infer<typeof CargoSchema>;
@@ -33,6 +34,7 @@ const CargoForm = ({ initialData, onSuccess }: CargoFormProps) => {
       nome: initialData?.nome || "",
       custo_diario: initialData?.custo_diario || 0,
       tipo: initialData?.tipo || 'Próprio',
+      unidade: initialData?.unidade || 'Diário',
     },
   });
 
@@ -60,16 +62,27 @@ const CargoForm = ({ initialData, onSuccess }: CargoFormProps) => {
             <FormItem><FormLabel>Nome do Cargo</FormLabel><FormControl><Input placeholder="Ex: Pedreiro" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>
           )}
         />
-        <div className="grid grid-cols-2 gap-4">
-          <FormField control={form.control} name="custo_diario" render={({ field }) => (
-              <FormItem><FormLabel>Custo Diário (R$)</FormLabel><FormControl><Input type="number" step="0.01" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField control={form.control} name="tipo" render={({ field }) => (
+              <FormItem><FormLabel>Tipo de Contratação</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Próprio">Próprio</SelectItem><SelectItem value="Empreiteiro">Empreiteiro</SelectItem></SelectContent></Select><FormMessage /></FormItem>
             )}
           />
-          <FormField control={form.control} name="tipo" render={({ field }) => (
-              <FormItem><FormLabel>Tipo</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Próprio">Próprio</SelectItem><SelectItem value="Empreiteiro">Empreiteiro</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+          <FormField control={form.control} name="unidade" render={({ field }) => (
+              <FormItem><FormLabel>Unidade de Cobrança</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Diário">Diário (Dia)</SelectItem><SelectItem value="Hora">Por Hora</SelectItem></SelectContent></Select><FormMessage /></FormItem>
             )}
           />
         </div>
+
+        <FormField control={form.control} name="custo_diario" render={({ field }) => (
+            <FormItem>
+              <FormLabel>Custo ({form.watch("unidade")}) (R$)</FormLabel>
+              <FormControl><Input type="number" step="0.01" {...field} disabled={isLoading} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
           {isEditing ? "Salvar Alterações" : "Cadastrar Cargo"}

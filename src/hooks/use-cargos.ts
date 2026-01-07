@@ -7,6 +7,7 @@ export interface Cargo {
   nome: string;
   custo_diario: number;
   tipo: 'Próprio' | 'Empreiteiro';
+  unidade: 'Diário' | 'Hora';
   avatar_url?: string | null;
 }
 
