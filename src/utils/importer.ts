@@ -153,14 +153,24 @@ export async function importFinancialEntries(rawEntries: RawCostEntry[], userId:
           continue;
       }
       
-      // Conversão de data DD/MM/YYYY para YYYY-MM-DD
-      const parts = entry.Data.split('/');
-      if (parts.length !== 3) {
+      let dateString: string;
+      
+      if (entry.Data.includes('/')) {
+          // Formato DD/MM/YYYY
+          const parts = entry.Data.split('/');
+          if (parts.length !== 3) {
+              errorCount++;
+              continue;
+          }
+          dateString = `${parts[2]}-${parts[1]}-${parts[0]}`;
+      } else if (entry.Data.includes('-')) {
+          // Formato YYYY-MM-DD (ou similar)
+          dateString = entry.Data;
+      } else {
+          // Formato de data não reconhecido
           errorCount++;
           continue;
       }
-      // Note: Date constructor is unreliable with DD/MM/YYYY. We manually construct the ISO string.
-      const dateString = `${parts[2]}-${parts[1]}-${parts[0]}`;
       
       // Basic check if the resulting string is a valid date format
       if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
