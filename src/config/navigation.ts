@@ -34,8 +34,8 @@ export const navItems: NavItem[] = [
   },
   {
     title: "Gestão de RDO",
-    href: "/gestao-rdo",
-    icon: FileText, // Using FileText for RDO management
+    href: "/getao-rdo",
+    icon: FileText,
     roles: ["administrator", "obra_user", "view_only"],
   },
   {
@@ -54,7 +54,7 @@ export const navItems: NavItem[] = [
     title: "Mão de Obra",
     href: "/mao-de-obra",
     icon: Users,
-    roles: ["administrator", "obra_user"],
+    roles: ["administrator", "obra_user", "view_only"],
   },
   {
     title: "Documentação",
@@ -66,6 +66,6 @@ export const navItems: NavItem[] = [
     title: "Configurações",
     href: "/settings",
     icon: Settings,
-    roles: ["administrator"],
+    roles: ["administrator", "obra_user", "view_only"], // Habilitado para view_only para seu teste
   },
 ];
