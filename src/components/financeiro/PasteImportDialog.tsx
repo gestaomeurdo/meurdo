@@ -38,9 +38,13 @@ const PasteImportDialog = ({ trigger }: PasteImportDialogProps) => {
     setIsLoading(true);
     setImportResult(null);
 
+    // Tenta detectar o delimitador. Se o conteúdo for colado do Excel, é provável que seja tab (\t).
+    // Usamos a tabulação como delimitador padrão para colagem de planilhas.
+    const delimiter = csvContent.includes('\t') ? '\t' : ''; 
+
     Papa.parse(csvContent, {
-      delimiter: "", // Auto-detectar delimitador (tab, vírgula, ponto e vírgula)
-      header: false, // Processamos o cabeçalho manualmente
+      delimiter: delimiter, 
+      header: false, 
       skipEmptyLines: true,
       complete: async (results) => {
         console.log("[ImportDialog] PapaParse Complete. Results:", results);
