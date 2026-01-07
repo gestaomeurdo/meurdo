@@ -61,25 +61,33 @@ export const useCreateObra = () => {
 
   return useMutation<Obra, Error, ObraInput>({
     mutationFn: async (newObra) => {
-      // Garantimos que temos o usuário atualizado no momento da execução
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      if (!currentUser) throw new Error("Usuário não autenticado.");
+      console.log("[useCreateObra] Iniciando criação de obra:", newObra);
       
+      if (!user?.id) {
+        console.error("[useCreateObra] Erro: Usuário não encontrado no contexto.");
+        throw new Error("Usuário não autenticado.");
+      }
+      
+      const payload = { ...newObra, user_id: user.id };
+      console.log("[useCreateObra] Enviando payload ao Supabase:", payload);
+
       const { data, error } = await supabase
         .from('obras')
-        .insert({ ...newObra, user_id: currentUser.id })
+        .insert(payload)
         .select()
         .single();
 
       if (error) {
-        console.error("[useCreateObra] Database error:", error);
+        console.error("[useCreateObra] Erro do Supabase:", error);
         throw new Error(error.message);
       }
+      
+      console.log("[useCreateObra] Obra criada com sucesso:", data);
       return data as Obra;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['obras', data.user_id] });
-      queryClient.invalidateQueries({ queryKey: ['dashboardData', data.user_id] });
+      queryClient.invalidateQueries({ queryKey: ['obras', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardData', user?.id] });
     },
   });
 };
@@ -90,8 +98,11 @@ export const useUpdateObra = () => {
 
   return useMutation<Obra, Error, Partial<ObraInput> & { id: string }>({
     mutationFn: async (payload) => {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      if (!currentUser) throw new Error("Usuário não autenticado.");
+      console.log("[useUpdateObra] Iniciando atualização de obra:", payload);
+      
+      if (!user?.id) {
+        throw new Error("Usuário não autenticado.");
+      }
 
       const { id, ...updateData } = payload;
 
@@ -99,19 +110,21 @@ export const useUpdateObra = () => {
         .from('obras')
         .update(updateData)
         .eq('id', id)
-        .eq('user_id', currentUser.id)
+        .eq('user_id', user.id)
         .select()
         .single();
 
       if (error) {
-        console.error("[useUpdateObra] Database error:", error);
+        console.error("[useUpdateObra] Erro do Supabase:", error);
         throw new Error(error.message);
       }
+      
+      console.log("[useUpdateObra] Obra atualizada com sucesso:", data);
       return data as Obra;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['obras', data.user_id] });
-      queryClient.invalidateQueries({ queryKey: ['dashboardData', data.user_id] });
+      queryClient.invalidateQueries({ queryKey: ['obras', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardData', user?.id] });
     },
   });
 };
@@ -122,23 +135,21 @@ export const useDeleteObra = () => {
 
   return useMutation<void, Error, string>({
     mutationFn: async (obraId) => {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      if (!currentUser) throw new Error("Usuário não autenticado.");
+      if (!user?.id) throw new Error("Usuário não autenticado.");
 
       const { error } = await supabase
         .from('obras')
         .delete()
         .eq('id', obraId)
-        .eq('user_id', currentUser.id);
+        .eq('user_id', user.id);
 
       if (error) {
-        console.error("[useDeleteObra] Database error:", error);
         throw new Error(error.message);
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['obras'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
+      queryClient.invalidateQueries({ queryKey: ['obras', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardData', user?.id] });
     },
   });
 };
