@@ -16,6 +16,7 @@ import MaoDeObra from "./pages/MaoDeObra";
 import Documentacao from "./pages/Documentacao";
 import Settings from "./pages/Settings";
 import Relatorios from "./pages/Relatorios";
+import Import from "./pages/Import";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/mao-de-obra" element={<MaoDeObra />} />
             <Route path="/documentacao" element={<Documentacao />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/import" element={<Import />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
