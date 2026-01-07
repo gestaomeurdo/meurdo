@@ -1,21 +1,41 @@
 import { useCargos, useDeleteCargo, Cargo } from "@/hooks/use-cargos";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Loader2, Users, FileUp } from "lucide-react";
+import { Edit, Trash2, Loader2, Users, FileUp, AlertTriangle } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import CargoForm from "./CargoForm";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import CargoImportDialog from "./CargoImportDialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const CargosList = () => {
-  const { data: cargos, isLoading } = useCargos();
+  const { data: cargos, isLoading, error } = useCargos();
   const deleteMutation = useDeleteCargo();
   const [editingCargo, setEditingCargo] = useState<Cargo | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  if (isLoading) return <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Buscando cargos...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive" className="my-4">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Erro ao carregar cargos</AlertTitle>
+        <AlertDescription>
+          {error.message || "Não foi possível carregar a lista. Verifique sua conexão ou permissões."}
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
     <div className="space-y-4">
