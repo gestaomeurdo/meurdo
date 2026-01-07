@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { parseCurrencyInput, formatCurrencyForInput } from "@/utils/formatters";
+import { useCurrencyInput } from "@/hooks/use-currency-input";
 
 const ObraSchema = z.object({
   nome: z.string().min(3, "O nome é obrigatório."),
@@ -60,6 +61,8 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
       status: initialData?.status || 'ativa',
     },
   });
+
+  const { handleCurrencyChange } = useCurrencyInput('orcamento_inicial');
 
   const onSubmit = async (values: ObraFormValues) => {
     // Parse the currency string back to a number before submitting
@@ -256,6 +259,10 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
                   type="text" 
                   placeholder="0,00" 
                   {...field} 
+                  onChange={(e) => {
+                    field.onChange(e);
+                    handleCurrencyChange(e);
+                  }}
                   disabled={isLoading} 
                 />
               </FormControl>

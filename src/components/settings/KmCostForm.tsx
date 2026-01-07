@@ -8,6 +8,7 @@ import { Loader2, Save } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 import { useKmCost, useUpdateKmCost } from "@/hooks/use-km-cost";
 import { parseCurrencyInput, formatCurrencyForInput } from "@/utils/formatters";
+import { useCurrencyInput } from "@/hooks/use-currency-input";
 
 const KmCostSchema = z.object({
   valor: z.string().min(1, "O valor é obrigatório."),
@@ -32,6 +33,8 @@ const KmCostForm = () => {
     },
     mode: 'onChange',
   });
+
+  const { handleCurrencyChange } = useCurrencyInput('valor');
 
   const onSubmit = async (values: KmCostFormValues) => {
     const parsedValor = parseCurrencyInput(values.valor);
@@ -64,6 +67,10 @@ const KmCostForm = () => {
                   type="text" 
                   placeholder="1,50" 
                   {...field} 
+                  onChange={(e) => {
+                    field.onChange(e);
+                    handleCurrencyChange(e);
+                  }}
                   disabled={isLoading} 
                 />
               </FormControl>

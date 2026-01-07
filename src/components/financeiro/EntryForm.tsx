@@ -17,6 +17,7 @@ import { FinancialEntry, PaymentMethod, useCreateFinancialEntry, useUpdateFinanc
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { parseCurrencyInput, formatCurrencyForInput } from "@/utils/formatters";
+import { useCurrencyInput } from "@/hooks/use-currency-input";
 
 const paymentMethods: PaymentMethod[] = ['Pix', 'Dinheiro', 'Cartão', 'Boleto', 'Transferência'];
 
@@ -67,6 +68,8 @@ const EntryForm = ({ obraId, initialData, onSuccess }: EntryFormProps) => {
       documento_url: initialData?.documento_url || null,
     },
   });
+
+  const { handleCurrencyChange } = useCurrencyInput('valor');
 
   const handleFileUpload = async (file: File): Promise<string | null> => {
     if (!file) return null;
@@ -230,6 +233,10 @@ const EntryForm = ({ obraId, initialData, onSuccess }: EntryFormProps) => {
                     type="text" 
                     placeholder="0,00" 
                     {...field} 
+                    onChange={(e) => {
+                      field.onChange(e);
+                      handleCurrencyChange(e);
+                    }}
                     disabled={isLoading} 
                   />
                 </FormControl>
