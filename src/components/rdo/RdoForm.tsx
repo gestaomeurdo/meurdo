@@ -262,6 +262,39 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
               </Button>
             )}
             {isEditing && (
+              <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    type="button"
+                    variant="destructive"
+                    className="flex-1 sm:flex-none"
+                    disabled={isDeleting}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    {isDeleting ? "Excluindo..." : "Excluir RDO"}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Confirmar Exclusão do RDO</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Tem certeza que deseja excluir o RDO de <span className="font-bold">{format(methods.watch('data_rdo'), 'dd/MM/yyyy')}</span>? Esta ação é irreversível e removerá todas as atividades e registros associados.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleDeleteRdo}
+                      disabled={isDeleting}
+                      className="bg-destructive hover:bg-destructive/90"
+                    >
+                      {isDeleting ? "Excluindo..." : "Excluir RDO"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+            {isEditing && (
               <Button type="button" variant="outline" onClick={handleExportPdf} className="flex-1 sm:flex-none">
                 <FileDown className="w-4 h-4 mr-2" /> Gerar PDF
               </Button>
@@ -295,34 +328,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
                 )}
                 />
             </div>
-            
-            {isEditing && (
-                <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="ml-4 text-destructive hover:bg-destructive/10" title="Excluir RDO">
-                            <Trash2 className="w-5 h-5" />
-                        </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Confirmar Exclusão do RDO</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Tem certeza que deseja excluir o RDO de <span className="font-bold">{format(methods.watch('data_rdo'), 'dd/MM/yyyy')}</span>? Esta ação é irreversível e removerá todas as atividades e registros associados.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction 
-                                onClick={handleDeleteRdo}
-                                disabled={isDeleting}
-                                className="bg-destructive hover:bg-destructive/90"
-                            >
-                                {isDeleting ? "Excluindo..." : "Excluir RDO"}
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-            )}
         </div>
 
         <Tabs defaultValue="atividades" className="w-full">
