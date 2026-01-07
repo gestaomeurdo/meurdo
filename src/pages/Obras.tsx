@@ -46,10 +46,13 @@ const Obras = () => {
   }
 
   if (error) {
+    // Display the error message clearly if the query failed
     return (
       <DashboardLayout>
-        <div className="p-6 text-red-500">
-          Erro ao carregar obras: {error.message}
+        <div className="p-6 text-red-500 bg-card border border-destructive rounded-lg">
+          <h1 className="text-xl font-bold mb-2">Erro ao carregar obras</h1>
+          <p>Ocorreu um erro ao buscar os dados. Verifique a conexão ou as permissões (RLS).</p>
+          <p className="mt-2 text-sm italic">Detalhe: {error.message}</p>
         </div>
       </DashboardLayout>
     );
