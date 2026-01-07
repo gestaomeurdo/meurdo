@@ -89,24 +89,25 @@ export async function importFinancialEntries(
 
   for (const entry of rawEntries) {
     try {
-      const rawValue = entry.Pagamentos || entry.Valor;
+      const rawValue = (entry.Pagamentos || entry.Valor || "").toString().trim();
       
-      if (!entry.Data || !entry.Descricao || !rawValue || rawValue.trim() === '') {
+      if (!entry.Data || !entry.Descricao || !rawValue) {
           errorCount++;
           continue;
       }
 
       const { categoryId } = categorizeEntry(entry.Descricao, categoryMap);
-      const cleanedValueString = rawValue.toString().replace(/R\$/g, '').replace(/"/g, '').replace(/\s/g, '').trim();
-      const parsedValue = parseCurrencyInput(cleanedValueString);
+      const parsedValue = parseCurrencyInput(rawValue);
       
       if (isNaN(parsedValue) || parsedValue <= 0) {
+          console.warn(`[Importer] Valor inválido ignorado: "${rawValue}" na descrição "${entry.Descricao}"`);
           errorCount++;
           continue;
       }
       
       let dateString: string;
-      const dateParts = entry.Data.includes('/') ? entry.Data.split('/') : entry.Data.split('-');
+      const cleanDate = entry.Data.trim().replace(/\s/g, '');
+      const dateParts = cleanDate.includes('/') ? cleanDate.split('/') : cleanDate.split('-');
       
       if (dateParts.length === 3) {
           if (dateParts[0].length === 4) { // YYYY-MM-DD
@@ -115,6 +116,7 @@ export async function importFinancialEntries(
             dateString = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`;
           }
       } else {
+          console.warn(`[Importer] Data inválida ignorada: "${entry.Data}"`);
           errorCount++;
           continue;
       }
@@ -130,36 +132,24 @@ export async function importFinancialEntries(
       });
       
     } catch (e) {
-      console.error("[Importer] Erro na linha:", entry, e);
+      console.error("[Importer] Erro inesperado ao processar linha:", entry, e);
       errorCount++;
     }
   }
 
   if (entriesToInsert.length > 0) {
-    // Usamos um Set para identificação única rápida
-    const seen = new Set();
-    const uniqueEntries = entriesToInsert.filter(entry => {
-      const key = `${entry.data_gasto}|${entry.descricao}|${entry.valor}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-    
-    const duplicates = entriesToInsert.length - uniqueEntries.length;
-    errorCount += duplicates;
-    
-    console.log(`[Importer] Inserindo ${uniqueEntries.length} registros únicos...`);
+    console.log(`[Importer] Preparando inserção de ${entriesToInsert.length} registros no banco...`);
 
     const { error: insertError } = await supabase
       .from('lancamentos_financeiros')
-      .insert(uniqueEntries);
+      .insert(entriesToInsert);
 
     if (insertError) {
-      console.error("[Importer] Erro Supabase:", insertError);
+      console.error("[Importer] Erro crítico no Supabase durante o insert:", insertError);
       throw new Error(`Erro ao inserir no banco: ${insertError.message}`);
     }
     
-    return { successCount: uniqueEntries.length, errorCount, newCategories: [] };
+    return { successCount: entriesToInsert.length, errorCount, newCategories: [] };
   }
 
   return { successCount: 0, errorCount, newCategories: [] };

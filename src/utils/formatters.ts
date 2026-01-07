@@ -14,21 +14,28 @@ export const formatCurrency = (value: number | null | undefined, options?: Intl.
 };
 
 /**
- * Converte uma string formatada (com pontos e vírgula) para um número decimal.
- * Agora remove tudo exceto números e trata os últimos 2 como centavos se houver vírgula,
- * ou simplesmente converte se for uma string limpa.
+ * Converte uma string formatada para um número decimal.
+ * Suporta formatos BR (1.234,56) e formatos US/Técnicos (1234.56).
  */
 export const parseCurrencyInput = (value: string): number => {
   if (!value) return 0;
   
+  const cleanValue = value.toString().trim();
+
   // Se a string contém vírgula, assume-se formato BR (ex: 1.000,00)
-  if (value.includes(',')) {
-    const cleaned = value.replace(/\./g, '').replace(',', '.').replace(/[^0-9.]/g, '');
+  if (cleanValue.includes(',')) {
+    const cleaned = cleanValue.replace(/\./g, '').replace(',', '.').replace(/[^0-9.-]/g, '');
     return parseFloat(cleaned) || 0;
   }
   
-  // Se for apenas dígitos, trata como número inteiro (dividimos por 100 no hook se for máscara)
-  const onlyDigits = value.replace(/\D/g, '');
+  // Se contiver ponto e NÃO contiver vírgula, tratamos como formato decimal US/Técnico (ex: 1250.50)
+  if (cleanValue.includes('.') && !cleanValue.includes(',')) {
+     const cleaned = cleanValue.replace(/[^0-9.-]/g, '');
+     return parseFloat(cleaned) || 0;
+  }
+
+  // Se for apenas dígitos, trata como número inteiro
+  const onlyDigits = cleanValue.replace(/[^0-9-]/g, '');
   return parseFloat(onlyDigits) || 0;
 };
 
