@@ -2,7 +2,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useObras, Obra } from "@/hooks/use-obras";
 import { useState, useMemo, useEffect } from "react";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, Upload } from "lucide-react";
 import ObraSelector from "@/components/financeiro/ObraSelector";
 import FinancialSummary from "@/components/financeiro/FinancialSummary";
 import EntriesTable from "@/components/financeiro/EntriesTable";
@@ -10,6 +10,7 @@ import EntryDialog from "@/components/financeiro/EntryDialog";
 import { useFinancialEntries } from "@/hooks/use-financial-entries";
 import ExpenseCharts from "@/components/financeiro/ExpenseCharts";
 import { Button } from "@/components/ui/button";
+import ImportDialog from "@/components/financeiro/ImportDialog";
 
 const Financeiro = () => {
   const { data: obras, isLoading: isLoadingObras } = useObras();
@@ -48,10 +49,20 @@ const Financeiro = () => {
       <div className="p-6 space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
           <h1 className="text-3xl font-bold">Controle Financeiro</h1>
-          <ObraSelector 
-            selectedObraId={selectedObraId} 
-            onSelectObra={setSelectedObraId} 
-          />
+          <div className="flex flex-wrap gap-3 items-center">
+            <ObraSelector 
+              selectedObraId={selectedObraId} 
+              onSelectObra={setSelectedObraId} 
+            />
+            <ImportDialog 
+              trigger={
+                <Button variant="outline" className="flex items-center">
+                  <Upload className="w-4 h-4 mr-2" />
+                  Importar CSV
+                </Button>
+              }
+            />
+          </div>
         </div>
 
         {selectedObra ? (
