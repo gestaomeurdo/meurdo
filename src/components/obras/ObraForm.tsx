@@ -1,3 +1,5 @@
+"use client";
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -64,7 +66,6 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
   const { handleCurrencyChange } = useCurrencyInput('orcamento_inicial', form.setValue, form.getValues);
 
   const onSubmit = async (values: ObraFormValues) => {
-    console.log("[ObraForm] Tentando submeter formulário:", values);
     try {
       const parsedOrcamento = parseCurrencyInput(values.orcamento_inicial);
 
@@ -87,11 +88,10 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
         showSuccess("Obra criada com sucesso!");
       }
       
-      console.log("[ObraForm] Finalizado com sucesso, fechando dialog.");
+      form.reset(); // Reseta o formulário para a próxima criação
       onSuccess();
     } catch (error) {
-      console.error("[ObraForm] Erro capturado no onSubmit:", error);
-      showError(`Falha ao salvar: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+      showError(`Erro ao salvar: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
     }
   };
 
