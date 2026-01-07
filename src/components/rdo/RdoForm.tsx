@@ -7,12 +7,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { showSuccess, showError } from "@/utils/toast";
-import { CalendarIcon, Loader2, Save, Copy, FileDown, DollarSign } from "lucide-react";
+import { CalendarIcon, Loader2, Save, Copy, FileDown, DollarSign, Trash2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { DiarioObra, RdoClima, RdoStatusDia, useCreateRdo, useUpdateRdo } from "@/hooks/use-rdo";
+import { DiarioObra, RdoClima, RdoStatusDia, useCreateRdo, useUpdateRdo, useDeleteRdo } from "@/hooks/use-rdo";
 import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
 import RdoEquipmentForm from "./RdoEquipmentForm";
@@ -21,6 +21,7 @@ import { useMemo, useEffect } from "react";
 import { formatCurrency } from "@/utils/formatters";
 import { generateRdoPdf } from "@/utils/rdo-pdf";
 import { useObras } from "@/hooks/use-obras";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const statusOptions: RdoStatusDia[] = ['Operacional', 'Parcialmente Paralisado', 'Totalmente Paralisado - Não Praticável'];
 const climaOptions: RdoClima[] = ['Sol', 'Nublado', 'Chuva Leve', 'Chuva Forte'];
@@ -68,6 +69,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
   const isEditing = !!initialData;
   const createMutation = useCreateRdo();
   const updateMutation = useUpdateRdo();
+  const deleteMutation = useDeleteRdo();
   const { data: obras } = useObras();
   const obraNome = obras?.find(o => o.id === obraId)?.nome || "Obra";
 
@@ -98,7 +100,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
     },
   });
 
-  // Auto-populate from previous day if creating new RDO and previous data exists
   useEffect(() => {
     if (!isEditing && previousRdoData && form.getValues("mao_de_obra")?.length === 0) {
       if (previousRdoData.rdo_mao_de_obra && previousRdoData.rdo_mao_de_obra.length > 0) {
@@ -107,7 +108,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
           quantidade: m.quantidade,
           custo_unitario: m.custo_unitario || 0,
         })));
-        showSuccess("Equipe copiada do dia anterior para facilitar o preenchimento.");
       }
       
       if (previousRdoData.rdo_equipamentos && previousRdoData.rdo_equipamentos.length > 0) {
@@ -128,8 +128,17 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
   const handleExportPdf = () => {
     if (initialData) {
       generateRdoPdf(initialData, obraNome);
-    } else {
-      showError("Salve o RDO antes de exportar.");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!initialData) return;
+    try {
+      await deleteMutation.mutateAsync({ id: initialData.id, obraId });
+      showSuccess("RDO excluído com sucesso.");
+      onSuccess();
+    } catch (error) {
+      showError("Erro ao excluir RDO.");
     }
   };
 
@@ -169,9 +178,32 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
             {isEditing && (
-              <Button type="button" variant="outline" onClick={handleExportPdf} className="flex-1 sm:flex-none">
-                <FileDown className="w-4 h-4 mr-2" /> Gerar PDF
-              </Button>
+              <>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button type="button" variant="destructive" size="icon" title="Excluir RDO">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir Relatório?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta ação não pode ser desfeita. O RDO será removido permanentemente.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                        Confirmar Exclusão
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialog>
+                </AlertDialog>
+                <Button type="button" variant="outline" onClick={handleExportPdf}>
+                  <FileDown className="w-4 h-4 mr-2" /> PDF
+                </Button>
+              </>
             )}
             <Button type="submit" disabled={updateMutation.isPending || createMutation.isPending} className="flex-1 sm:flex-none">
               {(updateMutation.isPending || createMutation.isPending) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
@@ -180,6 +212,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
           </div>
         </div>
 
+        {/* ... restante do formulário (Data, Status, Tabs) ... */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <FormField control={form.control} name="data_rdo" render={({ field }) => (
               <FormItem className="flex flex-col">
