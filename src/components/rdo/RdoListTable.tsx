@@ -38,7 +38,7 @@ const RdoListTable = ({ rdoList, obraId, isLoading }: RdoListTableProps) => {
       await deleteMutation.mutateAsync({ id, obraId });
       showSuccess(`RDO de ${format(parseISO(date), 'dd/MM/yyyy')} excluído com sucesso.`);
     } catch (err) {
-      showError(`Erro ao excluir RDO: ${err instanceof Error ? err.message : "Erro desconhecido"}`);
+      showError(`Erro ao excluir RDO: ${err instanceof Error ? error.message : "Erro desconhecido"}`);
     }
   };
 
