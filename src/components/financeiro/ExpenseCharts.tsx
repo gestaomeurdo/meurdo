@@ -60,7 +60,7 @@ const ExpenseCharts = ({ entries }: ExpenseChartsProps) => {
       const percentage = total > 0 ? ((data.value / total) * 100).toFixed(1) : 0;
 
       return (
-        <div className="p-2 bg-card border border-border rounded-md shadow-lg text-sm">
+        <div className="p-2 bg-card border border-border rounded-md shadow-lg text-sm text-foreground">
           <p className="font-semibold text-primary">{data.name}</p>
           <p>Valor: {formatCurrency(data.value)}</p>
           <p>Percentual: {percentage}%</p>
@@ -89,7 +89,6 @@ const ExpenseCharts = ({ entries }: ExpenseChartsProps) => {
                 innerRadius={60} // Donut Chart
                 outerRadius={100}
                 fill="#8884d8"
-                // Remove labels to prevent overlap
                 label={false} 
                 labelLine={false}
               >
@@ -125,6 +124,8 @@ const ExpenseCharts = ({ entries }: ExpenseChartsProps) => {
               <Tooltip 
                 contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '0.5rem' }}
                 formatter={(value: number) => [formatCurrency(value), 'Gasto']}
+                // Adicionando a classe text-foreground ao wrapper do Tooltip do LineChart
+                wrapperClassName="text-foreground"
               />
               <Line type="monotone" dataKey="Gasto" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
             </LineChart>
