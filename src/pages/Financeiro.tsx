@@ -10,14 +10,13 @@ import EntryDialog from "@/components/financeiro/EntryDialog";
 import { useFinancialEntries } from "@/hooks/use-financial-entries";
 import ExpenseCharts from "@/components/financeiro/ExpenseCharts";
 import { Button } from "@/components/ui/button";
-import PasteImportDialog from "@/components/financeiro/PasteImportDialog"; // Importando o novo componente
+import PasteImportDialog from "@/components/financeiro/PasteImportDialog";
 
 const Financeiro = () => {
   const { data: obras, isLoading: isLoadingObras } = useObras();
   const [selectedObraId, setSelectedObraId] = useState<string | undefined>(undefined);
   const [filters, setFilters] = useState({});
 
-  // Set the first obra as default when they load
   useEffect(() => {
     if (obras && obras.length > 0 && !selectedObraId) {
       setSelectedObraId(obras[0].id);
@@ -54,7 +53,9 @@ const Financeiro = () => {
               selectedObraId={selectedObraId} 
               onSelectObra={setSelectedObraId} 
             />
-            <PasteImportDialog // Usando o novo dialog de colar
+            <PasteImportDialog 
+              selectedObraId={selectedObraId}
+              selectedObraNome={selectedObra?.nome}
               trigger={
                 <Button variant="outline" className="flex items-center">
                   <Clipboard className="w-4 h-4 mr-2" />
@@ -68,14 +69,8 @@ const Financeiro = () => {
         {selectedObra ? (
           <>
             <h2 className="text-xl font-semibold text-primary truncate">Obra Selecionada: {selectedObra.nome}</h2>
-            
-            {/* 3. Resumo Financeiro e Alertas */}
             <FinancialSummary obra={selectedObra} entries={entries} />
-
-            {/* 4. Gráficos Financeiros */}
             <ExpenseCharts entries={entries} />
-
-            {/* 2. Tabela Completa de Lançamentos */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-xl">Lançamentos de Despesas</CardTitle>
@@ -100,7 +95,6 @@ const Financeiro = () => {
         )}
       </div>
       
-      {/* 7. Botão Flutuante */}
       {selectedObraId && (
         <div className="fixed bottom-6 right-6 z-10">
           <EntryDialog 

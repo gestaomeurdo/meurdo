@@ -1,18 +1,15 @@
 import { supabase } from "@/integrations/supabase/client";
 import { parseCurrencyInput } from "./formatters";
 import { PaymentMethod } from "@/hooks/use-financial-entries";
-import { format } from "date-fns";
 
-// Define a estrutura dos dados brutos esperados do CSV
 export interface RawCostEntry {
   Data: string;
   Descricao: string;
-  Valor?: string; // Valor original (se o CSV usar 'Valor')
-  Pagamentos?: string; // Valor se o CSV usar 'Pagamentos'
-  Obra?: string; // Nome da Obra (opcional)
+  Valor?: string;
+  Pagamentos?: string;
+  Obra?: string;
 }
 
-// Regras de categorização: Palavras-chave mapeadas para nomes de categorias
 const CATEGORY_RULES: Record<string, string[]> = {
   'Material de Construção': ['cimento', 'areia', 'tijolo', 'ferragem', 'hidráulica', 'elétrica', 'piso', 'revestimento', 'argamassa', 'material', 'tubo', 'fio', 'telha', 'cal', 'prego', 'maderite', 'sarrafo', 'corrugados', 'conexões', 'veda reboco', 'lona', 'massa corrida', 'rejuntes', 'silicone', 'nichos', 'cunhas', 'blocos', 'ferros', 'arames', 'fita multiuso', 'chuveiro', 'capas de artefatos'],
   'Contabilidade': ['contabilidade', 'contador', 'serviços contábeis', 'rh contabilidade honorários'],
@@ -30,7 +27,6 @@ const CATEGORY_RULES: Record<string, string[]> = {
   'Mão de Obra': ['mão de obra', 'pedreiros', 'diária'],
 };
 
-// Busca o mapa de categorias (nome -> id)
 async function getCategoryMap(): Promise<Map<string, string>> {
   const { data, error } = await supabase
     .from('categorias_despesa')
@@ -43,43 +39,6 @@ async function getCategoryMap(): Promise<Map<string, string>> {
   return map;
 }
 
-// Busca o ID da Obra pelo nome (e cria se não existir)
-async function getObraId(obraName: string, userId: string): Promise<string> {
-  // 1. Tenta encontrar a obra existente
-  const { data: existingObra } = await supabase
-    .from('obras')
-    .select('id')
-    .eq('nome', obraName)
-    .eq('user_id', userId)
-    .single();
-
-  if (existingObra) {
-    return existingObra.id;
-  }
-
-  // 2. Cria nova obra (com valores padrão)
-  const newObraData = {
-    user_id: userId,
-    nome: obraName,
-    data_inicio: format(new Date(), 'yyyy-MM-dd'),
-    orcamento_inicial: 0,
-    status: 'ativa' as const,
-  };
-
-  const { data: newObra, error: createError } = await supabase
-    .from('obras')
-    .insert(newObraData)
-    .select('id')
-    .single();
-
-  if (createError) {
-    throw new Error(`Falha ao criar nova obra "${obraName}": ${createError.message}`);
-  }
-
-  return newObra.id;
-}
-
-// Função para categorizar uma única entrada
 function categorizeEntry(description: string, categoryMap: Map<string, string>): { categoryId: string, categoryName: string } {
   const lowerDesc = description.toLowerCase();
 
@@ -92,9 +51,8 @@ function categorizeEntry(description: string, categoryMap: Map<string, string>):
     }
   }
 
-  // Padrão para 'Outros' se nenhuma correspondência for encontrada
   const defaultCategoryName = 'Outros';
-  let defaultCategoryId = categoryMap.get(defaultCategoryName);
+  const defaultCategoryId = categoryMap.get(defaultCategoryName);
 
   if (!defaultCategoryId) {
     throw new Error(`Categoria padrão '${defaultCategoryName}' não encontrada.`);
@@ -103,18 +61,22 @@ function categorizeEntry(description: string, categoryMap: Map<string, string>):
   return { categoryId: defaultCategoryId, categoryName: defaultCategoryName };
 }
 
-// Função principal de importação
-export async function importFinancialEntries(rawEntries: RawCostEntry[], userId: string): Promise<{ successCount: number, errorCount: number, newCategories: string[] }> {
-  if (!userId) throw new Error("Usuário não autenticado.");
-
-  // 1. Configuração: Garante que a categoria 'Outros' exista e obtém o mapa de categorias
-  const defaultCategoryName = 'Outros';
-  let categoryMap = await getCategoryMap();
+export async function importFinancialEntries(
+  rawEntries: RawCostEntry[], 
+  userId: string, 
+  obraId: string
+): Promise<{ successCount: number, errorCount: number, newCategories: string[] }> {
+  console.log(`[Importer] Iniciando importação para Obra ID: ${obraId}, Total de entradas: ${rawEntries.length}`);
   
-  if (!categoryMap.has(defaultCategoryName)) {
+  if (!userId) throw new Error("Usuário não autenticado.");
+  if (!obraId) throw new Error("ID da obra não fornecido.");
+
+  const categoryMap = await getCategoryMap();
+  
+  if (!categoryMap.has('Outros')) {
     const { data, error } = await supabase
       .from('categorias_despesa')
-      .insert({ nome: defaultCategoryName, descricao: 'Lançamentos que não se encaixam em categorias existentes.' })
+      .insert({ nome: 'Outros', descricao: 'Lançamentos sem categoria definida.' })
       .select('id, nome')
       .single();
     
@@ -122,30 +84,20 @@ export async function importFinancialEntries(rawEntries: RawCostEntry[], userId:
     categoryMap.set(data.nome, data.id);
   }
 
-  // 2. Identifica nomes de Obra e obtém/cria IDs
-  const targetObraName = "Golden BTS";
-  const obraId = await getObraId(targetObraName, userId);
-  
-  // 3. Processa e prepara entradas para inserção
-  let successCount = 0;
   let errorCount = 0;
   const entriesToInsert = [];
 
   for (const entry of rawEntries) {
     try {
-      // Determina o valor a ser usado (Pagamentos ou Valor)
       const rawValue = entry.Pagamentos || entry.Valor;
       
-      // Validação básica de dados: Apenas processa se tiver Data, Descricao E um valor de pagamento/valor
       if (!entry.Data || !entry.Descricao || !rawValue || rawValue.trim() === '') {
           errorCount++;
           continue;
       }
 
       const { categoryId } = categorizeEntry(entry.Descricao, categoryMap);
-      
-      // Limpa a string de valor (remove R$, espaços, aspas duplas e usa parseCurrencyInput)
-      const cleanedValueString = rawValue.replace(/R\$/g, '').replace(/"/g, '').trim();
+      const cleanedValueString = rawValue.toString().replace(/R\$/g, '').replace(/"/g, '').replace(/\s/g, '').trim();
       const parsedValue = parseCurrencyInput(cleanedValueString);
       
       if (isNaN(parsedValue) || parsedValue <= 0) {
@@ -154,26 +106,15 @@ export async function importFinancialEntries(rawEntries: RawCostEntry[], userId:
       }
       
       let dateString: string;
+      const dateParts = entry.Data.includes('/') ? entry.Data.split('/') : entry.Data.split('-');
       
-      if (entry.Data.includes('/')) {
-          // Formato DD/MM/YYYY
-          const parts = entry.Data.split('/');
-          if (parts.length !== 3) {
-              errorCount++;
-              continue;
+      if (dateParts.length === 3) {
+          if (dateParts[0].length === 4) { // YYYY-MM-DD
+            dateString = `${dateParts[0]}-${dateParts[1].padStart(2, '0')}-${dateParts[2].padStart(2, '0')}`;
+          } else { // DD/MM/YYYY
+            dateString = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`;
           }
-          dateString = `${parts[2]}-${parts[1]}-${parts[0]}`;
-      } else if (entry.Data.includes('-')) {
-          // Formato YYYY-MM-DD (ou similar)
-          dateString = entry.Data;
       } else {
-          // Formato de data não reconhecido
-          errorCount++;
-          continue;
-      }
-      
-      // Basic check if the resulting string is a valid date format
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
           errorCount++;
           continue;
       }
@@ -181,46 +122,45 @@ export async function importFinancialEntries(rawEntries: RawCostEntry[], userId:
       entriesToInsert.push({
         obra_id: obraId,
         user_id: userId,
-        data_gasto: dateString, // Usando a string YYYY-MM-DD
+        data_gasto: dateString,
         categoria_id: categoryId,
         descricao: entry.Descricao.trim(),
         valor: parsedValue,
-        forma_pagamento: 'Transferência' as PaymentMethod, // Forma de pagamento padrão
+        forma_pagamento: 'Transferência' as PaymentMethod,
       });
       
     } catch (e) {
-      console.error("[Importer] Erro ao processar entrada:", entry, e);
+      console.error("[Importer] Erro na linha:", entry, e);
       errorCount++;
     }
   }
 
-  // 4. Inserção em Massa
   if (entriesToInsert.length > 0) {
-    // Filtra entradas duplicadas (baseado em data, descrição e valor)
-    const uniqueEntries = entriesToInsert.filter((entry, index, self) =>
-      index === self.findIndex((t) => (
-        t.data_gasto === entry.data_gasto &&
-        t.descricao === entry.descricao &&
-        t.valor === entry.valor
-      ))
-    );
+    // Usamos um Set para identificação única rápida
+    const seen = new Set();
+    const uniqueEntries = entriesToInsert.filter(entry => {
+      const key = `${entry.data_gasto}|${entry.descricao}|${entry.valor}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
     
     const duplicates = entriesToInsert.length - uniqueEntries.length;
     errorCount += duplicates;
     
-    // OTIMIZAÇÃO: Usar returning: 'minimal' para acelerar a inserção em massa
+    console.log(`[Importer] Inserindo ${uniqueEntries.length} registros únicos...`);
+
     const { error: insertError } = await supabase
       .from('lancamentos_financeiros')
-      .insert(uniqueEntries)
-      .select('id', { count: 'exact', head: true }); // Pede apenas o ID e a contagem, mas o returning: 'minimal' é mais eficiente.
+      .insert(uniqueEntries);
 
     if (insertError) {
-      console.error("[Importer] Erro na inserção em massa:", insertError);
-      // Se houver erro na inserção em massa, assumimos que todas as entradas falharam
-      throw new Error(`Falha na inserção em massa: ${insertError.message}`);
+      console.error("[Importer] Erro Supabase:", insertError);
+      throw new Error(`Erro ao inserir no banco: ${insertError.message}`);
     }
-    successCount = uniqueEntries.length;
+    
+    return { successCount: uniqueEntries.length, errorCount, newCategories: [] };
   }
 
-  return { successCount, errorCount, newCategories: [] };
+  return { successCount: 0, errorCount, newCategories: [] };
 }
