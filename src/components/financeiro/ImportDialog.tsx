@@ -45,12 +45,14 @@ const ImportDialog = ({ trigger }: ImportDialogProps) => {
       skipEmptyLines: true,
       dynamicTyping: false,
       complete: async (results) => {
-        // Filtra linhas que parecem ser lançamentos de despesa (têm Descricao e Pagamentos)
-        const rawEntries = (results.data as RawCostEntry[]).filter(e => e.Descricao && e.Pagamentos);
+        // Filter lines that have Descricao and either Pagamentos or Valor
+        const rawEntries = (results.data as RawCostEntry[]).filter(e => 
+          e.Descricao && (e.Pagamentos || e.Valor)
+        );
         const totalCount = rawEntries.length;
 
         if (totalCount === 0) {
-          showError("O arquivo CSV está vazio ou não contém lançamentos válidos nas colunas esperadas (Data, Descricao, Pagamentos).");
+          showError("O arquivo CSV está vazio ou não contém lançamentos válidos nas colunas esperadas (Data, Descricao, Valor/Pagamentos).");
           setIsLoading(false);
           setIsProcessing(false);
           return;
@@ -102,7 +104,7 @@ const ImportDialog = ({ trigger }: ImportDialogProps) => {
             <AlertTitle>Formato Necessário (CSV)</AlertTitle>
             <AlertDescription>
               O arquivo deve conter as colunas exatas (case-sensitive): 
-              <code className="block mt-2 p-2 bg-secondary rounded text-sm">Data, Descrição, Pagamentos</code>.
+              <code className="block mt-2 p-2 bg-secondary rounded text-sm">Data, Descrição, Valor</code> ou <code className="block mt-2 p-2 bg-secondary rounded text-sm">Data, Descrição, Pagamentos</code>.
               <p className="mt-2">Todos os lançamentos serão atribuídos à obra padrão: **Golden BTS**.</p>
             </AlertDescription>
           </Alert>
