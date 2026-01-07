@@ -30,6 +30,7 @@ const Login = () => {
             }}
             theme="dark"
             view="sign_in"
+            onlyAllowIf={['sign_in', 'forgotten_password']} // Adicionado para restringir as views
             localization={{
               variables: {
                 sign_in: {
@@ -41,7 +42,6 @@ const Login = () => {
                   social_provider_text: 'Ou entre com',
                   link_text: '', // Removido o link para a tela de cadastro
                 },
-                // O bloco sign_up foi removido para garantir que a tela de cadastro não seja acessível.
                 forgotten_password: {
                   link_text: 'Esqueceu sua senha?',
                 },
