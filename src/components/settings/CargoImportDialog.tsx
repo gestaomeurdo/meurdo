@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { FileUp, Loader2, AlertTriangle, CheckCircle, Clipboard } from "lucide-react";
+import { FileUp, Loader2, AlertTriangle, CheckCircle, Clipboard, FileType } from "lucide-react";
 import { useState } from "react";
 import Papa from 'papaparse';
 import { useAuth } from "@/integrations/supabase/auth-provider";
@@ -9,6 +9,8 @@ import { showError, showSuccess } from "@/utils/toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useQueryClient } from "@tanstack/react-query";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface CargoImportDialogProps {
   trigger: React.ReactNode;
@@ -18,31 +20,35 @@ const CargoImportDialog = ({ trigger }: CargoImportDialogProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [content, setContent] = useState<string>("");
+  const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [importResult, setImportResult] = useState<{ successCount: number, errorCount: number, totalCount: number } | null>(null);
   const [open, setOpen] = useState(false);
 
-  const processData = async (csvText: string) => {
-    if (!csvText.trim() || !user) {
-      showError("Nenhum dado para processar.");
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+      setContent(""); // Limpa o texto se selecionou arquivo
+      setImportResult(null);
+    }
+  };
+
+  const processImport = async () => {
+    if (!file && !content.trim()) {
+      showError("Selecione um arquivo ou cole os dados.");
       return;
     }
 
+    if (!user) return;
+
     setIsLoading(true);
     setImportResult(null);
-    
-    // Detectar delimitador de forma mais inteligente
-    let delimiter = "";
-    if (csvText.includes('\t')) delimiter = '\t';
-    else if (csvText.includes(';')) delimiter = ';';
-    else if (csvText.includes(',')) delimiter = ',';
 
-    Papa.parse(csvText, {
-      delimiter: delimiter,
+    const parseConfig = {
       header: true,
       skipEmptyLines: 'greedy',
-      transformHeader: (header) => header.trim(), // Remove espaços extras dos nomes das colunas
-      complete: async (results) => {
+      transformHeader: (header: string) => header.trim(),
+      complete: async (results: any) => {
         try {
           const rawEntries = (results.data as any[]).map(row => ({
             Nome: row.Nome || row.nome || row.Cargo || row.cargo || '',
@@ -51,7 +57,7 @@ const CargoImportDialog = ({ trigger }: CargoImportDialogProps) => {
           })).filter(e => e.Nome && e.Custo);
 
           if (rawEntries.length === 0) {
-            showError("Nenhum cargo válido identificado. Verifique os nomes das colunas (Nome, Custo).");
+            showError("Nenhum cargo válido encontrado. Verifique se o cabeçalho tem 'Nome' e 'Custo'.");
             setIsLoading(false);
             return;
           }
@@ -67,20 +73,25 @@ const CargoImportDialog = ({ trigger }: CargoImportDialogProps) => {
             showSuccess(`${result.successCount} cargos importados com sucesso.`);
             queryClient.invalidateQueries({ queryKey: ['cargos'] });
           } else {
-            showError("Nenhum registro pôde ser salvo. Verifique o formato.");
+            showError("Não foi possível salvar os registros. Verifique o arquivo.");
           }
         } catch (error) {
-          console.error("[ImportDialog] Erro:", error);
           showError(`Erro: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
         } finally {
           setIsLoading(false);
         }
       },
-      error: (error) => {
-        showError(`Erro no processamento do texto: ${error.message}`);
+      error: (error: any) => {
+        showError(`Erro no processamento: ${error.message}`);
         setIsLoading(false);
       }
-    });
+    };
+
+    if (file) {
+      Papa.parse(file, parseConfig);
+    } else {
+      Papa.parse(content, parseConfig);
+    }
   };
 
   return (
@@ -89,25 +100,44 @@ const CargoImportDialog = ({ trigger }: CargoImportDialogProps) => {
       <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <DialogTitle>Importar Cargos e Salários</DialogTitle>
-          <DialogDescription>Cole seus dados do Excel ou arquivo CSV.</DialogDescription>
+          <DialogDescription>Selecione um arquivo CSV/Excel ou cole os dados abaixo.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          <Alert variant="default" className="bg-primary/5 border-primary/20">
-            <AlertTriangle className="h-4 w-4 text-primary" />
-            <AlertTitle>Formato Esperado</AlertTitle>
-            <AlertDescription className="text-xs">
-              O cabeçalho deve conter: <code className="bg-muted px-1">Nome</code> e <code className="bg-muted px-1">Custo</code>.<br/>
-              Ex: Mestre de Obras; 350,00
-            </AlertDescription>
-          </Alert>
+          <div className="space-y-2">
+            <Label htmlFor="cargo-file">Upload de Arquivo (CSV ou TXT)</Label>
+            <div className="flex gap-2">
+                <Input 
+                    id="cargo-file"
+                    type="file" 
+                    accept=".csv,.txt" 
+                    onChange={handleFileChange}
+                    className="flex-1"
+                />
+                {file && (
+                    <Button variant="outline" size="icon" onClick={() => setFile(null)} title="Remover arquivo">
+                        <AlertTriangle className="h-4 w-4 text-destructive" />
+                    </Button>
+                )}
+            </div>
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">Ou cole os dados</span>
+            </div>
+          </div>
 
           <Textarea 
-            placeholder="Nome;Custo;Tipo&#10;Pedreiro;150,00;Próprio&#10;Servente;100,00;Próprio"
-            rows={8}
+            placeholder="Nome;Custo;Tipo&#10;Pedreiro;150,00;Próprio"
+            rows={5}
             value={content}
             onChange={(e) => {
                 setContent(e.target.value);
+                setFile(null); // Limpa o arquivo se colou texto
                 setImportResult(null);
             }}
             className="font-mono text-xs"
@@ -117,10 +147,10 @@ const CargoImportDialog = ({ trigger }: CargoImportDialogProps) => {
             <Alert className={importResult.successCount > 0 ? "border-green-500" : "border-destructive"}>
               <AlertTitle className="flex items-center text-sm font-bold">
                 {importResult.successCount > 0 ? <CheckCircle className="h-4 w-4 mr-2 text-green-500" /> : <AlertTriangle className="h-4 w-4 mr-2 text-destructive" />}
-                Relatório de Importação
+                Resultado
               </AlertTitle>
               <AlertDescription className="text-xs">
-                Processados: {importResult.totalCount} | Sucesso: {importResult.successCount} | Falhas: {importResult.errorCount}
+                Linhas: {importResult.totalCount} | Sucesso: {importResult.successCount} | Falhas: {importResult.errorCount}
               </AlertDescription>
             </Alert>
           )}
@@ -128,8 +158,8 @@ const CargoImportDialog = ({ trigger }: CargoImportDialogProps) => {
 
         <DialogFooter>
           <Button variant="secondary" onClick={() => setOpen(false)}>Fechar</Button>
-          <Button onClick={() => processData(content)} disabled={isLoading || !content.trim()}>
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Clipboard className="mr-2 h-4 w-4" />}
+          <Button onClick={processImport} disabled={isLoading || (!file && !content.trim())}>
+            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileUp className="mr-2 h-4 w-4" />}
             {isLoading ? "Processando..." : "Importar Agora"}
           </Button>
         </DialogFooter>
