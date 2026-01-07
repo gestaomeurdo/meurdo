@@ -8,7 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { showSuccess, showError } from "@/utils/toast";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -18,9 +18,9 @@ import { useCurrencyInput } from "@/hooks/use-currency-input";
 
 const ObraSchema = z.object({
   nome: z.string().min(3, "O nome é obrigatório."),
-  endereco: z.string().optional(),
-  dono_cliente: z.string().optional(),
-  responsavel_tecnico: z.string().optional(),
+  endereco: z.string().optional().nullable(),
+  dono_cliente: z.string().optional().nullable(),
+  responsavel_tecnico: z.string().optional().nullable(),
   data_inicio: z.date({ required_error: "Data de início é obrigatória." }),
   previsao_entrega: z.date().optional().nullable(),
   orcamento_inicial: z.string().min(1, "O orçamento é obrigatório."),
@@ -52,9 +52,8 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
       endereco: initialData?.endereco || "",
       dono_cliente: initialData?.dono_cliente || "",
       responsavel_tecnico: initialData?.responsavel_tecnico || "",
-      data_inicio: initialData?.data_inicio ? new Date(initialData.data_inicio) : undefined,
-      previsao_entrega: initialData?.previsao_entrega ? new Date(initialData.previsao_entrega) : undefined,
-      // Initialize orcamento_inicial as a formatted string for text input
+      data_inicio: initialData?.data_inicio ? new Date(initialData.data_inicio) : new Date(),
+      previsao_entrega: initialData?.previsao_entrega ? new Date(initialData.previsao_entrega) : null,
       orcamento_inicial: initialData?.orcamento_inicial !== undefined 
         ? formatCurrencyForInput(initialData.orcamento_inicial) 
         : "0,00",
@@ -65,26 +64,31 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
   const { handleCurrencyChange } = useCurrencyInput('orcamento_inicial', form.setValue, form.getValues);
 
   const onSubmit = async (values: ObraFormValues) => {
-    // Parse the currency string back to a number before submitting
     const parsedOrcamento = parseCurrencyInput(values.orcamento_inicial);
 
-    const dataToSubmit = {
-      ...values,
+    // Preparamos o payload explicitamente para evitar lixo de dados ou tipos incompatíveis
+    const payload = {
+      nome: values.nome,
+      endereco: values.endereco || null,
+      dono_cliente: values.dono_cliente || null,
+      responsavel_tecnico: values.responsavel_tecnico || null,
       data_inicio: format(values.data_inicio, 'yyyy-MM-dd'),
-      previsao_entrega: values.previsao_entrega ? format(values.previsao_entrega, 'yyyy-MM-dd') : undefined,
-      orcamento_inicial: parsedOrcamento, // Use the parsed number
+      previsao_entrega: values.previsao_entrega ? format(values.previsao_entrega, 'yyyy-MM-dd') : null,
+      orcamento_inicial: parsedOrcamento,
+      status: values.status,
     };
 
     try {
       if (isEditing && initialData) {
-        await updateMutation.mutateAsync({ ...dataToSubmit, id: initialData.id } as Obra & { id: string });
+        await updateMutation.mutateAsync({ ...payload, id: initialData.id });
         showSuccess("Obra atualizada com sucesso!");
       } else {
-        await createMutation.mutateAsync(dataToSubmit);
+        await createMutation.mutateAsync(payload);
         showSuccess("Obra criada com sucesso!");
       }
       onSuccess();
     } catch (error) {
+      console.error("[ObraForm] Submit error:", error);
       showError(`Erro ao salvar obra: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
     }
   };
@@ -101,7 +105,7 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
             <FormItem>
               <FormLabel>Nome da Obra</FormLabel>
               <FormControl>
-                <Input placeholder="Ex: Residência Alphaville" {...field} disabled={isLoading} />
+                <Input placeholder="Ex: Residência Alphaville" {...field} value={field.value || ""} disabled={isLoading} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -115,7 +119,7 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
             <FormItem>
               <FormLabel>Endereço</FormLabel>
               <FormControl>
-                <Textarea placeholder="Rua, número, bairro..." {...field} disabled={isLoading} />
+                <Textarea placeholder="Rua, número, bairro..." {...field} value={field.value || ""} disabled={isLoading} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -130,7 +134,7 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
               <FormItem>
                 <FormLabel>Dono/Cliente</FormLabel>
                 <FormControl>
-                  <Input placeholder="Nome do cliente" {...field} disabled={isLoading} />
+                  <Input placeholder="Nome do cliente" {...field} value={field.value || ""} disabled={isLoading} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -143,7 +147,7 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
               <FormItem>
                 <FormLabel>Responsável Técnico</FormLabel>
                 <FormControl>
-                  <Input placeholder="Nome do engenheiro/arquiteto" {...field} disabled={isLoading} />
+                  <Input placeholder="Nome do engenheiro/arquiteto" {...field} value={field.value || ""} disabled={isLoading} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -169,7 +173,7 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
                         )}
                         disabled={isLoading}
                       >
-                        {field.value ? format(field.value, "PPP") : <span>Selecione a data</span>}
+                        {field.value ? format(field.value, "dd/MM/yyyy") : <span>Selecione a data</span>}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
@@ -205,7 +209,7 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
                         )}
                         disabled={isLoading}
                       >
-                        {field.value ? format(field.value, "PPP") : <span>Selecione a data</span>}
+                        {field.value ? format(field.value, "dd/MM/yyyy") : <span>Selecione a data</span>}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
@@ -271,8 +275,17 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
           )}
         />
 
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? "Salvando..." : isEditing ? "Salvar Alterações" : "Criar Obra"}
+        <Button type="submit" disabled={isLoading} className="w-full">
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Salvando...
+            </>
+          ) : isEditing ? (
+            "Salvar Alterações"
+          ) : (
+            "Criar Obra"
+          )}
         </Button>
       </form>
     </Form>

@@ -38,7 +38,7 @@ export const useObras = () => {
     queryKey: ['obras', userId],
     queryFn: () => fetchObras(userId!),
     enabled: !!userId,
-    staleTime: 1000 * 60 * 1, // Cache data for 1 minute to improve navigation speed
+    staleTime: 1000 * 60 * 1, // Cache data for 1 minute
   });
 };
 
@@ -46,11 +46,11 @@ export const useObras = () => {
 
 interface ObraInput {
   nome: string;
-  endereco?: string;
-  dono_cliente?: string;
-  responsavel_tecnico?: string;
+  endereco?: string | null;
+  dono_cliente?: string | null;
+  responsavel_tecnico?: string | null;
   data_inicio: string;
-  previsao_entrega?: string;
+  previsao_entrega?: string | null;
   orcamento_inicial: number;
   status: 'ativa' | 'concluida' | 'pausada';
 }
@@ -62,7 +62,7 @@ export const useCreateObra = () => {
 
   return useMutation<Obra, Error, ObraInput>({
     mutationFn: async (newObra) => {
-      if (!userId) throw new Error("User not authenticated.");
+      if (!userId) throw new Error("Usuário não autenticado.");
       
       const { data, error } = await supabase
         .from('obras')
@@ -77,6 +77,7 @@ export const useCreateObra = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['obras', userId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardData', userId] });
     },
   });
 };
@@ -86,15 +87,17 @@ export const useUpdateObra = () => {
   const { user } = useAuth();
   const userId = user?.id;
 
-  return useMutation<Obra, Error, Obra & { id: string }>({
-    mutationFn: async (updatedObra) => {
-      if (!userId) throw new Error("User not authenticated.");
+  return useMutation<Obra, Error, Partial<ObraInput> & { id: string }>({
+    mutationFn: async (payload) => {
+      if (!userId) throw new Error("Usuário não autenticado.");
+
+      const { id, ...updateData } = payload;
 
       const { data, error } = await supabase
         .from('obras')
-        .update(updatedObra)
-        .eq('id', updatedObra.id)
-        .eq('user_id', userId) // Ensure user can only update their own
+        .update(updateData)
+        .eq('id', id)
+        .eq('user_id', userId) // Segurança extra: garante que o dono está editando
         .select()
         .single();
 
@@ -105,9 +108,7 @@ export const useUpdateObra = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['obras', userId] });
-      queryClient.setQueryData(['obras', userId], (old: Obra[] | undefined) => 
-        old ? old.map(o => o.id === data.id ? data : o) : [data]
-      );
+      queryClient.invalidateQueries({ queryKey: ['dashboardData', userId] });
     },
   });
 };
@@ -119,13 +120,13 @@ export const useDeleteObra = () => {
 
   return useMutation<void, Error, string>({
     mutationFn: async (obraId) => {
-      if (!userId) throw new Error("User not authenticated.");
+      if (!userId) throw new Error("Usuário não autenticado.");
 
       const { error } = await supabase
         .from('obras')
         .delete()
         .eq('id', obraId)
-        .eq('user_id', userId); // Ensure user can only delete their own
+        .eq('user_id', userId);
 
       if (error) {
         throw new Error(error.message);
@@ -133,6 +134,7 @@ export const useDeleteObra = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['obras', userId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardData', userId] });
     },
   });
 };
