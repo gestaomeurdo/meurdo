@@ -39,16 +39,9 @@ const Login = () => {
                   password_input_placeholder: 'Sua senha',
                   button_label: 'Entrar',
                   social_provider_text: 'Ou entre com',
-                  link_text: 'Já tem uma conta? Entre',
+                  link_text: '', // Removido o link para a tela de cadastro
                 },
-                sign_up: {
-                  email_label: 'Email',
-                  password_label: 'Crie sua senha',
-                  email_input_placeholder: 'Seu email',
-                  password_input_placeholder: 'Crie uma senha forte',
-                  button_label: 'Cadastrar',
-                  link_text: 'Não tem uma conta? Cadastre-se',
-                },
+                // O bloco sign_up foi removido para garantir que a tela de cadastro não seja acessível.
                 forgotten_password: {
                   link_text: 'Esqueceu sua senha?',
                 },
