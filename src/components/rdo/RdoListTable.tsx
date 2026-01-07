@@ -1,7 +1,7 @@
 import { DiarioObra, RdoClima, useDeleteRdo } from "@/hooks/use-rdo";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Sun, Cloud, CloudRain, CloudLightning, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
+import { Edit, Trash2, Sun, Cloud, CloudRain, CloudLightning, AlertTriangle, Loader2, Eye } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format, parseISO } from "date-fns";
@@ -60,16 +60,16 @@ const RdoListTable = ({ rdoList, obraId, isLoading }: RdoListTableProps) => {
   }
 
   return (
-    <div className="rounded-md border overflow-x-auto">
+    <div className="rounded-md border overflow-hidden bg-card">
       <Table>
-        <TableHeader>
+        <TableHeader className="bg-muted/50">
           <TableRow>
             <TableHead className="w-[120px]">Data</TableHead>
-            <TableHead className="w-[120px]">Dia da Semana</TableHead>
-            <TableHead className="w-[100px]">Clima</TableHead>
-            <TableHead className="w-[250px]">Status do Dia</TableHead>
+            <TableHead className="w-[140px]">Dia</TableHead>
+            <TableHead className="w-[120px]">Clima</TableHead>
+            <TableHead className="min-w-[200px]">Status</TableHead>
             <TableHead>Responsável</TableHead>
-            <TableHead className="text-right w-[100px]">Ações</TableHead>
+            <TableHead className="text-right w-[120px]">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -78,40 +78,40 @@ const RdoListTable = ({ rdoList, obraId, isLoading }: RdoListTableProps) => {
             const dayOfWeek = format(dateObj, 'EEEE', { locale: ptBR });
             const ClimaIcon = rdo.clima_condicoes ? climaIconMap[rdo.clima_condicoes] : Cloud;
             const statusColor = statusColorMap[rdo.status_dia];
-            
-            // The RDO Dialog expects a Date object, not a string
-            const rdoDate = new Date(rdo.data_rdo + 'T12:00:00'); // Ensure correct timezone handling for date
+            const rdoDate = new Date(rdo.data_rdo + 'T12:00:00');
 
             return (
-              <TableRow key={rdo.id}>
+              <TableRow key={rdo.id} className="hover:bg-muted/30 transition-colors cursor-pointer group">
                 <TableCell className="font-medium">{format(dateObj, 'dd/MM/yyyy')}</TableCell>
-                <TableCell className="capitalize">{dayOfWeek}</TableCell>
+                <TableCell className="capitalize text-muted-foreground">{dayOfWeek}</TableCell>
                 <TableCell>
                   <div className="flex items-center text-sm">
-                    <ClimaIcon className="w-4 h-4 mr-2 text-muted-foreground" />
-                    {rdo.clima_condicoes || 'Não Informado'}
+                    <ClimaIcon className="w-4 h-4 mr-2 text-primary" />
+                    {rdo.clima_condicoes || 'N/A'}
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={statusColor}>{rdo.status_dia}</Badge>
+                  <Badge variant={statusColor} className="text-[10px] md:text-xs">
+                    {rdo.status_dia}
+                  </Badge>
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
+                <TableCell className="text-sm">
                   {(rdo as any).responsavel || 'N/A'}
                 </TableCell>
-                <TableCell className="text-right space-x-2">
+                <TableCell className="text-right space-x-1" onClick={(e) => e.stopPropagation()}>
                   <RdoDialog 
                     obraId={obraId}
                     date={rdoDate}
                     trigger={
-                      <Button variant="ghost" size="icon" title="Editar">
+                      <Button variant="ghost" size="icon" title="Visualizar/Editar">
                         <Edit className="w-4 h-4" />
                       </Button>
                     }
                   />
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" title="Excluir">
-                        <Trash2 className="w-4 h-4 text-destructive" />
+                      <Button variant="ghost" size="icon" title="Excluir" className="text-destructive hover:bg-destructive/10">
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
