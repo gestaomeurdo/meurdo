@@ -1,4 +1,4 @@
-import { useForm, FormProvider } from "react-hook-form";
+import { useForm, FormProvider, useFormContext } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
@@ -7,12 +7,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { showSuccess, showError } from "@/utils/toast";
-import { CalendarIcon, Loader2, Save, Copy, FileDown, DollarSign } from "lucide-react";
+import { CalendarIcon, Loader2, Save, FileDown, DollarSign, CheckCircle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { DiarioObra, RdoClima, RdoStatusDia, useCreateRdo, useUpdateRdo } from "@/hooks/use-rdo";
+import { DiarioObra, RdoClima, RdoStatusDia, useCreateRdo, useUpdateRdo, usePayRdo } from "@/hooks/use-rdo";
 import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
 import RdoEquipmentForm from "./RdoEquipmentForm";
@@ -21,6 +21,8 @@ import { useMemo, useEffect } from "react";
 import { formatCurrency } from "@/utils/formatters";
 import { generateRdoPdf } from "@/utils/rdo-pdf";
 import { useObras } from "@/hooks/use-obras";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const statusOptions: RdoStatusDia[] = ['Operacional', 'Parcialmente Paralisado', 'Totalmente Paralisado - Não Praticável'];
 const climaOptions: RdoClima[] = ['Sol', 'Nublado', 'Chuva Leve', 'Chuva Forte'];
@@ -68,10 +70,12 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
   const isEditing = !!initialData;
   const createMutation = useCreateRdo();
   const updateMutation = useUpdateRdo();
+  const payRdoMutation = usePayRdo();
+  const queryClient = useQueryClient();
   const { data: obras } = useObras();
   const obraNome = obras?.find(o => o.id === obraId)?.nome || "Obra";
 
-  const form = useForm<RdoFormValues>({
+  const methods = useForm<RdoFormValues>({
     resolver: zodResolver(RdoSchema),
     defaultValues: {
       obra_id: obraId,
@@ -98,11 +102,33 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
     },
   });
 
+  // Check if payment already exists for this RDO date
+  const rdoDateString = format(methods.watch('data_rdo'), 'yyyy-MM-dd');
+  const { data: existingPayment, isLoading: isLoadingPayment } = useQuery({
+    queryKey: ['rdoPaymentCheck', obraId, rdoDateString],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('lancamentos_financeiros')
+        .select('id, valor')
+        .eq('obra_id', obraId)
+        .eq('data_gasto', rdoDateString)
+        .ilike('descricao', 'Pagamento Mão de Obra RDO%') // Check for RDO payment description pattern
+        .maybeSingle();
+      
+      if (error) {
+        console.error("Error checking existing payment:", error);
+        return null;
+      }
+      return data;
+    },
+    enabled: isEditing, // Only check if RDO exists (is being edited/viewed)
+  });
+
   // Auto-populate from previous day if creating new RDO and previous data exists
   useEffect(() => {
-    if (!isEditing && previousRdoData && form.getValues("mao_de_obra")?.length === 0) {
+    if (!isEditing && previousRdoData && methods.getValues("mao_de_obra")?.length === 0) {
       if (previousRdoData.rdo_mao_de_obra && previousRdoData.rdo_mao_de_obra.length > 0) {
-        form.setValue("mao_de_obra", previousRdoData.rdo_mao_de_obra.map(m => ({
+        methods.setValue("mao_de_obra", previousRdoData.rdo_mao_de_obra.map(m => ({
           funcao: m.funcao,
           quantidade: m.quantidade,
           custo_unitario: m.custo_unitario || 0,
@@ -111,16 +137,16 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
       }
       
       if (previousRdoData.rdo_equipamentos && previousRdoData.rdo_equipamentos.length > 0) {
-        form.setValue("equipamentos", previousRdoData.rdo_equipamentos.map(e => ({
+        methods.setValue("equipamentos", previousRdoData.rdo_equipamentos.map(e => ({
           equipamento: e.equipamento,
           horas_trabalhadas: e.horas_trabalhadas,
           horas_paradas: e.horas_paradas,
         })));
       }
     }
-  }, [previousRdoData, isEditing, form]);
+  }, [previousRdoData, isEditing, methods]);
 
-  const watchManpower = form.watch("mao_de_obra");
+  const watchManpower = methods.watch("mao_de_obra");
   const estimatedDailyCost = useMemo(() => {
     return watchManpower?.reduce((sum, item) => sum + (item.quantidade * (item.custo_unitario || 0)), 0) || 0;
   }, [watchManpower]);
@@ -130,6 +156,35 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
       generateRdoPdf(initialData, obraNome);
     } else {
       showError("Salve o RDO antes de exportar.");
+    }
+  };
+
+  const handlePayRdo = async () => {
+    if (estimatedDailyCost <= 0) {
+      showError("O custo estimado da mão de obra é zero. Não há o que pagar.");
+      return;
+    }
+    
+    if (existingPayment) {
+      showError("O pagamento para este RDO já foi registrado.");
+      return;
+    }
+
+    try {
+      await payRdoMutation.mutateAsync({
+        obraId,
+        rdoDate: rdoDateString,
+        totalCost: estimatedDailyCost,
+        manpowerDetails: methods.getValues('mao_de_obra').map(m => ({
+            funcao: m.funcao,
+            quantidade: m.quantidade,
+            custo_unitario: m.custo_unitario || 0,
+        })),
+      });
+      showSuccess("Pagamento do RDO registrado com sucesso no Financeiro!");
+      queryClient.invalidateQueries({ queryKey: ['rdoPaymentCheck'] }); 
+    } catch (error) {
+      showError(`Erro ao registrar pagamento: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
     }
   };
 
@@ -154,9 +209,14 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
     }
   };
 
+  const isSaving = updateMutation.isPending || createMutation.isPending;
+  const isPaying = payRdoMutation.isPending;
+  const isPaymentRegistered = !!existingPayment;
+  const canPay = isEditing && !isPaymentRegistered && estimatedDailyCost > 0;
+
   return (
-    <FormProvider {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+    <FormProvider {...methods}>
+      <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-primary/10 rounded-xl border border-primary/20 gap-4">
           <div className="flex items-center gap-3">
             <div className="bg-primary p-2 rounded-lg text-primary-foreground">
@@ -169,19 +229,37 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
             {isEditing && (
+              <Button 
+                type="button" 
+                variant={isPaymentRegistered ? "secondary" : "default"} 
+                onClick={handlePayRdo} 
+                disabled={!canPay || isPaying}
+                className="flex-1 sm:flex-none"
+              >
+                {isPaying ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : isPaymentRegistered ? (
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                ) : (
+                  <DollarSign className="w-4 h-4 mr-2" />
+                )}
+                {isPaying ? "Registrando..." : isPaymentRegistered ? "Pagamento Registrado" : "Pagar RDO"}
+              </Button>
+            )}
+            {isEditing && (
               <Button type="button" variant="outline" onClick={handleExportPdf} className="flex-1 sm:flex-none">
                 <FileDown className="w-4 h-4 mr-2" /> Gerar PDF
               </Button>
             )}
-            <Button type="submit" disabled={updateMutation.isPending || createMutation.isPending} className="flex-1 sm:flex-none">
-              {(updateMutation.isPending || createMutation.isPending) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+            <Button type="submit" disabled={isSaving} className="flex-1 sm:flex-none">
+              {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
               Salvar RDO
             </Button>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <FormField control={form.control} name="data_rdo" render={({ field }) => (
+          <FormField control={methods.control} name="data_rdo" render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel>Data</FormLabel>
                 <Popover>
@@ -192,11 +270,11 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
               </FormItem>
             )}
           />
-          <FormField control={form.control} name="status_dia" render={({ field }) => (
+          <FormField control={methods.control} name="status_dia" render={({ field }) => (
               <FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger></FormControl><SelectContent>{statusOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></FormItem>
             )}
           />
-          <FormField control={form.control} name="clima_condicoes" render={({ field }) => (
+          <FormField control={methods.control} name="clima_condicoes" render={({ field }) => (
               <FormItem><FormLabel>Clima</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value || undefined}><FormControl><SelectTrigger><SelectValue placeholder="Clima" /></SelectTrigger></FormControl><SelectContent>{climaOptions.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></FormItem>
             )}
           />
@@ -213,11 +291,11 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
           <TabsContent value="mao_de_obra" className="pt-4"><RdoManpowerForm /></TabsContent>
           <TabsContent value="equipamentos" className="pt-4"><RdoEquipmentForm /></TabsContent>
           <TabsContent value="ocorrencias" className="pt-4 space-y-4">
-            <FormField control={form.control} name="impedimentos_comentarios" render={({ field }) => (
+            <FormField control={methods.control} name="impedimentos_comentarios" render={({ field }) => (
                 <FormItem><FormLabel>Impedimentos</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} /></FormControl></FormItem>
               )}
             />
-            <FormField control={form.control} name="observacoes_gerais" render={({ field }) => (
+            <FormField control={methods.control} name="observacoes_gerais" render={({ field }) => (
                 <FormItem><FormLabel>Observações Gerais</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} /></FormControl></FormItem>
               )}
             />

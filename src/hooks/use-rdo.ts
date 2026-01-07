@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/integrations/supabase/auth-provider";
 import { format } from "date-fns";
+import { formatCurrency } from "@/utils/formatters";
 
 // --- RDO Detail Types ---
 export interface RdoAtividadeDetalhe {
@@ -17,6 +18,8 @@ export interface RdoMaoDeObra {
   diario_id: string;
   funcao: string;
   quantidade: number;
+  custo_unitario: number; // Added missing field
+  cargo_id: string | null; // Added missing field
 }
 
 export interface RdoEquipamento {
@@ -137,7 +140,7 @@ export interface RdoInput {
   observacoes_gerais: string | null;
   impedimentos_comentarios: string | null;
   atividades: Omit<RdoAtividadeDetalhe, 'id' | 'diario_id'>[];
-  mao_de_obra: Omit<RdoMaoDeObra, 'id' | 'diario_id'>[];
+  mao_de_obra: Omit<RdoMaoDeObra, 'id' | 'diario_id' | 'cargo_id'>[]; // cargo_id is optional on input
   equipamentos: Omit<RdoEquipamento, 'id' | 'diario_id'>[];
 }
 
@@ -227,6 +230,71 @@ export const useDeleteRdo = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['rdoList', variables.obraId] });
+    },
+  });
+};
+
+// --- RDO Payment Hook ---
+
+interface RdoPaymentInput {
+  obraId: string;
+  rdoDate: string; // YYYY-MM-DD
+  totalCost: number;
+  manpowerDetails: { funcao: string, quantidade: number, custo_unitario: number }[];
+}
+
+const getManpowerCategoryId = async (): Promise<string> => {
+  const { data, error } = await supabase
+    .from('categorias_despesa')
+    .select('id')
+    .eq('nome', 'Mão de Obra')
+    .single();
+
+  if (error) {
+    // Fallback or throw if category is missing
+    throw new Error("Categoria 'Mão de Obra' não encontrada. Cadastre-a primeiro.");
+  }
+  return data.id;
+};
+
+export const usePayRdo = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation<void, Error, RdoPaymentInput>({
+    mutationFn: async ({ obraId, rdoDate, totalCost, manpowerDetails }) => {
+      if (!user) throw new Error("Usuário não autenticado.");
+      if (totalCost <= 0) throw new Error("Custo total deve ser maior que zero para registrar o pagamento.");
+
+      const categoryId = await getManpowerCategoryId();
+
+      const description = `Pagamento Mão de Obra RDO ${format(new Date(rdoDate), 'dd/MM/yyyy')}. Detalhes: ${
+        manpowerDetails.map(m => `${m.quantidade}x ${m.funcao} (${formatCurrency(m.custo_unitario)})`).join(', ')
+      }`;
+
+      const newEntry = {
+        obra_id: obraId,
+        user_id: user.id,
+        data_gasto: rdoDate,
+        categoria_id: categoryId,
+        descricao: description,
+        valor: totalCost,
+        forma_pagamento: 'Transferência', // Default payment method for RDO
+      };
+
+      const { error } = await supabase
+        .from('lancamentos_financeiros')
+        .insert(newEntry);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+    },
+    onSuccess: (_, variables) => {
+      // Invalidate financial entries and dashboard data
+      queryClient.invalidateQueries({ queryKey: ['financialEntries', { obraId: variables.obraId }] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
+      queryClient.invalidateQueries({ queryKey: ['reportData'] });
     },
   });
 };
