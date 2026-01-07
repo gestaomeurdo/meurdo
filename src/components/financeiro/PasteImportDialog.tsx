@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Upload, Loader2, AlertTriangle, CheckCircle, Clipboard } from "lucide-react";
+import { Loader2, AlertTriangle, CheckCircle, Clipboard } from "lucide-react";
 import { useState } from "react";
 import Papa from 'papaparse';
 import { useAuth } from "@/integrations/supabase/auth-provider";
@@ -15,6 +15,12 @@ interface PasteImportDialogProps {
   trigger: React.ReactNode;
 }
 
+// Função auxiliar para normalizar texto (remove acentos, espaços extras, lowercase)
+const normalizeText = (text: string | undefined) => {
+  if (!text) return "";
+  return text.toString().trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") || "";
+};
+
 const PasteImportDialog = ({ trigger }: PasteImportDialogProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -24,7 +30,7 @@ const PasteImportDialog = ({ trigger }: PasteImportDialogProps) => {
   const [open, setOpen] = useState(false);
 
   const handleImport = () => {
-    if (!csvContent || !user) {
+    if (!csvContent.trim() || !user) {
       showError("Cole o conteúdo do CSV na caixa de texto e certifique-se de estar logado.");
       return;
     }
@@ -32,32 +38,81 @@ const PasteImportDialog = ({ trigger }: PasteImportDialogProps) => {
     setIsLoading(true);
     setImportResult(null);
 
-    // Use PapaParse to process the pasted text
     Papa.parse(csvContent, {
-      header: true,
+      delimiter: "", // Auto-detectar delimitador (tab, vírgula, ponto e vírgula)
+      header: false, // Processamos o cabeçalho manualmente
       skipEmptyLines: true,
-      dynamicTyping: false,
-      delimiter: '', // Permite detecção automática de delimitador (vírgula, ponto e vírgula, tabulação)
       complete: async (results) => {
-        // Filter lines that have Descricao and either Pagamentos or Valor
-        const rawEntries = (results.data as RawCostEntry[]).filter(e => 
-          e.Descricao && (e.Pagamentos || e.Valor)
-        );
-        const totalCount = rawEntries.length;
-
-        if (totalCount === 0) {
-          showError("O conteúdo colado está vazio ou não contém lançamentos válidos nas colunas esperadas (Data, Descricao, Valor/Pagamentos).");
+        const rows = results.data as string[][];
+        
+        if (rows.length === 0) {
+          showError("Nenhum dado encontrado no conteúdo colado.");
           setIsLoading(false);
           return;
         }
 
+        // 1. Encontrar a linha de cabeçalho e mapear colunas
+        let headerRowIndex = -1;
+        let colMap = { date: -1, desc: -1, amount: -1 };
+
+        for (let i = 0; i < Math.min(rows.length, 10); i++) {
+          const row = rows[i].map(normalizeText);
+          
+          const dateIdx = row.findIndex(c => c.includes('data'));
+          const descIdx = row.findIndex(c => c.includes('descricao') || c.includes('historico'));
+          const amountIdx = row.findIndex(c => c.includes('valor') || c.includes('pagamento') || c.includes('saida'));
+
+          // Requer Data E (Descrição OU Valor/Pagamentos)
+          if (dateIdx !== -1 && (descIdx !== -1 || amountIdx !== -1)) {
+            headerRowIndex = i;
+            colMap = { date: dateIdx, desc: descIdx, amount: amountIdx };
+            break;
+          }
+        }
+
+        if (headerRowIndex === -1) {
+          showError("Não foi possível identificar as colunas (Data, Descrição, Valor/Pagamentos). Verifique se copiou o cabeçalho.");
+          setIsLoading(false);
+          return;
+        }
+
+        // 2. Extrair e mapear os dados para o formato RawCostEntry
+        const rawEntries: RawCostEntry[] = [];
+        
+        for (let i = headerRowIndex + 1; i < rows.length; i++) {
+          const row = rows[i];
+          
+          const rawDate = row[colMap.date];
+          const rawDesc = row[colMap.desc];
+          const rawAmount = row[colMap.amount];
+
+          // Validação básica: precisa ter Data e pelo menos um valor
+          if (rawDate && (rawAmount || rawDesc)) {
+            rawEntries.push({
+              Data: rawDate,
+              Descricao: rawDesc || 'Sem descrição',
+              // Usamos 'Pagamentos' para o campo de valor, pois é o que o importFinancialEntries espera
+              Pagamentos: rawAmount, 
+              Valor: rawAmount, // Incluímos Valor também por segurança
+            });
+          }
+        }
+        
+        const totalCount = rawEntries.length;
+
+        if (totalCount === 0) {
+          showError("Nenhuma transação válida encontrada após o processamento do cabeçalho.");
+          setIsLoading(false);
+          return;
+        }
+
+        // 3. Inserir no Supabase
         try {
           const { successCount, errorCount } = await importFinancialEntries(rawEntries, user.id);
           
           setImportResult({ successCount, errorCount, totalCount });
           showSuccess(`Importação concluída! ${successCount} lançamentos adicionados.`);
           
-          // Invalida consultas relevantes para atualizar o dashboard e financeiro
           queryClient.invalidateQueries({ queryKey: ['financialEntries'] });
           queryClient.invalidateQueries({ queryKey: ['obras'] });
           queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
@@ -94,14 +149,14 @@ const PasteImportDialog = ({ trigger }: PasteImportDialogProps) => {
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Instruções de Colagem</AlertTitle>
             <AlertDescription>
-              <p>1. Abra seu arquivo CSV/Excel.</p>
-              <p>2. Copie as colunas de dados, **incluindo o cabeçalho** (Data, Descrição, Valor/Pagamentos).</p>
-              <p>3. Cole o conteúdo bruto na caixa abaixo. O sistema tentará **detectar automaticamente** o separador (vírgula, ponto e vírgula ou tabulação).</p>
+              <p>1. Copie as colunas de dados, **incluindo o cabeçalho** (Ex: Data, Descrição, Valor).</p>
+              <p>2. O sistema tentará **detectar automaticamente** o separador e as colunas.</p>
+              <p className="mt-2">Todos os lançamentos serão atribuídos à obra padrão: **Golden BTS**.</p>
             </AlertDescription>
           </Alert>
 
           <div className="space-y-2">
-            <Label htmlFor="csv-paste" className="block text-sm font-medium">Cole o conteúdo do CSV aqui:</Label>
+            <Label htmlFor="csv-paste" className="block text-sm font-medium">Cole o conteúdo do Excel/CSV aqui:</Label>
             <Textarea 
               id="csv-paste"
               rows={10}
