@@ -1,10 +1,9 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useObras } from "@/hooks/use-obras";
 import { useState, useEffect, useMemo } from "react";
-import { Loader2, FileText, Plus, CloudRain, Users, ClipboardCheck, LayoutGrid, List, AlertTriangle } from "lucide-react";
+import { Loader2, FileText, Plus, LayoutGrid, List, AlertTriangle, Calendar as CalendarIcon } from "lucide-react";
 import ObraSelector from "@/components/financeiro/ObraSelector";
 import { Button } from "@/components/ui/button";
-import { Calendar as CalendarIcon } from "lucide-react";
 import { DateRange } from "react-day-picker";
 import { format, parseISO, isSameMonth } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -14,6 +13,8 @@ import { useRdoList } from "@/hooks/use-rdo";
 import RdoDashboard from "@/components/rdo/RdoDashboard";
 import RdoKanbanBoard from "@/components/rdo/RdoKanbanBoard";
 import RdoMobileList from "@/components/rdo/RdoMobileList";
+import RdoListTable from "@/components/rdo/RdoListTable";
+import RdoCalendar from "@/components/rdo/RdoCalendar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -23,7 +24,7 @@ const GestaoRdo = () => {
   const { data: obras, isLoading: isLoadingObras, error: obrasError } = useObras();
   const [selectedObraId, setSelectedObraId] = useState<string | undefined>(undefined);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [view, setView] = useState<'kanban' | 'lista'>('kanban');
+  const [view, setView] = useState<'kanban' | 'lista' | 'calendario'>('calendario');
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -68,6 +69,40 @@ const GestaoRdo = () => {
         </Alert>
       );
     }
+    
+    const commonProps = {
+        rdoList: rdoList || [],
+        obraId: selectedObraId,
+        isLoading: isLoadingRdoList,
+    };
+
+    let contentView;
+    
+    if (view === "calendario") {
+        contentView = (
+            <RdoCalendar
+                obraId={selectedObraId}
+                rdoList={rdoList || []}
+                currentDate={currentDate}
+            />
+        );
+    } else if (view === "kanban") {
+        contentView = (
+            <RdoKanbanBoard
+                {...commonProps}
+            />
+        );
+    } else { // view === "lista"
+        contentView = isMobile ? (
+            <RdoMobileList
+                {...commonProps}
+            />
+        ) : (
+            <RdoListTable
+                {...commonProps}
+            />
+        );
+    }
 
     return (
       <div className="space-y-6">
@@ -81,6 +116,14 @@ const GestaoRdo = () => {
         {/* View Toggle */}
         <div className="flex justify-between items-center">
           <div className="bg-card border rounded-xl p-1 inline-flex">
+            <Button
+              variant={view === "calendario" ? "secondary" : "ghost"}
+              onClick={() => setView("calendario")}
+              size="sm"
+              className="flex items-center"
+            >
+              <CalendarIcon className="w-4 h-4 mr-2" /> Calendário
+            </Button>
             <Button
               variant={view === "kanban" ? "secondary" : "ghost"}
               onClick={() => setView("kanban")}
@@ -121,25 +164,7 @@ const GestaoRdo = () => {
         </div>
 
         {/* Content View */}
-        {view === "kanban" ? (
-          <RdoKanbanBoard
-            rdoList={rdoList || []}
-            obraId={selectedObraId}
-            isLoading={isLoadingRdoList}
-          />
-        ) : isMobile ? (
-          <RdoMobileList
-            rdoList={rdoList || []}
-            obraId={selectedObraId}
-            isLoading={isLoadingRdoList}
-          />
-        ) : (
-          <RdoKanbanBoard
-            rdoList={rdoList || []}
-            obraId={selectedObraId}
-            isLoading={isLoadingRdoList}
-          />
-        )}
+        {contentView}
       </div>
     );
   };
