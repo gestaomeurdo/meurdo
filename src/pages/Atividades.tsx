@@ -1,13 +1,13 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useObras } from "@/hooks/use-obras";
 import { useState, useEffect } from "react";
-import { Loader2, ClipboardList, Plus, FileText } from "lucide-react";
+import { Loader2, ClipboardList, Plus } from "lucide-react";
 import ObraSelector from "@/components/financeiro/ObraSelector";
 import { useAtividades } from "@/hooks/use-atividades";
 import AtividadesTable from "@/components/atividades/AtividadesTable";
 import AtividadeDialog from "@/components/atividades/AtividadeDialog";
 import { Button } from "@/components/ui/button";
-import RdoDialog from "@/components/rdo/RdoDialog";
+import RdoCalendar from "@/components/rdo/RdoCalendar";
 
 const Atividades = () => {
   const { data: obras, isLoading: isLoadingObras } = useObras();
@@ -69,22 +69,13 @@ const Atividades = () => {
       <div className="p-6 space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <h1 className="text-3xl font-bold">Atividades na Obra</h1>
-          <div className="flex gap-3 items-center">
+          <div className="flex flex-wrap gap-3 items-center">
             <ObraSelector 
               selectedObraId={selectedObraId} 
               onSelectObra={setSelectedObraId} 
             />
             {selectedObraId && (
-              <RdoDialog 
-                obraId={selectedObraId} 
-                date={new Date()} 
-                trigger={
-                  <Button variant="secondary" className="flex items-center">
-                    <FileText className="w-4 h-4 mr-2" />
-                    RDO de Hoje
-                  </Button>
-                }
-              />
+              <RdoCalendar obraId={selectedObraId} />
             )}
           </div>
         </div>
