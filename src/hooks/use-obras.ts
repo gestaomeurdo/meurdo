@@ -20,7 +20,6 @@ const fetchObras = async (userId: string): Promise<Obra[]> => {
   const { data, error } = await supabase
     .from('obras')
     .select('*')
-    .eq('user_id', userId)
     .order('data_inicio', { ascending: false });
 
   if (error) throw new Error(error.message);
@@ -57,21 +56,23 @@ export const useCreateObra = () => {
   return useMutation<any, Error, ObraInput>({
     mutationFn: async (newObra) => {
       if (!user) throw new Error("Usuário não identificado.");
-
-      const payload = { ...newObra, user_id: user.id };
+      console.log("[useCreateObra] Enviando payload:", newObra);
 
       const { data, error } = await supabase
         .from('obras')
-        .insert(payload)
+        .insert({ ...newObra, user_id: user.id })
         .select()
         .single();
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error("[useCreateObra] Erro do Supabase:", error);
+        throw new Error(error.message);
+      }
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['obras', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['dashboardData', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['obras'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
     },
   });
 };
@@ -83,6 +84,8 @@ export const useUpdateObra = () => {
   return useMutation<Obra, Error, Partial<ObraInput> & { id: string }>({
     mutationFn: async (payload) => {
       const { id, ...updateData } = payload;
+      console.log("[useUpdateObra] Iniciando update para ID:", id, "Dados:", updateData);
+
       const { data, error } = await supabase
         .from('obras')
         .update(updateData)
@@ -90,20 +93,23 @@ export const useUpdateObra = () => {
         .select()
         .single();
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error("[useUpdateObra] Erro do Supabase:", error);
+        throw new Error(error.message);
+      }
+      
+      console.log("[useUpdateObra] Sucesso! Resposta:", data);
       return data as Obra;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['obras', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['dashboardData', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['obras'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
     },
   });
 };
 
 export const useDeleteObra = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
-
   return useMutation<void, Error, string>({
     mutationFn: async (obraId) => {
       const { error } = await supabase
@@ -114,8 +120,8 @@ export const useDeleteObra = () => {
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['obras', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['dashboardData', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['obras'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
     },
   });
 };
