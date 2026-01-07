@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/integrations/supabase/auth-provider";
+import { format } from "date-fns";
 
 // --- RDO Detail Types ---
 
@@ -49,7 +50,7 @@ export interface DiarioObra {
   rdo_equipamentos?: RdoEquipamento[];
 }
 
-// --- Fetching ---
+// --- Fetching Single RDO ---
 
 const fetchRdoByDate = async (obraId: string, date: string): Promise<DiarioObra | null> => {
   const { data, error } = await supabase
@@ -78,6 +79,73 @@ export const useRdoByDate = (obraId: string, date: string) => {
     enabled: !!obraId && !!date,
   });
 };
+
+// --- Fetching RDO List ---
+
+const fetchRdoList = async (obraId: string): Promise<DiarioObra[]> => {
+  const { data, error } = await supabase
+    .from('diarios_obra')
+    .select(`
+      id,
+      obra_id,
+      data_rdo,
+      clima_condicoes,
+      status_dia,
+      user_id,
+      profiles!user_id (first_name, last_name)
+    `)
+    .eq('obra_id', obraId)
+    .order('data_rdo', { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+  
+  // Map profile data for display
+  return data.map(rdo => ({
+    ...rdo,
+    responsavel: `${rdo.profiles?.first_name || ''} ${rdo.profiles?.last_name || ''}`.trim() || 'N/A'
+  })) as DiarioObra[];
+};
+
+export const useRdoList = (obraId: string) => {
+  return useQuery<DiarioObra[], Error>({
+    queryKey: ['rdoList', obraId],
+    queryFn: () => fetchRdoList(obraId),
+    enabled: !!obraId,
+  });
+};
+
+// --- Fetching Previous RDO (for copy feature) ---
+
+export const fetchPreviousRdo = async (obraId: string, currentDate: Date): Promise<DiarioObra | null> => {
+  // Calculate yesterday's date string (YYYY-MM-DD)
+  const yesterday = new Date(currentDate);
+  yesterday.setDate(currentDate.getDate() - 1);
+  const yesterdayString = format(yesterday, 'yyyy-MM-dd');
+
+  // Fetch the RDO for yesterday
+  const { data, error } = await supabase
+    .from('diarios_obra')
+    .select(`
+      id,
+      obra_id,
+      data_rdo,
+      rdo_mao_de_obra (*),
+      rdo_equipamentos (*)
+    `)
+    .eq('obra_id', obraId)
+    .eq('data_rdo', yesterdayString)
+    .single();
+
+  if (error && error.code !== 'PGRST116') {
+    console.error("Error fetching previous RDO:", error);
+    throw new Error(error.message);
+  }
+  
+  return data as DiarioObra | null;
+};
+
 
 // --- Mutations ---
 
@@ -150,6 +218,7 @@ export const useCreateRdo = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['rdo', data.obra_id, data.data_rdo] });
+      queryClient.invalidateQueries({ queryKey: ['rdoList', data.obra_id] }); // Invalidate list
     },
   });
 };
@@ -189,6 +258,20 @@ export const useUpdateRdo = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['rdo', data.obra_id, data.data_rdo] });
+      queryClient.invalidateQueries({ queryKey: ['rdoList', data.obra_id] }); // Invalidate list
+    },
+  });
+};
+
+export const useDeleteRdo = () => {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, { id: string, obraId: string }>({
+    mutationFn: async ({ id }) => {
+      const { error } = await supabase.from('diarios_obra').delete().eq('id', id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['rdoList', variables.obraId] });
     },
   });
 };

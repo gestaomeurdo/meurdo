@@ -33,6 +33,12 @@ export const navItems: NavItem[] = [
     roles: ["administrator", "obra_user", "view_only"],
   },
   {
+    title: "Gestão de RDO",
+    href: "/gestao-rdo",
+    icon: FileText, // Using FileText for RDO management
+    roles: ["administrator", "obra_user"],
+  },
+  {
     title: "Atividades",
     href: "/atividades",
     icon: ClipboardList,

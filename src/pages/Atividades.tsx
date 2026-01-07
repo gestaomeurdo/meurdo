@@ -7,7 +7,6 @@ import { useAtividades } from "@/hooks/use-atividades";
 import AtividadesTable from "@/components/atividades/AtividadesTable";
 import AtividadeDialog from "@/components/atividades/AtividadeDialog";
 import { Button } from "@/components/ui/button";
-import RdoCalendar from "@/components/rdo/RdoCalendar";
 
 const Atividades = () => {
   const { data: obras, isLoading: isLoadingObras } = useObras();
@@ -74,9 +73,7 @@ const Atividades = () => {
               selectedObraId={selectedObraId} 
               onSelectObra={setSelectedObraId} 
             />
-            {selectedObraId && (
-              <RdoCalendar obraId={selectedObraId} />
-            )}
+            {/* RDO functionality moved to /gestao-rdo */}
           </div>
         </div>
         {renderContent()}
