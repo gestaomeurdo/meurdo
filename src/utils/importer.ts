@@ -144,8 +144,8 @@ export async function importFinancialEntries(rawEntries: RawCostEntry[], userId:
 
       const { categoryId } = categorizeEntry(entry.Descricao, categoryMap);
       
-      // Limpa a string de valor (remove R$, espaços e usa parseCurrencyInput)
-      const cleanedValueString = rawValue.replace(/R\$/g, '').trim();
+      // Limpa a string de valor (remove R$, espaços, aspas duplas e usa parseCurrencyInput)
+      const cleanedValueString = rawValue.replace(/R\$/g, '').replace(/"/g, '').trim();
       const parsedValue = parseCurrencyInput(cleanedValueString);
       
       if (isNaN(parsedValue) || parsedValue <= 0) {

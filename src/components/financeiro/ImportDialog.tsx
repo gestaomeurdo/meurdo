@@ -44,6 +44,8 @@ const ImportDialog = ({ trigger }: ImportDialogProps) => {
       header: true,
       skipEmptyLines: true,
       dynamicTyping: false,
+      // Adicionado para pular as duas primeiras linhas de cabeçalho irrelevantes
+      skipFirstLines: 2, 
       complete: async (results) => {
         // Filter lines that have Descricao and either Pagamentos or Valor
         const rawEntries = (results.data as RawCostEntry[]).filter(e => 
