@@ -8,7 +8,6 @@ import AtividadesTable from "@/components/atividades/AtividadesTable";
 import AtividadeDialog from "@/components/atividades/AtividadeDialog";
 import { Button } from "@/components/ui/button";
 import RdoCalendar from "@/components/rdo/RdoCalendar";
-import RdoTodayButton from "@/components/rdo/RdoTodayButton"; // Import the new button
 
 const Atividades = () => {
   const { data: obras, isLoading: isLoadingObras } = useObras();
@@ -83,22 +82,16 @@ const Atividades = () => {
         {renderContent()}
       </div>
       {selectedObraId && (
-        <>
-          {/* Floating RDO Button (Today) */}
-          <RdoTodayButton obraId={selectedObraId} />
-          
-          {/* Floating New Activity Button */}
-          <div className="fixed bottom-6 right-6 z-10">
-            <AtividadeDialog 
-              obraId={selectedObraId} 
-              trigger={
-                <Button size="lg" className="rounded-full shadow-lg">
-                  <Plus className="w-6 h-6" />
-                </Button>
-              }
-            />
-          </div>
-        </>
+        <div className="fixed bottom-6 right-6 z-10">
+          <AtividadeDialog 
+            obraId={selectedObraId} 
+            trigger={
+              <Button size="lg" className="rounded-full shadow-lg">
+                <Plus className="w-6 h-6" />
+              </Button>
+            }
+          />
+        </div>
       )}
     </DashboardLayout>
   );
