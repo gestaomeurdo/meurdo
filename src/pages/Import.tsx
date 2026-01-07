@@ -41,7 +41,8 @@ const Import = () => {
       skipEmptyLines: true,
       dynamicTyping: false, // Manter valores como strings para análise de moeda
       complete: async (results) => {
-        const rawEntries = results.data as RawCostEntry[];
+        // Filtra linhas que não são despesas (onde a coluna Descrição está vazia)
+        const rawEntries = (results.data as RawCostEntry[]).filter(e => e.Descricao);
         const totalCount = rawEntries.length;
 
         if (totalCount === 0) {
@@ -98,9 +99,9 @@ const Import = () => {
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Formato Necessário (CSV)</AlertTitle>
               <AlertDescription>
-                Converta sua planilha Excel para o formato CSV. O arquivo deve conter as colunas exatas (case-sensitive): 
-                <code className="block mt-2 p-2 bg-secondary rounded text-sm">Data, Descricao, Valor, Obra (Opcional)</code>.
-                <p className="mt-2">Se a coluna 'Obra' estiver vazia, os lançamentos serão atribuídos à obra padrão: **Golden BTS**.</p>
+                Converta sua planilha Excel para o formato CSV. O arquivo deve conter as colunas exatas (case-sensitive) para as despesas: 
+                <code className="block mt-2 p-2 bg-secondary rounded text-sm">Data, Descrição, Pagamentos</code>.
+                <p className="mt-2">Todos os lançamentos serão atribuídos à obra padrão: **Golden BTS**.</p>
               </AlertDescription>
             </Alert>
 
@@ -149,7 +150,7 @@ const Import = () => {
               {importResult.errorCount > 0 && (
                 <p className="flex items-center text-destructive">
                   <AlertTriangle className="h-4 w-4 mr-2" />
-                  Linhas com erro (ignoradas): <span className="font-bold ml-1">{importResult.errorCount}</span>
+                  Linhas com erro (ignoradas ou duplicadas): <span className="font-bold ml-1">{importResult.errorCount}</span>
                 </p>
               )}
               <Alert className="mt-4">

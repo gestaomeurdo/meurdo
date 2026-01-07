@@ -7,24 +7,27 @@ import { format } from "date-fns";
 export interface RawCostEntry {
   Data: string;
   Descricao: string;
-  Valor: string; // String bruta do CSV
+  Valor?: string; // Valor original (se o CSV usar 'Valor')
+  Pagamentos?: string; // Valor se o CSV usar 'Pagamentos'
   Obra?: string; // Nome da Obra (opcional)
 }
 
 // Regras de categorização: Palavras-chave mapeadas para nomes de categorias
 const CATEGORY_RULES: Record<string, string[]> = {
-  'Material de Construção': ['cimento', 'areia', 'tijolo', 'ferragem', 'hidráulica', 'elétrica', 'piso', 'revestimento', 'argamassa', 'material', 'tubo', 'fio', 'telha'],
-  'Contabilidade': ['contabilidade', 'contador', 'serviços contábeis'],
-  'Impostos': ['imposto', 'iptu', 'taxa', 'iss', 'inss', 'darf'],
-  'Deslocamentos': ['combustível', 'pedágio', 'gasolina', 'diesel', 'viagem', 'uber', 'taxi'],
+  'Material de Construção': ['cimento', 'areia', 'tijolo', 'ferragem', 'hidráulica', 'elétrica', 'piso', 'revestimento', 'argamassa', 'material', 'tubo', 'fio', 'telha', 'cal', 'prego', 'maderite', 'sarrafo', 'corrugados', 'conexões', 'veda reboco', 'lona', 'massa corrida', 'rejuntes', 'silicone', 'nichos', 'cunhas', 'blocos', 'ferros', 'arames', 'fita multiuso', 'chuveiro', 'capas de artefatos'],
+  'Contabilidade': ['contabilidade', 'contador', 'serviços contábeis', 'rh contabilidade honorários'],
+  'Impostos': ['imposto', 'iptu', 'taxa', 'iss', 'inss', 'darf', 'ministério da fazenda', 'irrf', 'taxa jusesc', 'taxa prefeitura', 'certidão de conformidade ambiental', 'guia tabelionato', 'guia cartório'],
+  'Deslocamentos': ['combustível', 'pedágio', 'gasolina', 'diesel', 'viagem', 'uber', 'taxi', 'deslocamentos e pedágios', 'frete'],
   'Mão de Obra - Wellinton': ['wellinton', 'mão de obra wellinton', 'diária wellinton'],
-  'Terreno': ['terreno', 'compra terreno', 'documentação terreno'],
-  'Gestão': ['software', 'licença', 'escritório', 'administrativo', 'internet', 'telefone'],
-  'Concreto Usinado': ['concreto usinado', 'usinado', 'bomba de concreto'],
-  'Madeira': ['madeira', 'telhado', 'caibro', 'sarrafo', 'compensado'],
-  'Topógrafo': ['topógrafo', 'topografia', 'medição'],
-  'Eletricista': ['eletricista', 'serviço elétrico', 'instalação elétrica'],
-  'Gesseiro': ['gesseiro', 'gesso', 'drywall', 'forro'],
+  'Terreno': ['terreno', 'compra terreno', 'documentação terreno', 'itbi', 'escritura do terreno', 'registro do terreno'],
+  'Gestão': ['software', 'licença', 'escritório', 'administrativo', 'internet', 'telefone', 'assinatura didital', 'alvará', 'banner', 'tráfego pago', 'parcela gestão', 'plantão sábado nexus imobiliária'],
+  'Concreto Usinado': ['concreto usinado', 'usinado', 'bomba de concreto', 'caminhão concreto', 'laje'],
+  'Madeira': ['madeira', 'telhado', 'caibro', 'sarrafo', 'compensado', 'madeira gtr', 'maderite pinus'],
+  'Topógrafo': ['topógrafo', 'topografia', 'medição', 'sondagem'],
+  'Eletricista': ['eletricista', 'serviço elétrico', 'instalação elétrica', 'eletrecista tom', 'eletrecista alexandre', 'mudança do poste de luz', 'energia elétrica'],
+  'Gesseiro': ['gesseiro', 'gesso', 'drywall', 'forro', 'gessos'],
+  'Serviços Externos': ['calhas', 'infra ar condicionado', 'mármore', 'esquadrias ems', 'pintor', 'ilha tintas', 'cortes rodapés', 'máquina', 'cambinhões', 'terra', 'fossas', 'filtro', 'sumidouro'],
+  'Mão de Obra': ['mão de obra', 'pedreiros', 'diária'],
 };
 
 // Busca o mapa de categorias (nome -> id)
@@ -121,17 +124,9 @@ export async function importFinancialEntries(rawEntries: RawCostEntry[], userId:
 
   // 2. Identifica nomes de Obra e obtém/cria IDs
   const targetObraName = "Golden BTS";
-  const uniqueObraNames = Array.from(new Set(rawEntries.map(e => e.Obra).filter(Boolean) as string[]));
-  if (!uniqueObraNames.includes(targetObraName)) {
-      uniqueObraNames.push(targetObraName);
-  }
+  // No seu CSV, a coluna Obra não existe, então forçamos o uso de Golden BTS
+  const obraId = await getObraId(targetObraName, userId);
   
-  const obraIdMap = new Map<string, string>();
-  for (const obraName of uniqueObraNames) {
-    const obraId = await getObraId(obraName, userId);
-    obraIdMap.set(obraName, obraId);
-  }
-
   // 3. Processa e prepara entradas para inserção
   let successCount = 0;
   let errorCount = 0;
@@ -139,30 +134,37 @@ export async function importFinancialEntries(rawEntries: RawCostEntry[], userId:
 
   for (const entry of rawEntries) {
     try {
+      // Determina o valor a ser usado (Pagamentos ou Valor)
+      const rawValue = entry.Pagamentos || entry.Valor;
+      
       // Validação básica de dados
-      if (!entry.Data || !entry.Descricao || !entry.Valor) {
+      if (!entry.Data || !entry.Descricao || !rawValue) {
           errorCount++;
           continue;
       }
 
       const { categoryId } = categorizeEntry(entry.Descricao, categoryMap);
       
-      const obraName = entry.Obra || targetObraName; // Padrão para Golden BTS
-      const obraId = obraIdMap.get(obraName);
+      // Limpa a string de valor (remove R$, espaços e usa parseCurrencyInput)
+      const cleanedValueString = rawValue.replace(/R\$/g, '').trim();
+      const parsedValue = parseCurrencyInput(cleanedValueString);
       
-      if (!obraId) {
-          errorCount++;
-          continue;
-      }
-
-      const parsedValue = parseCurrencyInput(entry.Valor);
       if (isNaN(parsedValue) || parsedValue <= 0) {
           errorCount++;
           continue;
       }
       
       // Validação de data
-      const dateObj = new Date(entry.Data);
+      // O formato de data no CSV é DD/MM/YYYY. new Date() pode ter problemas com isso.
+      // Vamos tentar converter DD/MM/YYYY para YYYY-MM-DD
+      const parts = entry.Data.split('/');
+      if (parts.length !== 3) {
+          errorCount++;
+          continue;
+      }
+      const dateString = `${parts[2]}-${parts[1]}-${parts[0]}`;
+      const dateObj = new Date(dateString);
+      
       if (isNaN(dateObj.getTime())) {
           errorCount++;
           continue;
@@ -173,7 +175,7 @@ export async function importFinancialEntries(rawEntries: RawCostEntry[], userId:
         user_id: userId,
         data_gasto: format(dateObj, 'yyyy-MM-dd'),
         categoria_id: categoryId,
-        descricao: entry.Descricao,
+        descricao: entry.Descricao.trim(),
         valor: parsedValue,
         forma_pagamento: 'Transferência' as PaymentMethod, // Forma de pagamento padrão
       });
@@ -186,15 +188,27 @@ export async function importFinancialEntries(rawEntries: RawCostEntry[], userId:
 
   // 4. Inserção em Massa
   if (entriesToInsert.length > 0) {
+    // Filtra entradas duplicadas (baseado em data, descrição e valor)
+    const uniqueEntries = entriesToInsert.filter((entry, index, self) =>
+      index === self.findIndex((t) => (
+        t.data_gasto === entry.data_gasto &&
+        t.descricao === entry.descricao &&
+        t.valor === entry.valor
+      ))
+    );
+    
+    const duplicates = entriesToInsert.length - uniqueEntries.length;
+    errorCount += duplicates;
+    
     const { error: insertError } = await supabase
       .from('lancamentos_financeiros')
-      .insert(entriesToInsert);
+      .insert(uniqueEntries);
 
     if (insertError) {
       console.error("[Importer] Erro na inserção em massa:", insertError);
       throw new Error(`Falha na inserção em massa: ${insertError.message}`);
     }
-    successCount = entriesToInsert.length;
+    successCount = uniqueEntries.length;
   }
 
   return { successCount, errorCount, newCategories: [] };
