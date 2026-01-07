@@ -29,34 +29,59 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
   const navigate = useNavigate();
 
   useEffect(() => {
-    setIsLoading(true);
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
-        setSession(currentSession);
-        const currentUser = currentSession?.user ?? null;
+    // Função para carregar a sessão inicial e configurar o listener
+    const initializeAuth = async () => {
+      try {
+        // Busca a sessão atual imediatamente
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        
+        setSession(initialSession);
+        const currentUser = initialSession?.user ?? null;
         setUser(currentUser);
 
         if (currentUser) {
           const userProfile = await fetchProfile(currentUser.id);
           setProfile(userProfile);
-        } else {
-          setProfile(null);
         }
-        
+      } catch (error) {
+        console.error("Erro na inicialização da autenticação:", error);
+      } finally {
         setIsLoading(false);
-
-        if (event === 'SIGNED_IN') {
-          showSuccess("Login realizado com sucesso!");
-          navigate("/dashboard", { replace: true });
-        } else if (event === 'SIGNED_OUT') {
-          showSuccess("Sessão encerrada.");
-          navigate("/login", { replace: true });
-        }
       }
-    );
+
+      // Configura o listener para mudanças futuras (login/logout)
+      const { data: authListener } = supabase.auth.onAuthStateChange(
+        async (event, currentSession) => {
+          setSession(currentSession);
+          const currentUser = currentSession?.user ?? null;
+          setUser(currentUser);
+
+          if (currentUser) {
+            const userProfile = await fetchProfile(currentUser.id);
+            setProfile(userProfile);
+          } else {
+            setProfile(null);
+          }
+          
+          setIsLoading(false);
+
+          if (event === 'SIGNED_IN') {
+            showSuccess("Login realizado com sucesso!");
+            navigate("/dashboard", { replace: true });
+          } else if (event === 'SIGNED_OUT') {
+            showSuccess("Sessão encerrada.");
+            navigate("/login", { replace: true });
+          }
+        }
+      );
+
+      return authListener;
+    };
+
+    const listenerPromise = initializeAuth();
 
     return () => {
-      authListener.subscription.unsubscribe();
+      listenerPromise.then(res => res?.subscription.unsubscribe());
     };
   }, [navigate]);
 
