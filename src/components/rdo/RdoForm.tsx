@@ -106,7 +106,8 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
   const { data: obras } = useObras();
   const obraNome = obras?.find(o => o.id === obraId)?.nome || "Obra";
 
-  const form = useForm<RdoFormValues>({
+  // Renomeando a variável de métodos para evitar qualquer conflito de sintaxe com o componente <Form>
+  const methods = useForm<RdoFormValues>({
     resolver: zodResolver(RdoSchema),
     defaultValues: {
       obra_id: obraId,
@@ -134,9 +135,9 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
   });
 
   useEffect(() => {
-    if (!isEditing && previousRdoData && form.getValues("mao_de_obra")?.length === 0) {
+    if (!isEditing && previousRdoData && methods.getValues("mao_de_obra")?.length === 0) {
       if (previousRdoData.rdo_mao_de_obra && previousRdoData.rdo_mao_de_obra.length > 0) {
-        form.setValue("mao_de_obra", previousRdoData.rdo_mao_de_obra.map(m => ({
+        methods.setValue("mao_de_obra", previousRdoData.rdo_mao_de_obra.map(m => ({
           funcao: m.funcao,
           quantidade: m.quantidade,
           custo_unitario: m.custo_unitario || 0,
@@ -144,16 +145,16 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
       }
       
       if (previousRdoData.rdo_equipamentos && previousRdoData.rdo_equipamentos.length > 0) {
-        form.setValue("equipamentos", previousRdoData.rdo_equipamentos.map(e => ({
+        methods.setValue("equipamentos", previousRdoData.rdo_equipamentos.map(e => ({
           equipamento: e.equipamento,
           horas_trabalhadas: e.horas_trabalhadas,
           horas_paradas: e.horas_paradas,
         })));
       }
     }
-  }, [previousRdoData, isEditing, form]);
+  }, [previousRdoData, isEditing, methods]);
 
-  const watchManpower = form.watch("mao_de_obra");
+  const watchManpower = methods.watch("mao_de_obra");
   const estimatedDailyCost = useMemo(() => {
     return watchManpower?.reduce((sum, item) => sum + (item.quantidade * (item.custo_unitario || 0)), 0) || 0;
   }, [watchManpower]);
@@ -203,8 +204,8 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+    <Form {...methods}>
+      <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-primary/10 rounded-xl border border-primary/20 gap-4">
           <div className="flex items-center gap-3">
             <div className="bg-primary p-2 rounded-lg text-primary-foreground">
@@ -253,7 +254,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <FormField
-            control={form.control}
+            control={methods.control}
             name="data_rdo"
             render={({ field }) => (
               <FormItem className="flex flex-col">
@@ -288,7 +289,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
           />
 
           <FormField
-            control={form.control}
+            control={methods.control}
             name="status_dia"
             render={({ field }) => (
               <FormItem>
@@ -309,7 +310,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
           />
 
           <FormField
-            control={form.control}
+            control={methods.control}
             name="clima_condicoes"
             render={({ field }) => (
               <FormItem>
@@ -352,7 +353,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
           
           <TabsContent value="ocorrencias" className="pt-4 space-y-4">
             <FormField
-              control={form.control}
+              control={methods.control}
               name="impedimentos_comentarios"
               render={({ field }) => (
                 <FormItem>
@@ -369,7 +370,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
               )}
             />
             <FormField
-              control={form.control}
+              control={methods.control}
               name="observacoes_gerais"
               render={({ field }) => (
                 <FormItem>
