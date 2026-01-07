@@ -37,7 +37,7 @@ const PasteImportDialog = ({ trigger }: PasteImportDialogProps) => {
       header: true,
       skipEmptyLines: true,
       dynamicTyping: false,
-      delimiter: ';', // Assuming semicolon is the separator based on previous attempts
+      delimiter: '', // Permite detecção automática de delimitador (vírgula, ponto e vírgula, tabulação)
       complete: async (results) => {
         // Filter lines that have Descricao and either Pagamentos or Valor
         const rawEntries = (results.data as RawCostEntry[]).filter(e => 
@@ -95,8 +95,8 @@ const PasteImportDialog = ({ trigger }: PasteImportDialogProps) => {
             <AlertTitle>Instruções de Colagem</AlertTitle>
             <AlertDescription>
               <p>1. Abra seu arquivo CSV/Excel.</p>
-              <p>2. Copie as colunas de dados, incluindo o cabeçalho (Data, Descrição, Valor/Pagamentos).</p>
-              <p>3. Cole o conteúdo bruto na caixa abaixo. O sistema tentará processar o ponto e vírgula (;) como separador.</p>
+              <p>2. Copie as colunas de dados, **incluindo o cabeçalho** (Data, Descrição, Valor/Pagamentos).</p>
+              <p>3. Cole o conteúdo bruto na caixa abaixo. O sistema tentará **detectar automaticamente** o separador (vírgula, ponto e vírgula ou tabulação).</p>
             </AlertDescription>
           </Alert>
 
