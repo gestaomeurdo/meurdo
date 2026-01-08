@@ -110,11 +110,18 @@ const EntriesTable = ({ entries, obraId, isLoading, refetch, setFilters }: Entri
     const firstName = entry.profiles?.first_name;
     const lastName = entry.profiles?.last_name;
     
+    // 1. Try to return full name
     if (firstName || lastName) {
       return `${firstName || ''} ${lastName || ''}`.trim();
     }
-    // Fallback to email
-    return entry.profiles?.email || 'N/A';
+    
+    // 2. Fallback to first part of email
+    if (entry.profiles?.email) {
+      return entry.profiles.email.split('@')[0];
+    }
+    
+    // 3. Final fallback
+    return 'N/A';
   };
 
   if (isLoading) {
