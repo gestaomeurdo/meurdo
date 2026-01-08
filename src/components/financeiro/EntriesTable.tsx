@@ -45,7 +45,7 @@ const EntriesTable = ({ entries, obraId, isLoading, refetch, setFilters }: Entri
 
   const handleSelectAll = (checked: boolean) => {
     if (checked && entries) {
-      setSelectedEntryIds(entries.map(entry => entry.id));
+      setSelectedEntryIds(filteredEntries.map(entry => entry.id));
     } else {
       setSelectedEntryIds([]);
     }
@@ -314,8 +314,8 @@ const EntriesTable = ({ entries, obraId, isLoading, refetch, setFilters }: Entri
                   onCheckedChange={handleSelectAll}
                   aria-label="Selecionar todos"
                   className="translate-y-[2px]"
-                  // @ts-ignore - Radix Checkbox supports indeterminate state
-                  indeterminate={isIndeterminate}
+                  // Corrigido: Passa indeterminate apenas se for true
+                  indeterminate={isIndeterminate ? true : undefined}
                 />
               </TableHead>
               <TableHead className="w-[100px]">Data</TableHead>

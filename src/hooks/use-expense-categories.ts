@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/integrations/supabase/auth-provider";
+import { ensureDefaultCategoryExists, migrateEntries } from "@/utils/category-migration";
 
 export interface ExpenseCategory {
   id: string;
@@ -26,7 +27,7 @@ export const useExpenseCategories = () => {
   return useQuery<ExpenseCategory[], Error>({
     queryKey: ['expenseCategories'],
     queryFn: fetchExpenseCategories,
-    staleTime: 1000 * 60 * 5, // Cache categories for 5 minutes
+    staleTime: 1000 * 60 * 5, // Cache categories for 5 minutos
   });
 };
 
@@ -68,12 +69,10 @@ export const useUpdateExpenseCategory = () => {
       if (!user) throw new Error("Usuário não autenticado.");
       const { id, ...rest } = updatedCategory;
       
-      // A política RLS já garante que o usuário só pode atualizar a própria categoria (user_id = auth.uid())
       const { data, error } = await supabase
         .from('categorias_despesa')
         .update(rest)
         .eq('id', id)
-        // .eq('user_id', user.id) // Removido para confiar no RLS
         .select()
         .single();
       if (error) throw new Error(error.message);
@@ -90,16 +89,24 @@ export const useDeleteExpenseCategory = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  return useMutation<void, Error, string>({
-    mutationFn: async (id) => {
+  return useMutation<void, Error, { id: string, entriesCount: number }>({
+    mutationFn: async ({ id, entriesCount }) => {
       if (!user) throw new Error("Usuário não autenticado.");
       
-      // A política RLS já garante que o usuário só pode deletar a própria categoria (user_id = auth.uid())
+      if (entriesCount > 0) {
+        // 1. Garante que a categoria padrão exista
+        const defaultCategoryId = await ensureDefaultCategoryExists(user.id);
+        
+        // 2. Migra os lançamentos
+        await migrateEntries(id, defaultCategoryId, user.id);
+      }
+      
+      // 3. Deleta a categoria (agora sem referências de chave estrangeira)
       const { error } = await supabase
         .from('categorias_despesa')
         .delete()
-        .eq('id', id)
-        // .eq('user_id', user.id); // Removido para confiar no RLS
+        .eq('id', id);
+        
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
