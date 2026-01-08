@@ -19,11 +19,12 @@ interface CategoryManagementDialogProps {
 const DeleteCategoryButton = ({ category, deleteMutation }: { category: ExpenseCategory, deleteMutation: ReturnType<typeof useDeleteExpenseCategory> }) => {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   
-  // Mantemos a contagem apenas para informar o usuário visualmente
-  const { data: entriesCount, isLoading: isLoadingCount } = useQuery({
+  const { data: entriesCount, isLoading: isLoadingCount, isError } = useQuery({
     queryKey: ['categoryEntryCount', category.id],
     queryFn: () => countEntriesInCategory(category.id),
     enabled: isAlertOpen,
+    staleTime: 5000,
+    retry: 1
   });
 
   const handleDelete = async () => {
@@ -60,19 +61,23 @@ const DeleteCategoryButton = ({ category, deleteMutation }: { category: ExpenseC
             <div className="mt-4">
               {isLoadingCount ? (
                 <div className="flex items-center text-sm text-muted-foreground">
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verificando lançamentos...
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verificando lançamentos vinculados...
                 </div>
+              ) : isError ? (
+                <p className="text-sm text-amber-500">
+                  Aviso: Não foi possível verificar os lançamentos, mas a migração automática será executada pelo sistema.
+                </p>
               ) : entriesCount && entriesCount > 0 ? (
                 <Alert variant="default" className="bg-primary/10 border-primary/20">
                   <AlertTriangle className="h-4 w-4 text-primary" />
-                  <AlertTitle className="text-primary">Ação Automática</AlertTitle>
+                  <AlertTitle className="text-primary font-bold">Migração Automática</AlertTitle>
                   <AlertDescription>
-                    Existem **{entriesCount}** lançamentos associados. Eles serão movidos automaticamente para **"Sem Categoria"** pelo banco de dados.
+                    Esta categoria possui **{entriesCount}** lançamentos. Ao excluir, eles serão movidos automaticamente para a categoria **"Sem Categoria"**.
                   </AlertDescription>
                 </Alert>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Não há lançamentos associados. A exclusão será imediata.
+                  Não encontramos lançamentos vinculados a esta categoria para o seu usuário.
                 </p>
               )}
             </div>
@@ -85,7 +90,7 @@ const DeleteCategoryButton = ({ category, deleteMutation }: { category: ExpenseC
             disabled={isDeleting}
             className="bg-destructive hover:bg-destructive/90"
           >
-            {isDeleting ? "Excluindo..." : "Excluir"}
+            {isDeleting ? "Excluindo..." : "Confirmar Exclusão"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -122,7 +127,7 @@ const CategoryManagementDialog = ({ trigger }: CategoryManagementDialogProps) =>
         <DialogHeader>
           <DialogTitle>Gerenciar Categorias de Despesa</DialogTitle>
           <DialogDescription>
-            {isFormOpen ? "Preencha os dados da categoria." : "Edite ou exclua categorias. O banco de dados moverá lançamentos órfãos automaticamente."}
+            {isFormOpen ? "Preencha os dados da categoria." : "Edite ou exclua categorias. O sistema gerencia lançamentos órfãos automaticamente."}
           </DialogDescription>
         </DialogHeader>
 
