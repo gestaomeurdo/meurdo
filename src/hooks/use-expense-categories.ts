@@ -66,12 +66,19 @@ export const useUpdateExpenseCategory = () => {
       if (!user) throw new Error("Usuário não autenticado.");
       const { id, ...rest } = updatedCategory;
       
-      const { error } = await supabase
+      // Tentamos atualizar e pedimos o retorno da linha para confirmar a ação
+      const { data, error, count } = await supabase
         .from('categorias_despesa')
         .update(rest)
-        .eq('id', id);
+        .eq('id', id)
+        .select(); // Adicionamos select para confirmar que algo voltou
 
       if (error) throw new Error(error.message);
+      
+      // Se data for nulo ou vazio, significa que o RLS bloqueou ou o ID não existe
+      if (!data || data.length === 0) {
+        throw new Error("Você não tem permissão para editar esta categoria ou ela não foi encontrada.");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenseCategories'] });
@@ -88,13 +95,16 @@ export const useDeleteExpenseCategory = () => {
     mutationFn: async (id) => {
       if (!user) throw new Error("Usuário não autenticado.");
       
-      const { error } = await supabase
+      const { error, data } = await supabase
         .from('categorias_despesa')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .select();
         
-      if (error) {
-        throw new Error(error.message);
+      if (error) throw new Error(error.message);
+
+      if (!data || data.length === 0) {
+        throw new Error("Você não tem permissão para excluir esta categoria.");
       }
     },
     onSuccess: () => {
