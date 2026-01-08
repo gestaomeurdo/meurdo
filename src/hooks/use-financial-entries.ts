@@ -18,7 +18,7 @@ export interface FinancialEntry {
   criado_em: string;
   // Joined data (for display)
   categorias_despesa: ExpenseCategory;
-  profiles: { first_name: string | null, last_name: string | null, email: string | undefined };
+  profiles: { first_name: string | null, last_name: string | null, email: string | null };
 }
 
 // --- Fetching ---
@@ -37,7 +37,7 @@ const fetchFinancialEntries = async ({ obraId, startDate, endDate, categoryId, p
     .select(`
       *,
       categorias_despesa (id, nome),
-      profiles!user_id (first_name, last_name, id)
+      profiles!user_id (first_name, last_name, email)
     `)
     .eq('obra_id', obraId)
     .order('data_gasto', { ascending: false });
@@ -70,7 +70,7 @@ const fetchFinancialEntries = async ({ obraId, startDate, endDate, categoryId, p
       profiles: {
         first_name: profileData.first_name,
         last_name: profileData.last_name,
-        email: profileData.id ? profileData.id : undefined, // Using ID as placeholder for email
+        email: profileData.email,
       }
     }
   }) as FinancialEntry[];
@@ -114,7 +114,7 @@ export const useCreateFinancialEntry = () => {
         .select(`
           *,
           categorias_despesa (id, nome),
-          profiles!user_id (first_name, last_name, id)
+          profiles!user_id (first_name, last_name, email)
         `)
         .single();
 
@@ -130,7 +130,7 @@ export const useCreateFinancialEntry = () => {
         profiles: {
           first_name: profileData.first_name,
           last_name: profileData.last_name,
-          email: profileData.id ? profileData.id : undefined,
+          email: profileData.email,
         }
       } as FinancialEntry;
     },
@@ -158,7 +158,7 @@ export const useUpdateFinancialEntry = () => {
         .select(`
           *,
           categorias_despesa (id, nome),
-          profiles!user_id (first_name, last_name, id)
+          profiles!user_id (first_name, last_name, email)
         `)
         .single();
 
@@ -174,7 +174,7 @@ export const useUpdateFinancialEntry = () => {
         profiles: {
           first_name: profileData.first_name,
           last_name: profileData.last_name,
-          email: profileData.id ? profileData.id : undefined,
+          email: profileData.email,
         }
       } as FinancialEntry;
     },

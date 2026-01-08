@@ -63,6 +63,26 @@ const EntriesTable = ({ entries, obraId, isLoading, refetch, setFilters }: Entri
       showError(`Erro ao excluir lançamento: ${err instanceof Error ? err.message : "Erro desconhecido"}`);
     }
   };
+  
+  const handleBulkDelete = async () => {
+    if (selectedEntryIds.length === 0) return;
+    
+    try {
+      // We need to run individual delete mutations because Supabase RLS policies
+      // usually restrict bulk deletes unless the user is an admin or the policy is permissive.
+      // Running them sequentially ensures RLS is respected for each entry.
+      const deletePromises = selectedEntryIds.map(id => 
+        deleteMutation.mutateAsync({ id, obraId })
+      );
+      
+      await Promise.all(deletePromises);
+      showSuccess(`${selectedEntryIds.length} lançamentos excluídos com sucesso.`);
+      setSelectedEntryIds([]);
+      refetch();
+    } catch (err) {
+      showError(`Erro ao excluir em massa. Verifique se você tem permissão para excluir todos os lançamentos selecionados.`);
+    }
+  };
 
   const handleFilterChange = (newFilters: any) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
@@ -93,7 +113,7 @@ const EntriesTable = ({ entries, obraId, isLoading, refetch, setFilters }: Entri
     if (firstName || lastName) {
       return `${firstName || ''} ${lastName || ''}`.trim();
     }
-    // Fallback to email (which is actually the user ID in the current hook structure)
+    // Fallback to email
     return entry.profiles?.email || 'N/A';
   };
 
@@ -200,6 +220,37 @@ const EntriesTable = ({ entries, obraId, isLoading, refetch, setFilters }: Entri
               selectedEntryIds={selectedEntryIds}
               onSuccess={handleBulkUpdateSuccess}
             />
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  disabled={deleteMutation.isPending}
+                  className="flex items-center"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Apagar em Massa ({selectedEntryIds.length})
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirmar Exclusão em Massa</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Tem certeza que deseja excluir {selectedEntryIds.length} lançamentos? Esta ação é irreversível.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleBulkDelete}
+                    disabled={deleteMutation.isPending}
+                    className="bg-destructive hover:bg-destructive/90"
+                  >
+                    {deleteMutation.isPending ? "Excluindo..." : "Excluir Todos"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </>
         )}
       </div>
