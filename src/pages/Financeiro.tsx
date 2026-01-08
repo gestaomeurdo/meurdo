@@ -87,15 +87,11 @@ const Financeiro = () => {
         {/* Summary and Charts now handle their own loading state */}
         <FinancialSummary obra={selectedObra} entries={entries} isLoading={isLoadingEntries} />
         
-        <ExpenseCharts entries={entries} isLoading={isLoadingEntries} />
+        {/* Render charts only if there are entries or if loading (to show skeleton) */}
+        {(hasEntries || isLoadingEntries) && <ExpenseCharts entries={entries} isLoading={isLoadingEntries} />}
         
         {/* Table or Empty State */}
-        {isLoadingEntries ? (
-          <div className="flex justify-center items-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="ml-2 text-muted-foreground">Carregando lançamentos...</span>
-          </div>
-        ) : hasEntries ? (
+        {hasEntries || isLoadingEntries ? (
           <Card>
             <CardHeader>
               <CardTitle className="text-xl">Lançamentos de Despesas</CardTitle>

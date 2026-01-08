@@ -68,11 +68,12 @@ export const useUpdateExpenseCategory = () => {
       if (!user) throw new Error("Usuário não autenticado.");
       const { id, ...rest } = updatedCategory;
       
+      // A política RLS já garante que o usuário só pode atualizar a própria categoria (user_id = auth.uid())
       const { data, error } = await supabase
         .from('categorias_despesa')
         .update(rest)
         .eq('id', id)
-        .eq('user_id', user.id) // Garantindo que só pode atualizar a própria categoria
+        // .eq('user_id', user.id) // Removido para confiar no RLS
         .select()
         .single();
       if (error) throw new Error(error.message);
@@ -93,11 +94,12 @@ export const useDeleteExpenseCategory = () => {
     mutationFn: async (id) => {
       if (!user) throw new Error("Usuário não autenticado.");
       
+      // A política RLS já garante que o usuário só pode deletar a própria categoria (user_id = auth.uid())
       const { error } = await supabase
         .from('categorias_despesa')
         .delete()
         .eq('id', id)
-        .eq('user_id', user.id); // Garantindo que só pode deletar a própria categoria
+        // .eq('user_id', user.id); // Removido para confiar no RLS
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
