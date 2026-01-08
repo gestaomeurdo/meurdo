@@ -87,9 +87,13 @@ const EntriesTable = ({ entries, obraId, isLoading, refetch, setFilters }: Entri
   };
 
   const getLancerName = (entry: FinancialEntry) => {
-    if (entry.profiles?.first_name || entry.profiles?.last_name) {
-      return `${entry.profiles.first_name || ''} ${entry.profiles.last_name || ''}`.trim();
+    const firstName = entry.profiles?.first_name;
+    const lastName = entry.profiles?.last_name;
+    
+    if (firstName || lastName) {
+      return `${firstName || ''} ${lastName || ''}`.trim();
     }
+    // Fallback to email (which is actually the user ID in the current hook structure)
     return entry.profiles?.email || 'N/A';
   };
 
