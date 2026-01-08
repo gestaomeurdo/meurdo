@@ -2,7 +2,7 @@ import { useState } from "react";
 import { FinancialEntry, useDeleteFinancialEntry, PaymentMethod } from "@/hooks/use-financial-entries";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Download, Loader2, Filter, CalendarIcon, Tag } from "lucide-react";
+import { Edit, Trash2, Download, Loader2, Filter, CalendarIcon, Tag, MoreVertical } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import EntryDialog from "./EntryDialog";
@@ -14,6 +14,8 @@ import { format } from "date-fns";
 import { formatCurrency, formatDate } from "@/utils/formatters";
 import { Checkbox } from "@/components/ui/checkbox";
 import BulkCategoryUpdateDialog from "./BulkCategoryUpdateDialog";
+import BulkUpdateDialog from "./BulkUpdateDialog"; // Importando o novo componente
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface EntriesTableProps {
   entries: FinancialEntry[] | undefined;
@@ -182,13 +184,19 @@ const EntriesTable = ({ entries, obraId, isLoading, refetch, setFilters }: Entri
           </SelectContent>
         </Select>
         
-        {/* Bulk Action Button */}
+        {/* Bulk Action Buttons */}
         {selectedEntryIds.length > 0 && (
-          <BulkCategoryUpdateDialog
-            selectedEntryIds={selectedEntryIds}
-            obraId={obraId}
-            onSuccess={handleBulkUpdateSuccess}
-          />
+          <>
+            <BulkCategoryUpdateDialog
+              selectedEntryIds={selectedEntryIds}
+              obraId={obraId}
+              onSuccess={handleBulkUpdateSuccess}
+            />
+            <BulkUpdateDialog
+              selectedEntryIds={selectedEntryIds}
+              onSuccess={handleBulkUpdateSuccess}
+            />
+          </>
         )}
       </div>
 

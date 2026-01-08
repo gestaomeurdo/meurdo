@@ -211,7 +211,7 @@ export const useDeleteFinancialEntry = () => {
   });
 };
 
-interface BulkUpdateInput {
+interface BulkUpdateCategoryInput {
   ids: string[];
   categoria_id: string;
 }
@@ -221,7 +221,7 @@ export const useBulkUpdateCategory = () => {
   const { user } = useAuth();
   const userId = user?.id;
 
-  return useMutation<void, Error, BulkUpdateInput>({
+  return useMutation<void, Error, BulkUpdateCategoryInput>({
     mutationFn: async ({ ids, categoria_id }) => {
       if (!userId) throw new Error("User not authenticated.");
       if (ids.length === 0) return;
@@ -237,9 +237,52 @@ export const useBulkUpdateCategory = () => {
         throw new Error(error.message);
       }
     },
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       // Invalidate all financial entries to reflect changes
       queryClient.invalidateQueries({ queryKey: ['financialEntries'] });
+    },
+  });
+};
+
+// NEW: Bulk Update for Date and Payment Method
+interface BulkUpdateInput {
+  ids: string[];
+  data_gasto?: string; // YYYY-MM-DD
+  forma_pagamento?: PaymentMethod;
+}
+
+export const useBulkUpdateFinancialEntries = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const userId = user?.id;
+
+  return useMutation<void, Error, BulkUpdateInput>({
+    mutationFn: async ({ ids, ...updateData }) => {
+      if (!userId) throw new Error("User not authenticated.");
+      if (ids.length === 0) return;
+
+      // Filter out undefined values
+      const payload: Partial<Omit<BulkUpdateInput, 'ids'>> = Object.fromEntries(
+        Object.entries(updateData).filter(([, value]) => value !== undefined)
+      );
+
+      if (Object.keys(payload).length === 0) {
+        throw new Error("Nenhum campo para atualizar foi fornecido.");
+      }
+
+      const { error } = await supabase
+        .from('lancamentos_financeiros')
+        .update(payload)
+        .in('id', ids)
+        .eq('user_id', userId);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['financialEntries'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardMetrics'] });
     },
   });
 };
