@@ -61,7 +61,6 @@ const fetchFinancialEntries = async ({ obraId, startDate, endDate, categoryId, p
     throw new Error(error.message);
   }
   
-  // Map user data from profiles join
   const entries = data.map(entry => {
     const profileData = (entry as any).profiles || {};
 
@@ -104,39 +103,21 @@ export const useCreateFinancialEntry = () => {
   const { user } = useAuth();
   const userId = user?.id;
 
-  return useMutation<FinancialEntry, Error, FinancialEntryInput>({
+  return useMutation<void, Error, FinancialEntryInput>({
     mutationFn: async (newEntry) => {
       if (!userId) throw new Error("User not authenticated.");
       
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('lancamentos_financeiros')
-        .insert({ ...newEntry, user_id: userId })
-        .select(`
-          *,
-          categorias_despesa (id, nome),
-          profiles!user_id (first_name, last_name, email)
-        `)
-        .single();
+        .insert({ ...newEntry, user_id: userId });
 
       if (error) {
         throw new Error(error.message);
       }
-      
-      // Manually map the nested profile data for the return type
-      const profileData = (data as any).profiles || {};
-      
-      return {
-        ...data,
-        profiles: {
-          first_name: profileData.first_name,
-          last_name: profileData.last_name,
-          email: profileData.email,
-        }
-      } as FinancialEntry;
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['financialEntries', { obraId: data.obra_id }] });
-      queryClient.invalidateQueries({ queryKey: ['dashboardMetrics'] }); // Update dashboard totals
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['financialEntries', { obraId: variables.obra_id }] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
     },
   });
 };
@@ -146,41 +127,23 @@ export const useUpdateFinancialEntry = () => {
   const { user } = useAuth();
   const userId = user?.id;
 
-  return useMutation<FinancialEntry, Error, FinancialEntryInput & { id: string }>({
+  return useMutation<void, Error, FinancialEntryInput & { id: string }>({
     mutationFn: async (updatedEntry) => {
       if (!userId) throw new Error("User not authenticated.");
+      const { id, ...rest } = updatedEntry;
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('lancamentos_financeiros')
-        .update(updatedEntry)
-        .eq('id', updatedEntry.id)
-        .eq('user_id', userId) // Ensure user can only update their own
-        .select(`
-          *,
-          categorias_despesa (id, nome),
-          profiles!user_id (first_name, last_name, email)
-        `)
-        .single();
+        .update(rest)
+        .eq('id', id);
 
       if (error) {
         throw new Error(error.message);
       }
-      
-      // Manually map the nested profile data for the return type
-      const profileData = (data as any).profiles || {};
-      
-      return {
-        ...data,
-        profiles: {
-          first_name: profileData.first_name,
-          last_name: profileData.last_name,
-          email: profileData.email,
-        }
-      } as FinancialEntry;
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['financialEntries', { obraId: data.obra_id }] });
-      queryClient.invalidateQueries({ queryKey: ['dashboardMetrics'] });
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['financialEntries', { obraId: variables.obra_id }] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
     },
   });
 };
@@ -197,8 +160,7 @@ export const useDeleteFinancialEntry = () => {
       const { error } = await supabase
         .from('lancamentos_financeiros')
         .delete()
-        .eq('id', id)
-        .eq('user_id', userId); // Ensure user can only delete their own
+        .eq('id', id);
 
       if (error) {
         throw new Error(error.message);
@@ -206,7 +168,7 @@ export const useDeleteFinancialEntry = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['financialEntries', { obraId: variables.obraId }] });
-      queryClient.invalidateQueries({ queryKey: ['dashboardMetrics'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
     },
   });
 };
@@ -226,25 +188,21 @@ export const useBulkUpdateCategory = () => {
       if (!userId) throw new Error("User not authenticated.");
       if (ids.length === 0) return;
 
-      // Update all selected entries
       const { error } = await supabase
         .from('lancamentos_financeiros')
         .update({ categoria_id })
-        .in('id', ids)
-        .eq('user_id', userId); // Ensure user can only update their own
+        .in('id', ids);
 
       if (error) {
         throw new Error(error.message);
       }
     },
     onSuccess: () => {
-      // Invalidate all financial entries to reflect changes
       queryClient.invalidateQueries({ queryKey: ['financialEntries'] });
     },
   });
 };
 
-// NEW: Bulk Update for Date and Payment Method
 interface BulkUpdateInput {
   ids: string[];
   data_gasto?: string; // YYYY-MM-DD
@@ -261,7 +219,6 @@ export const useBulkUpdateFinancialEntries = () => {
       if (!userId) throw new Error("User not authenticated.");
       if (ids.length === 0) return;
 
-      // Filter out undefined values
       const payload: Partial<Omit<BulkUpdateInput, 'ids'>> = Object.fromEntries(
         Object.entries(updateData).filter(([, value]) => value !== undefined)
       );
@@ -273,8 +230,7 @@ export const useBulkUpdateFinancialEntries = () => {
       const { error } = await supabase
         .from('lancamentos_financeiros')
         .update(payload)
-        .in('id', ids)
-        .eq('user_id', userId);
+        .in('id', ids);
 
       if (error) {
         throw new Error(error.message);
@@ -282,7 +238,7 @@ export const useBulkUpdateFinancialEntries = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['financialEntries'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboardMetrics'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
     },
   });
 };

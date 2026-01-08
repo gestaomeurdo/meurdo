@@ -41,17 +41,15 @@ export const useCreateExpenseCategory = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  return useMutation<ExpenseCategory, Error, CategoryInput>({
+  return useMutation<void, Error, CategoryInput>({
     mutationFn: async (newCategory) => {
       if (!user) throw new Error("Usuário não autenticado.");
       
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('categorias_despesa')
-        .insert({ ...newCategory, user_id: user.id })
-        .select()
-        .single();
+        .insert({ ...newCategory, user_id: user.id });
+        
       if (error) throw new Error(error.message);
-      return data as ExpenseCategory;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenseCategories'] });
@@ -63,19 +61,17 @@ export const useUpdateExpenseCategory = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  return useMutation<ExpenseCategory, Error, CategoryInput & { id: string }>({
+  return useMutation<void, Error, CategoryInput & { id: string }>({
     mutationFn: async (updatedCategory) => {
       if (!user) throw new Error("Usuário não autenticado.");
       const { id, ...rest } = updatedCategory;
       
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('categorias_despesa')
         .update(rest)
-        .eq('id', id)
-        .select()
-        .single();
+        .eq('id', id);
+
       if (error) throw new Error(error.message);
-      return data as ExpenseCategory;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenseCategories'] });
@@ -92,7 +88,6 @@ export const useDeleteExpenseCategory = () => {
     mutationFn: async (id) => {
       if (!user) throw new Error("Usuário não autenticado.");
       
-      // A migração dos lançamentos agora é feita automaticamente via Trigger no Postgres
       const { error } = await supabase
         .from('categorias_despesa')
         .delete()
