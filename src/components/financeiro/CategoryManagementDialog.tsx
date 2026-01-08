@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2, Loader2, Settings, AlertTriangle } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2, Settings, AlertTriangle, ArrowLeft } from "lucide-react";
 import { useExpenseCategories, useDeleteExpenseCategory, useCreateExpenseCategory, useUpdateExpenseCategory, ExpenseCategory } from "@/hooks/use-expense-categories";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useState } from "react";
@@ -22,6 +22,11 @@ const CategoryManagementDialog = ({ trigger }: CategoryManagementDialogProps) =>
   const [editingCategory, setEditingCategory] = useState<ExpenseCategory | null>(null);
 
   const handleFormSuccess = () => {
+    setIsFormOpen(false);
+    setEditingCategory(null);
+  };
+  
+  const handleFormCancel = () => {
     setIsFormOpen(false);
     setEditingCategory(null);
   };
@@ -64,7 +69,16 @@ const CategoryManagementDialog = ({ trigger }: CategoryManagementDialogProps) =>
         </DialogHeader>
 
         {isFormOpen ? (
-          <CategoryForm initialData={editingCategory || undefined} onSuccess={handleFormSuccess} />
+          <>
+            <Button 
+              variant="ghost" 
+              onClick={handleFormCancel} 
+              className="w-fit text-sm text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" /> Voltar para a Lista
+            </Button>
+            <CategoryForm initialData={editingCategory || undefined} onSuccess={handleFormSuccess} />
+          </>
         ) : (
           <div className="space-y-4 flex flex-col flex-grow">
             <div className="flex justify-end">

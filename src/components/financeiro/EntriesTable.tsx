@@ -2,7 +2,7 @@ import { useState } from "react";
 import { FinancialEntry, useDeleteFinancialEntry, PaymentMethod } from "@/hooks/use-financial-entries";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Download, Loader2, Filter, CalendarIcon, Tag, MoreVertical } from "lucide-react";
+import { Edit, Trash2, Download, Loader2, Filter, CalendarIcon, Tag, Search, X } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import EntryDialog from "./EntryDialog";
@@ -15,7 +15,7 @@ import { formatCurrency, formatDate } from "@/utils/formatters";
 import { Checkbox } from "@/components/ui/checkbox";
 import BulkCategoryUpdateDialog from "./BulkCategoryUpdateDialog";
 import BulkUpdateDialog from "./BulkUpdateDialog"; // Importando o novo componente
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input"; // Importando Input
 
 interface EntriesTableProps {
   entries: FinancialEntry[] | undefined;
@@ -34,6 +34,7 @@ const EntriesTable = ({ entries, obraId, isLoading, refetch, setFilters }: Entri
   const [dateRange, setDateRange] = useState<{ from: Date | undefined, to: Date | undefined }>({ from: undefined, to: undefined });
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | undefined>(undefined);
+  const [searchText, setSearchText] = useState<string>('');
   const [selectedEntryIds, setSelectedEntryIds] = useState<string[]>([]);
 
   const handleSelectEntry = (id: string, checked: boolean) => {
@@ -105,6 +106,12 @@ const EntriesTable = ({ entries, obraId, isLoading, refetch, setFilters }: Entri
     setSelectedPaymentMethod(method === "all" ? undefined : method);
     handleFilterChange({ paymentMethod: method === "all" ? undefined : method });
   };
+  
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const text = e.target.value;
+    setSearchText(text);
+    // Note: Filtering by text is done client-side here since Supabase doesn't support text search in RPC/Query hooks easily
+  };
 
   const getLancerName = (entry: FinancialEntry) => {
     const firstName = entry.profiles?.first_name;
@@ -123,6 +130,19 @@ const EntriesTable = ({ entries, obraId, isLoading, refetch, setFilters }: Entri
     // 3. Final fallback
     return 'N/A';
   };
+  
+  const filteredEntries = useMemo(() => {
+    if (!entries) return [];
+    if (!searchText) return entries;
+    
+    const lowerSearch = searchText.toLowerCase();
+    return entries.filter(entry => 
+      entry.descricao.toLowerCase().includes(lowerSearch) ||
+      entry.categorias_despesa?.nome.toLowerCase().includes(lowerSearch) ||
+      entry.forma_pagamento.toLowerCase().includes(lowerSearch)
+    );
+  }, [entries, searchText]);
+
 
   if (isLoading) {
     return (
@@ -145,14 +165,35 @@ const EntriesTable = ({ entries, obraId, isLoading, refetch, setFilters }: Entri
     );
   }
   
-  const isAllSelected = entries.length > 0 && selectedEntryIds.length === entries.length;
-  const isIndeterminate = selectedEntryIds.length > 0 && selectedEntryIds.length < entries.length;
+  const isAllSelected = filteredEntries.length > 0 && selectedEntryIds.length === filteredEntries.length;
+  const isIndeterminate = selectedEntryIds.length > 0 && selectedEntryIds.length < filteredEntries.length;
 
   return (
     <div className="space-y-4">
       {/* Filters and Bulk Actions */}
       <div className="flex flex-wrap gap-4 items-center p-4 border rounded-lg bg-card">
         <span className="font-medium text-sm text-muted-foreground">Filtros:</span>
+        
+        {/* Search Input */}
+        <div className="relative w-full md:w-[240px]">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por descrição..."
+            value={searchText}
+            onChange={handleSearchChange}
+            className="pl-9"
+          />
+          {searchText && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 text-muted-foreground"
+              onClick={() => setSearchText('')}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
         
         {/* Date Range Filter */}
         <Popover>
@@ -288,7 +329,7 @@ const EntriesTable = ({ entries, obraId, isLoading, refetch, setFilters }: Entri
             </TableRow>
           </TableHeader>
           <TableBody>
-            {entries.map((entry) => {
+            {filteredEntries.map((entry) => {
               const isSelected = selectedEntryIds.includes(entry.id);
               return (
                 <TableRow key={entry.id} className={isSelected ? "bg-primary/5 hover:bg-primary/10" : ""}>
@@ -358,6 +399,13 @@ const EntriesTable = ({ entries, obraId, isLoading, refetch, setFilters }: Entri
                 </TableRow>
               );
             })}
+            {filteredEntries.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                  Nenhum lançamento encontrado com os filtros aplicados.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
