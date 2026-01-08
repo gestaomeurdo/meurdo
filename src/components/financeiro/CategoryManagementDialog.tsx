@@ -38,8 +38,10 @@ const CategoryManagementDialog = ({ trigger }: CategoryManagementDialogProps) =>
 
   const handleDelete = async (id: string, nome: string) => {
     try {
+      // Usamos mutateAsync para esperar a conclusão da exclusão
       await deleteMutation.mutateAsync(id);
       showSuccess(`Categoria "${nome}" excluída.`);
+      // O invalidateQueries no hook deve forçar a re-renderização da lista
     } catch (err) {
       showError(`Erro ao excluir: ${err instanceof Error ? err.message : "Erro desconhecido"}`);
     }
@@ -111,7 +113,15 @@ const CategoryManagementDialog = ({ trigger }: CategoryManagementDialogProps) =>
                             <Button variant="ghost" size="icon" onClick={() => handleEdit(category)} title="Editar"><Edit className="w-4 h-4" /></Button>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" title="Excluir" className="text-destructive hover:bg-destructive/10"><Trash2 className="w-4 h-4" /></Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  title="Excluir" 
+                                  className="text-destructive hover:bg-destructive/10"
+                                  disabled={deleteMutation.isPending} // Desabilita se a exclusão estiver em andamento
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
