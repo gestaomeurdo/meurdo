@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2, Loader2, Settings, AlertTriangle, ArrowLeft } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2, AlertTriangle, ArrowLeft } from "lucide-react";
 import { useExpenseCategories, useDeleteExpenseCategory, ExpenseCategory } from "@/hooks/use-expense-categories";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useState } from "react";
@@ -16,31 +16,22 @@ interface CategoryManagementDialogProps {
   trigger: React.ReactNode;
 }
 
-// Componente auxiliar para buscar a contagem de lançamentos
 const DeleteCategoryButton = ({ category, deleteMutation }: { category: ExpenseCategory, deleteMutation: ReturnType<typeof useDeleteExpenseCategory> }) => {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   
-  const { data: entriesCount, isLoading: isLoadingCount, error: countError } = useQuery({
+  // Mantemos a contagem apenas para informar o usuário visualmente
+  const { data: entriesCount, isLoading: isLoadingCount } = useQuery({
     queryKey: ['categoryEntryCount', category.id],
     queryFn: () => countEntriesInCategory(category.id),
-    enabled: isAlertOpen, // Só busca a contagem quando o alerta é aberto
-    retry: false, // Não tenta novamente automaticamente
+    enabled: isAlertOpen,
   });
 
   const handleDelete = async () => {
-    if (isLoadingCount || entriesCount === undefined) return;
-    
-    if (countError) {
-      showError(`Erro ao contar lançamentos: ${countError.message}`);
-      return;
-    }
-    
     try {
-      await deleteMutation.mutateAsync({ id: category.id, entriesCount });
+      await deleteMutation.mutateAsync(category.id);
       showSuccess(`Categoria "${category.nome}" excluída.`);
-      setIsAlertOpen(false); // Fecha o AlertDialog após o sucesso
+      setIsAlertOpen(false);
     } catch (err) {
-      // O hook já loga o erro, então só precisamos mostrar o toast
       showError(`Erro ao excluir: ${err instanceof Error ? err.message : "Erro desconhecido"}`);
     }
   };
@@ -55,7 +46,7 @@ const DeleteCategoryButton = ({ category, deleteMutation }: { category: ExpenseC
           size="icon" 
           title="Excluir" 
           className="text-destructive hover:bg-destructive/10"
-          disabled={isDeleting}
+          disabled={isDeleting || category.nome === 'Sem Categoria'}
         >
           <Trash2 className="w-4 h-4" />
         </Button>
@@ -66,42 +57,32 @@ const DeleteCategoryButton = ({ category, deleteMutation }: { category: ExpenseC
           <AlertDialogDescription>
             Tem certeza que deseja excluir a categoria <span className="font-bold">"{category.nome}"</span>?
             
-            {isLoadingCount ? (
-              <div className="flex items-center mt-4 text-sm text-muted-foreground">
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Contando lançamentos...
-              </div>
-            ) : countError ? (
-              <Alert variant="destructive" className="mt-4">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Erro ao Contar Lançamentos</AlertTitle>
-                <AlertDescription>
-                  {countError.message}
-                </AlertDescription>
-              </Alert>
-            ) : (
-              <div className="mt-4">
-                {entriesCount && entriesCount > 0 ? (
-                  <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Atenção: {entriesCount} Lançamento(s) Encontrado(s)</AlertTitle>
-                    <AlertDescription>
-                      Existem **{entriesCount}** lançamentos associados a esta categoria. Eles serão movidos automaticamente para a categoria **"Sem Categoria"** antes da exclusão.
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Não há lançamentos associados a esta categoria. A exclusão será imediata.
-                  </p>
-                )}
-              </div>
-            )}
+            <div className="mt-4">
+              {isLoadingCount ? (
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verificando lançamentos...
+                </div>
+              ) : entriesCount && entriesCount > 0 ? (
+                <Alert variant="default" className="bg-primary/10 border-primary/20">
+                  <AlertTriangle className="h-4 w-4 text-primary" />
+                  <AlertTitle className="text-primary">Ação Automática</AlertTitle>
+                  <AlertDescription>
+                    Existem **{entriesCount}** lançamentos associados. Eles serão movidos automaticamente para **"Sem Categoria"** pelo banco de dados.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Não há lançamentos associados. A exclusão será imediata.
+                </p>
+              )}
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
           <AlertDialogAction 
             onClick={handleDelete}
-            disabled={isDeleting || isLoadingCount || !!countError}
+            disabled={isDeleting}
             className="bg-destructive hover:bg-destructive/90"
           >
             {isDeleting ? "Excluindo..." : "Excluir"}
@@ -111,7 +92,6 @@ const DeleteCategoryButton = ({ category, deleteMutation }: { category: ExpenseC
     </AlertDialog>
   );
 };
-
 
 const CategoryManagementDialog = ({ trigger }: CategoryManagementDialogProps) => {
   const { data: categories, isLoading, error } = useExpenseCategories();
@@ -135,36 +115,20 @@ const CategoryManagementDialog = ({ trigger }: CategoryManagementDialogProps) =>
     setIsFormOpen(true);
   };
 
-  const handleOpenChange = (newOpen: boolean) => {
-    setOpen(newOpen);
-    if (!newOpen) {
-      setIsFormOpen(false);
-      setEditingCategory(null);
-    }
-  };
-
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle>Gerenciar Categorias de Despesa</DialogTitle>
           <DialogDescription>
-            {isFormOpen ? (
-              editingCategory ? `Editando: ${editingCategory.nome}` : "Criar nova categoria de despesa."
-            ) : (
-              "Crie, edite ou exclua as categorias usadas nos lançamentos financeiros."
-            )}
+            {isFormOpen ? "Preencha os dados da categoria." : "Edite ou exclua categorias. O banco de dados moverá lançamentos órfãos automaticamente."}
           </DialogDescription>
         </DialogHeader>
 
         {isFormOpen ? (
           <>
-            <Button 
-              variant="ghost" 
-              onClick={handleFormCancel} 
-              className="w-fit text-sm text-muted-foreground hover:text-foreground"
-            >
+            <Button variant="ghost" onClick={handleFormCancel} className="w-fit text-sm mb-2">
               <ArrowLeft className="w-4 h-4 mr-2" /> Voltar para a Lista
             </Button>
             <CategoryForm initialData={editingCategory || undefined} onSuccess={handleFormSuccess} />
