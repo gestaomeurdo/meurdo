@@ -18,6 +18,10 @@ const EntryDialog = ({ obraId, initialData, trigger }: EntryDialogProps) => {
   const handleSuccess = () => {
     setOpen(false);
   };
+  
+  const handleCancel = () => {
+    setOpen(false);
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -38,7 +42,7 @@ const EntryDialog = ({ obraId, initialData, trigger }: EntryDialogProps) => {
               : "Registre uma nova despesa ou pagamento associado a esta obra."}
           </DialogDescription>
         </DialogHeader>
-        <EntryForm obraId={obraId} initialData={initialData} onSuccess={handleSuccess} />
+        <EntryForm obraId={obraId} initialData={initialData} onSuccess={handleSuccess} onCancel={handleCancel} />
       </DialogContent>
     </Dialog>
   );

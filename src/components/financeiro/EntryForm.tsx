@@ -7,7 +7,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { showSuccess, showError } from "@/utils/toast";
-import { CalendarIcon, Upload, Loader2 } from "lucide-react";
+import { CalendarIcon, Upload, Loader2, X } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -44,9 +44,10 @@ interface EntryFormProps {
   obraId: string;
   initialData?: FinancialEntry;
   onSuccess: () => void;
+  onCancel: () => void; // New prop for cancel button
 }
 
-const EntryForm = ({ obraId, initialData, onSuccess }: EntryFormProps) => {
+const EntryForm = ({ obraId, initialData, onSuccess, onCancel }: EntryFormProps) => {
   const isEditing = !!initialData;
   const createMutation = useCreateFinancialEntry();
   const updateMutation = useUpdateFinancialEntry();
@@ -295,7 +296,7 @@ const EntryForm = ({ obraId, initialData, onSuccess }: EntryFormProps) => {
               </FormControl>
               <div className="flex items-center space-x-4">
                 <label htmlFor="documento-upload" className={cn(
-                  "flex items-center justify-center p-2 border rounded-md cursor-pointer transition-colors",
+                  "flex items-center justify-center px-3 py-2 border rounded-md cursor-pointer transition-colors text-sm font-medium",
                   isLoading ? "bg-muted cursor-not-allowed" : "hover:bg-accent"
                 )}>
                   <Upload className="w-4 h-4 mr-2" />
@@ -317,10 +318,16 @@ const EntryForm = ({ obraId, initialData, onSuccess }: EntryFormProps) => {
           )}
         />
 
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          {isEditing ? "Salvar Alterações" : "Salvar Lançamento"}
-        </Button>
+        <div className="flex justify-end gap-2 pt-4">
+          <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
+            <X className="mr-2 h-4 w-4" />
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {isEditing ? "Salvar Alterações" : "Salvar Lançamento"}
+          </Button>
+        </div>
       </form>
     </Form>
   );

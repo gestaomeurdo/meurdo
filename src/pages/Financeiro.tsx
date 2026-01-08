@@ -2,7 +2,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useObras, Obra } from "@/hooks/use-obras";
 import { useState, useMemo, useEffect } from "react";
-import { Loader2, Plus, Clipboard, FileUp, Filter, AlertTriangle } from "lucide-react";
+import { Loader2, Plus, Clipboard, FileUp, Filter, AlertTriangle, Settings } from "lucide-react";
 import ObraSelector from "@/components/financeiro/ObraSelector";
 import FinancialSummary from "@/components/financeiro/FinancialSummary";
 import EntriesTable from "@/components/financeiro/EntriesTable";
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import PasteImportDialog from "@/components/financeiro/PasteImportDialog";
 import ImportDialog from "@/components/financeiro/ImportDialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import CategoryManagementDialog from "@/components/financeiro/CategoryManagementDialog";
 
 const Financeiro = () => {
   const { data: obras, isLoading: isLoadingObras } = useObras();
@@ -126,6 +127,14 @@ const Financeiro = () => {
               onSelectObra={setSelectedObraId} 
             />
             <div className="flex gap-2">
+              <CategoryManagementDialog 
+                trigger={
+                  <Button variant="outline" className="flex items-center">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Categorias
+                  </Button>
+                }
+              />
               <PasteImportDialog 
                 selectedObraId={selectedObraId}
                 selectedObraNome={selectedObra?.nome}

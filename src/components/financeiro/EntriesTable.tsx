@@ -2,7 +2,7 @@ import { useState } from "react";
 import { FinancialEntry, useDeleteFinancialEntry, PaymentMethod } from "@/hooks/use-financial-entries";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Download, Loader2, Filter, CalendarIcon } from "lucide-react";
+import { Edit, Trash2, Download, Loader2, Filter, CalendarIcon, Tag } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import EntryDialog from "./EntryDialog";
@@ -12,6 +12,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { formatCurrency, formatDate } from "@/utils/formatters";
+import { Checkbox } from "@/components/ui/checkbox";
+import BulkCategoryUpdateDialog from "./BulkCategoryUpdateDialog";
 
 interface EntriesTableProps {
   entries: FinancialEntry[] | undefined;
@@ -30,6 +32,26 @@ const EntriesTable = ({ entries, obraId, isLoading, refetch, setFilters }: Entri
   const [dateRange, setDateRange] = useState<{ from: Date | undefined, to: Date | undefined }>({ from: undefined, to: undefined });
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | undefined>(undefined);
+  const [selectedEntryIds, setSelectedEntryIds] = useState<string[]>([]);
+
+  const handleSelectEntry = (id: string, checked: boolean) => {
+    setSelectedEntryIds(prev => 
+      checked ? [...prev, id] : prev.filter(entryId => entryId !== id)
+    );
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked && entries) {
+      setSelectedEntryIds(entries.map(entry => entry.id));
+    } else {
+      setSelectedEntryIds([]);
+    }
+  };
+  
+  const handleBulkUpdateSuccess = () => {
+    setSelectedEntryIds([]);
+    refetch();
+  };
 
   const handleDelete = async (id: string, descricao: string) => {
     try {
@@ -89,10 +111,13 @@ const EntriesTable = ({ entries, obraId, isLoading, refetch, setFilters }: Entri
       </div>
     );
   }
+  
+  const isAllSelected = entries.length > 0 && selectedEntryIds.length === entries.length;
+  const isIndeterminate = selectedEntryIds.length > 0 && selectedEntryIds.length < entries.length;
 
   return (
     <div className="space-y-4">
-      {/* Filters */}
+      {/* Filters and Bulk Actions */}
       <div className="flex flex-wrap gap-4 items-center p-4 border rounded-lg bg-card">
         <span className="font-medium text-sm text-muted-foreground">Filtros:</span>
         
@@ -156,6 +181,15 @@ const EntriesTable = ({ entries, obraId, isLoading, refetch, setFilters }: Entri
             ))}
           </SelectContent>
         </Select>
+        
+        {/* Bulk Action Button */}
+        {selectedEntryIds.length > 0 && (
+          <BulkCategoryUpdateDialog
+            selectedEntryIds={selectedEntryIds}
+            obraId={obraId}
+            onSuccess={handleBulkUpdateSuccess}
+          />
+        )}
       </div>
 
       {/* Table */}
@@ -163,6 +197,16 @@ const EntriesTable = ({ entries, obraId, isLoading, refetch, setFilters }: Entri
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[40px] text-center">
+                <Checkbox
+                  checked={isAllSelected}
+                  onCheckedChange={handleSelectAll}
+                  aria-label="Selecionar todos"
+                  className="translate-y-[2px]"
+                  // @ts-ignore - Radix Checkbox supports indeterminate state
+                  indeterminate={isIndeterminate}
+                />
+              </TableHead>
               <TableHead className="w-[100px]">Data</TableHead>
               <TableHead className="w-[150px]">Categoria</TableHead>
               <TableHead>Descrição</TableHead>
@@ -174,66 +218,76 @@ const EntriesTable = ({ entries, obraId, isLoading, refetch, setFilters }: Entri
             </TableRow>
           </TableHeader>
           <TableBody>
-            {entries.map((entry) => (
-              <TableRow key={entry.id}>
-                <TableCell>{formatDate(entry.data_gasto)}</TableCell>
-                <TableCell className="font-medium">{entry.categorias_despesa?.nome || 'N/A'}</TableCell>
-                <TableCell className="max-w-xs truncate">{entry.descricao}</TableCell>
-                <TableCell className="text-right font-semibold text-destructive">
-                  {formatCurrency(entry.valor)}
-                </TableCell>
-                <TableCell>{entry.forma_pagamento}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {getLancerName(entry)}
-                </TableCell>
-                <TableCell>
-                  {entry.documento_url ? (
-                    <a href={entry.documento_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center text-sm">
-                      <Download className="w-4 h-4 mr-1" />
-                      Ver
-                    </a>
-                  ) : (
-                    <span className="text-muted-foreground text-sm">N/A</span>
-                  )}
-                </TableCell>
-                <TableCell className="text-right space-x-2">
-                  <EntryDialog 
-                    obraId={obraId}
-                    initialData={entry}
-                    trigger={
-                      <Button variant="ghost" size="icon" title="Editar">
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                    }
-                  />
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" title="Excluir">
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Tem certeza que deseja excluir o lançamento: <span className="font-bold">"{entry.descricao}"</span> no valor de {formatCurrency(entry.valor)}? Esta ação é irreversível.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction 
-                          onClick={() => handleDelete(entry.id, entry.descricao)}
-                          disabled={deleteMutation.isPending}
-                          className="bg-destructive hover:bg-destructive/90"
-                        >
-                          {deleteMutation.isPending ? "Excluindo..." : "Excluir"}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </TableCell>
-              </TableRow>
-            ))}
+            {entries.map((entry) => {
+              const isSelected = selectedEntryIds.includes(entry.id);
+              return (
+                <TableRow key={entry.id} className={isSelected ? "bg-primary/5 hover:bg-primary/10" : ""}>
+                  <TableCell className="text-center">
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={(checked) => handleSelectEntry(entry.id, !!checked)}
+                      aria-label={`Selecionar lançamento ${entry.descricao}`}
+                    />
+                  </TableCell>
+                  <TableCell>{formatDate(entry.data_gasto)}</TableCell>
+                  <TableCell className="font-medium">{entry.categorias_despesa?.nome || 'N/A'}</TableCell>
+                  <TableCell className="max-w-xs truncate">{entry.descricao}</TableCell>
+                  <TableCell className="text-right font-semibold text-destructive">
+                    {formatCurrency(entry.valor)}
+                  </TableCell>
+                  <TableCell>{entry.forma_pagamento}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {getLancerName(entry)}
+                  </TableCell>
+                  <TableCell>
+                    {entry.documento_url ? (
+                      <a href={entry.documento_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center text-sm">
+                        <Download className="w-4 h-4 mr-1" />
+                        Ver
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">N/A</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right space-x-2">
+                    <EntryDialog 
+                      obraId={obraId}
+                      initialData={entry}
+                      trigger={
+                        <Button variant="ghost" size="icon" title="Editar">
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                      }
+                    />
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" title="Excluir">
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja excluir o lançamento: <span className="font-bold">"{entry.descricao}"</span> no valor de {formatCurrency(entry.valor)}? Esta ação é irreversível.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={() => handleDelete(entry.id, entry.descricao)}
+                            disabled={deleteMutation.isPending}
+                            className="bg-destructive hover:bg-destructive/90"
+                          >
+                            {deleteMutation.isPending ? "Excluindo..." : "Excluir"}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>

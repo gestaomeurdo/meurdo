@@ -210,3 +210,36 @@ export const useDeleteFinancialEntry = () => {
     },
   });
 };
+
+interface BulkUpdateInput {
+  ids: string[];
+  categoria_id: string;
+}
+
+export const useBulkUpdateCategory = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const userId = user?.id;
+
+  return useMutation<void, Error, BulkUpdateInput>({
+    mutationFn: async ({ ids, categoria_id }) => {
+      if (!userId) throw new Error("User not authenticated.");
+      if (ids.length === 0) return;
+
+      // Update all selected entries
+      const { error } = await supabase
+        .from('lancamentos_financeiros')
+        .update({ categoria_id })
+        .in('id', ids)
+        .eq('user_id', userId); // Ensure user can only update their own
+
+      if (error) {
+        throw new Error(error.message);
+      }
+    },
+    onSuccess: (_, variables) => {
+      // Invalidate all financial entries to reflect changes
+      queryClient.invalidateQueries({ queryKey: ['financialEntries'] });
+    },
+  });
+};
