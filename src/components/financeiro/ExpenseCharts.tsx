@@ -4,15 +4,17 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, LineChart, L
 import { useMemo } from "react";
 import { format } from "date-fns";
 import { formatCurrency } from "@/utils/formatters";
+import { Loader2 } from "lucide-react"; // Importando Loader2
 
 interface ExpenseChartsProps {
   entries: FinancialEntry[] | undefined;
+  isLoading: boolean; // Novo prop
 }
 
 // Cores mais vibrantes e acessíveis para o tema escuro
 const COLORS = ['#FF7A00', '#00C49F', '#FFBB28', '#0088FE', '#8884d8', '#FF8042', '#82ca9d', '#ffc658', '#d0ed57'];
 
-const ExpenseCharts = ({ entries }: ExpenseChartsProps) => {
+const ExpenseCharts = ({ entries, isLoading }: ExpenseChartsProps) => {
   const { categoryData, monthlyData } = useMemo(() => {
     if (!entries || entries.length === 0) {
       return { categoryData: [], monthlyData: [] };
@@ -47,6 +49,19 @@ const ExpenseCharts = ({ entries }: ExpenseChartsProps) => {
 
     return { categoryData, monthlyData };
   }, [entries]);
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card className="h-[400px] flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </Card>
+        <Card className="h-[400px] flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </Card>
+      </div>
+    );
+  }
 
   if (!entries || entries.length === 0) {
     return null;

@@ -52,6 +52,7 @@ const Financeiro = () => {
     );
   }
 
+  // Consideramos que há entradas se houver dados E se não estiver carregando (para evitar flash de "vazio")
   const hasEntries = entries && entries.length > 0;
   const isFiltered = Object.keys(filters).length > 0;
 
@@ -82,31 +83,33 @@ const Financeiro = () => {
     return (
       <>
         <h2 className="text-xl font-semibold text-primary truncate">Obra Selecionada: {selectedObra.nome}</h2>
-        <FinancialSummary obra={selectedObra} entries={entries} />
         
+        {/* Summary and Charts now handle their own loading state */}
+        <FinancialSummary obra={selectedObra} entries={entries} isLoading={isLoadingEntries} />
+        
+        <ExpenseCharts entries={entries} isLoading={isLoadingEntries} />
+        
+        {/* Table or Empty State */}
         {isLoadingEntries ? (
           <div className="flex justify-center items-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <span className="ml-2 text-muted-foreground">Carregando lançamentos...</span>
           </div>
         ) : hasEntries ? (
-          <>
-            <ExpenseCharts entries={entries} />
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl">Lançamentos de Despesas</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <EntriesTable 
-                  entries={entries} 
-                  obraId={selectedObraId!} 
-                  isLoading={isLoadingEntries} 
-                  refetch={refetch}
-                  setFilters={setFilters}
-                />
-              </CardContent>
-            </Card>
-          </>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">Lançamentos de Despesas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <EntriesTable 
+                entries={entries} 
+                obraId={selectedObraId!} 
+                isLoading={isLoadingEntries} 
+                refetch={refetch}
+                setFilters={setFilters}
+              />
+            </CardContent>
+          </Card>
         ) : (
           <Card className="mt-6">
             <CardContent className="text-center py-12">
