@@ -1,17 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/integrations/supabase/auth-provider";
 
 export interface ExpenseCategory {
   id: string;
   nome: string;
   descricao: string | null;
+  user_id?: string | null; // Adicionado user_id
 }
 
 // --- Fetching ---
 const fetchExpenseCategories = async (): Promise<ExpenseCategory[]> => {
   const { data, error } = await supabase
     .from('categorias_despesa')
-    .select('id, nome, descricao')
+    .select('id, nome, descricao, user_id') // Incluindo user_id na busca
     .order('nome', { ascending: true });
 
   if (error) {
@@ -37,11 +39,15 @@ interface CategoryInput {
 
 export const useCreateExpenseCategory = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth(); // Usando useAuth para obter o user
+
   return useMutation<ExpenseCategory, Error, CategoryInput>({
     mutationFn: async (newCategory) => {
+      if (!user) throw new Error("Usuário não autenticado.");
+      
       const { data, error } = await supabase
         .from('categorias_despesa')
-        .insert(newCategory)
+        .insert({ ...newCategory, user_id: user.id }) // Adicionando user_id
         .select()
         .single();
       if (error) throw new Error(error.message);
@@ -55,13 +61,18 @@ export const useCreateExpenseCategory = () => {
 
 export const useUpdateExpenseCategory = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+
   return useMutation<ExpenseCategory, Error, CategoryInput & { id: string }>({
     mutationFn: async (updatedCategory) => {
+      if (!user) throw new Error("Usuário não autenticado.");
       const { id, ...rest } = updatedCategory;
+      
       const { data, error } = await supabase
         .from('categorias_despesa')
         .update(rest)
         .eq('id', id)
+        .eq('user_id', user.id) // Garantindo que só pode atualizar a própria categoria
         .select()
         .single();
       if (error) throw new Error(error.message);
@@ -76,12 +87,17 @@ export const useUpdateExpenseCategory = () => {
 
 export const useDeleteExpenseCategory = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+
   return useMutation<void, Error, string>({
     mutationFn: async (id) => {
+      if (!user) throw new Error("Usuário não autenticado.");
+      
       const { error } = await supabase
         .from('categorias_despesa')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.id); // Garantindo que só pode deletar a própria categoria
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
