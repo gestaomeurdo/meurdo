@@ -30,7 +30,7 @@ export async function ensureDefaultCategoryExists(userId: string): Promise<strin
     .from('categorias_despesa')
     .insert({ 
       nome: DEFAULT_CATEGORY_NAME, 
-      descricao: 'Lançamentos que perderam sua categoria original.',
+      descricao: 'Lançamentos que perderam sua categoria original.', 
       user_id: userId // Associa ao usuário logado
     })
     .select('id')
@@ -63,16 +63,64 @@ export async function countEntriesInCategory(categoryId: string): Promise<number
 
 /**
  * Move todos os lançamentos de uma categoria para a categoria padrão 'Sem Categoria'.
+ * @param oldCategoryId ID da categoria antiga.
+ * @param defaultCategoryId ID da categoria padrão.
+ * @param userId ID do usuário logado.
  */
 export async function migrateEntries(oldCategoryId: string, defaultCategoryId: string, userId: string): Promise<void> {
-  const { error } = await supabase
+  console.log(`[migrateEntries] Iniciando migração de lançamentos da categoria ${oldCategoryId} para ${defaultCategoryId}`);
+
+  // 1. Verifica se há lançamentos para migrar
+  const { count, error: countError } = await supabase
+    .from('lancamentos_financeiros')
+    .select('id', { count: 'exact', head: true })
+    .eq('categoria_id', oldCategoryId)
+    .eq('user_id', userId);
+
+  if (countError) {
+    console.error("[migrateEntries] Erro ao contar lançamentos:", countError);
+    throw new Error(`Falha ao contar lançamentos: ${countError.message}`);
+  }
+
+  const entriesCount = count ?? 0;
+  console.log(`[migrateEntries] Encontrados ${entriesCount} lançamentos para migrar.`);
+
+  if (entriesCount === 0) {
+    console.log("[migrateEntries] Nenhum lançamento para migrar. Retornando.");
+    return;
+  }
+
+  // 2. Executa a migração
+  const { error: updateError } = await supabase
     .from('lancamentos_financeiros')
     .update({ categoria_id: defaultCategoryId })
     .eq('categoria_id', oldCategoryId)
-    .eq('user_id', userId); // Garante que só movemos os lançamentos do usuário
+    .eq('user_id', userId);
 
-  if (error) {
-    console.error("Erro ao migrar lançamentos:", error);
-    throw new Error(`Falha ao migrar lançamentos: ${error.message}`);
+  if (updateError) {
+    console.error("[migrateEntries] Erro ao migrar lançamentos:", updateError);
+    throw new Error(`Falha ao migrar lançamentos: ${updateError.message}`);
   }
+
+  console.log(`[migrateEntries] Migração concluída com sucesso. ${entriesCount} lançamentos movidos.`);
+
+  // 3. Verifica se a migração foi confirmada
+  const { count: newCount, error: verifyError } = await supabase
+    .from('lancamentos_financeiros')
+    .select('id', { count: 'exact', head: true })
+    .eq('categoria_id', oldCategoryId)
+    .eq('user_id', userId);
+
+  if (verifyError) {
+    console.error("[migrateEntries] Erro ao verificar migração:", verifyError);
+    throw new Error(`Falha ao verificar migração: ${verifyError.message}`);
+  }
+
+  const remainingCount = newCount ?? 0;
+  if (remainingCount > 0) {
+    console.error(`[migrateEntries] Migração incompleta. ${remainingCount} lançamentos ainda estão na categoria antiga.`);
+    throw new Error(`Migração incompleta: ${remainingCount} lançamentos ainda estão na categoria antiga.`);
+  }
+
+  console.log("[migrateEntries] Migração confirmada. Nenhum lançamento restante na categoria antiga.");
 }

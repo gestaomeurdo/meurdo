@@ -105,7 +105,7 @@ export const useDeleteExpenseCategory = () => {
           
           console.log(`[useDeleteExpenseCategory] Migrando ${entriesCount} lançamentos...`);
           await migrateEntries(id, defaultCategoryId, user.id);
-          console.log(`[useDeleteExpenseCategory] Migração concluída.`);
+          console.log(`[useDeleteExpenseCategory] Migração concluída e confirmada.`);
         } catch (migrateError) {
           console.error(`[useDeleteExpenseCategory] Erro durante a migração:`, migrateError);
           throw new Error(`Falha na migração: ${migrateError instanceof Error ? migrateError.message : "Erro desconhecido"}`);
