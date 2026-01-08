@@ -2,7 +2,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useObras, Obra } from "@/hooks/use-obras";
 import { useState, useMemo, useEffect } from "react";
-import { Loader2, Plus, Clipboard, FileUp, Filter, AlertTriangle, Settings } from "lucide-react";
+import { Loader2, Plus, Clipboard, FileUp, Filter, AlertTriangle, Settings, RotateCcw } from "lucide-react";
 import ObraSelector from "@/components/financeiro/ObraSelector";
 import FinancialSummary from "@/components/financeiro/FinancialSummary";
 import EntriesTable from "@/components/financeiro/EntriesTable";
@@ -34,6 +34,12 @@ const Financeiro = () => {
     obraId: selectedObraId || '',
     ...filters,
   });
+  
+  const handleClearFilters = () => {
+    setFilters({});
+    // Força o refetch com filtros vazios
+    refetch();
+  };
 
   if (isLoadingObras) {
     return (
@@ -47,6 +53,7 @@ const Financeiro = () => {
   }
 
   const hasEntries = entries && entries.length > 0;
+  const isFiltered = Object.keys(filters).length > 0;
 
   const renderContent = () => {
     if (!selectedObra) {
@@ -106,9 +113,20 @@ const Financeiro = () => {
               <Filter className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
               <h2 className="text-xl font-semibold mb-2">Nenhum lançamento encontrado</h2>
               <p className="text-muted-foreground mb-4">
-                Comece adicionando um novo lançamento financeiro ou importe dados.
+                {isFiltered 
+                  ? "Nenhum lançamento corresponde aos filtros aplicados."
+                  : "Comece adicionando um novo lançamento financeiro ou importe dados."
+                }
               </p>
-              <EntryDialog obraId={selectedObraId!} />
+              <div className="flex justify-center gap-4">
+                <EntryDialog obraId={selectedObraId!} />
+                {isFiltered && (
+                  <Button variant="outline" onClick={handleClearFilters}>
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Limpar Filtros
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
         )}
