@@ -20,20 +20,27 @@ interface CategoryManagementDialogProps {
 const DeleteCategoryButton = ({ category, deleteMutation }: { category: ExpenseCategory, deleteMutation: ReturnType<typeof useDeleteExpenseCategory> }) => {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   
-  const { data: entriesCount, isLoading: isLoadingCount } = useQuery({
+  const { data: entriesCount, isLoading: isLoadingCount, error: countError } = useQuery({
     queryKey: ['categoryEntryCount', category.id],
     queryFn: () => countEntriesInCategory(category.id),
     enabled: isAlertOpen, // Só busca a contagem quando o alerta é aberto
+    retry: false, // Não tenta novamente automaticamente
   });
 
   const handleDelete = async () => {
     if (isLoadingCount || entriesCount === undefined) return;
+    
+    if (countError) {
+      showError(`Erro ao contar lançamentos: ${countError.message}`);
+      return;
+    }
     
     try {
       await deleteMutation.mutateAsync({ id: category.id, entriesCount });
       showSuccess(`Categoria "${category.nome}" excluída.`);
       setIsAlertOpen(false); // Fecha o AlertDialog após o sucesso
     } catch (err) {
+      // O hook já loga o erro, então só precisamos mostrar o toast
       showError(`Erro ao excluir: ${err instanceof Error ? err.message : "Erro desconhecido"}`);
     }
   };
@@ -63,6 +70,14 @@ const DeleteCategoryButton = ({ category, deleteMutation }: { category: ExpenseC
               <div className="flex items-center mt-4 text-sm text-muted-foreground">
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Contando lançamentos...
               </div>
+            ) : countError ? (
+              <Alert variant="destructive" className="mt-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Erro ao Contar Lançamentos</AlertTitle>
+                <AlertDescription>
+                  {countError.message}
+                </AlertDescription>
+              </Alert>
             ) : (
               <div className="mt-4">
                 {entriesCount && entriesCount > 0 ? (
@@ -86,7 +101,7 @@ const DeleteCategoryButton = ({ category, deleteMutation }: { category: ExpenseC
           <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
           <AlertDialogAction 
             onClick={handleDelete}
-            disabled={isDeleting || isLoadingCount}
+            disabled={isDeleting || isLoadingCount || !!countError}
             className="bg-destructive hover:bg-destructive/90"
           >
             {isDeleting ? "Excluindo..." : "Excluir"}

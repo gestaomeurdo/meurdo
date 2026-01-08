@@ -1,20 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/integrations/supabase/auth-provider";
-import { ensureDefaultCategoryExists, migrateEntries } from "@/utils/category-migration";
+import { ensureDefaultCategoryExists, migrateEntries, countEntriesInCategory } from "@/utils/category-migration";
 
 export interface ExpenseCategory {
   id: string;
   nome: string;
   descricao: string | null;
-  user_id?: string | null; // Adicionado user_id
+  user_id?: string | null;
 }
 
 // --- Fetching ---
 const fetchExpenseCategories = async (): Promise<ExpenseCategory[]> => {
   const { data, error } = await supabase
     .from('categorias_despesa')
-    .select('id, nome, descricao, user_id') // Incluindo user_id na busca
+    .select('id, nome, descricao, user_id')
     .order('nome', { ascending: true });
 
   if (error) {
@@ -40,7 +40,7 @@ interface CategoryInput {
 
 export const useCreateExpenseCategory = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth(); // Usando useAuth para obter o user
+  const { user } = useAuth();
 
   return useMutation<ExpenseCategory, Error, CategoryInput>({
     mutationFn: async (newCategory) => {
@@ -48,7 +48,7 @@ export const useCreateExpenseCategory = () => {
       
       const { data, error } = await supabase
         .from('categorias_despesa')
-        .insert({ ...newCategory, user_id: user.id }) // Adicionando user_id
+        .insert({ ...newCategory, user_id: user.id })
         .select()
         .single();
       if (error) throw new Error(error.message);
@@ -80,7 +80,7 @@ export const useUpdateExpenseCategory = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenseCategories'] });
-      queryClient.invalidateQueries({ queryKey: ['financialEntries'] }); // May affect existing entries display
+      queryClient.invalidateQueries({ queryKey: ['financialEntries'] });
     },
   });
 };
@@ -93,25 +93,46 @@ export const useDeleteExpenseCategory = () => {
     mutationFn: async ({ id, entriesCount }) => {
       if (!user) throw new Error("Usuário não autenticado.");
       
+      console.log(`[useDeleteExpenseCategory] Iniciando exclusão da categoria ID: ${id}`);
+      console.log(`[useDeleteExpenseCategory] Contagem de lançamentos: ${entriesCount}`);
+      
+      // 1. Se houver lançamentos, migra-os
       if (entriesCount > 0) {
-        // 1. Garante que a categoria padrão exista
-        const defaultCategoryId = await ensureDefaultCategoryExists(user.id);
-        
-        // 2. Migra os lançamentos
-        await migrateEntries(id, defaultCategoryId, user.id);
+        try {
+          console.log(`[useDeleteExpenseCategory] Garantindo categoria 'Sem Categoria'...`);
+          const defaultCategoryId = await ensureDefaultCategoryExists(user.id);
+          console.log(`[useDeleteExpenseCategory] Categoria 'Sem Categoria' ID: ${defaultCategoryId}`);
+          
+          console.log(`[useDeleteExpenseCategory] Migrando ${entriesCount} lançamentos...`);
+          await migrateEntries(id, defaultCategoryId, user.id);
+          console.log(`[useDeleteExpenseCategory] Migração concluída.`);
+        } catch (migrateError) {
+          console.error(`[useDeleteExpenseCategory] Erro durante a migração:`, migrateError);
+          throw new Error(`Falha na migração: ${migrateError instanceof Error ? migrateError.message : "Erro desconhecido"}`);
+        }
       }
       
-      // 3. Deleta a categoria (agora sem referências de chave estrangeira)
-      const { error } = await supabase
+      // 2. Deleta a categoria
+      console.log(`[useDeleteExpenseCategory] Deletando categoria ID: ${id}...`);
+      const { error: deleteError } = await supabase
         .from('categorias_despesa')
         .delete()
         .eq('id', id);
         
-      if (error) throw new Error(error.message);
+      if (deleteError) {
+        console.error(`[useDeleteExpenseCategory] Erro ao deletar categoria:`, deleteError);
+        throw new Error(`Falha ao deletar categoria: ${deleteError.message}`);
+      }
+      
+      console.log(`[useDeleteExpenseCategory] Categoria deletada com sucesso.`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenseCategories'] });
       queryClient.invalidateQueries({ queryKey: ['financialEntries'] });
     },
+    onError: (error) => {
+      console.error("[useDeleteExpenseCategory] Erro na mutação:", error);
+      // O toast de erro já é mostrado no componente
+    }
   });
 };
