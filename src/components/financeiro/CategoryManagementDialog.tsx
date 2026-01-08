@@ -27,12 +27,12 @@ const DeleteCategoryButton = ({ category, deleteMutation }: { category: ExpenseC
   });
 
   const handleDelete = async () => {
-    if (isLoadingCount || !entriesCount) return;
+    if (isLoadingCount || entriesCount === undefined) return;
     
     try {
       await deleteMutation.mutateAsync({ id: category.id, entriesCount });
       showSuccess(`Categoria "${category.nome}" excluída.`);
-      // O invalidateQueries no hook deve forçar a re-renderização da lista
+      setIsAlertOpen(false); // Fecha o AlertDialog após o sucesso
     } catch (err) {
       showError(`Erro ao excluir: ${err instanceof Error ? err.message : "Erro desconhecido"}`);
     }
