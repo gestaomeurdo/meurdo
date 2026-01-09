@@ -83,14 +83,25 @@ const fetchFinancialEntries = async ({ obraId, startDate, endDate, categoryId, p
   }) as FinancialEntry[];
 
   // 2. Fetch KM Cost
-  const { data: kmCostData } = await supabase
-    .from('configuracoes_globais')
-    .select('valor')
-    .eq('chave', 'custo_km_rodado')
-    .single()
-    .catch(() => ({ data: null })); // Handle potential error gracefully
+  let kmCost = 1.50;
+  try {
+    const { data: kmCostData, error: kmCostError } = await supabase
+      .from('configuracoes_globais')
+      .select('valor')
+      .eq('chave', 'custo_km_rodado')
+      .single();
+      
+    if (kmCostError && kmCostError.code !== 'PGRST116') { // PGRST116 = No rows found (expected error if config doesn't exist)
+        console.warn("Error fetching km cost, using default 1.50:", kmCostError);
+    }
+    
+    if (kmCostData?.valor !== undefined) {
+        kmCost = kmCostData.valor;
+    }
+  } catch (e) {
+    console.warn("Failed to fetch km cost configuration, using default 1.50.");
+  }
 
-  const kmCost = kmCostData?.valor ?? 1.50;
 
   // 3. Calculate Total Activity Cost (KM + Pedágio)
   const { data: activitiesData, error: activitiesError } = await supabase
