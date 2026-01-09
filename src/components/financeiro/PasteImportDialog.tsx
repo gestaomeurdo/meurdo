@@ -44,11 +44,12 @@ const PasteImportDialog = ({ trigger, selectedObraId, selectedObraNome }: PasteI
     setIsLoading(true);
     setImportResult(null);
 
-    // Detectar delimitador (tab para excel, vírgula ou ponto-e-vírgula)
-    let delimiter = "";
+    // 1. Detectar delimitador: prioriza tab (\t) para Excel, depois ponto e vírgula (;) e por último vírgula (,)
+    let delimiter = ","; // Default
     if (csvContent.includes('\t')) delimiter = '\t';
     else if (csvContent.includes(';')) delimiter = ';';
-    else if (csvContent.includes(',')) delimiter = ',';
+    
+    console.log(`[PasteImport] Delimitador detectado: ${delimiter === '\t' ? 'Tab' : delimiter}`);
 
     Papa.parse(csvContent, {
       delimiter: delimiter,
@@ -64,12 +65,15 @@ const PasteImportDialog = ({ trigger, selectedObraId, selectedObraNome }: PasteI
 
         let headerRowIndex = -1;
         let colMap = { date: -1, desc: -1, amount: -1 };
-
+        
+        // 2. Tentar identificar o cabeçalho nas primeiras 5 linhas
         for (let i = 0; i < Math.min(rows.length, 5); i++) {
           const row = rows[i].map(normalizeText);
+          
+          // Tentativas de mapeamento de colunas
           const dateIdx = row.findIndex(c => c.includes('data'));
           const descIdx = row.findIndex(c => c.includes('descricao') || c.includes('historico'));
-          const amountIdx = row.findIndex(c => c.includes('valor') || c.includes('pagamento') || c.includes('saida'));
+          const amountIdx = row.findIndex(c => c.includes('valor') || c.includes('pagamento') || c.includes('saida') || c.includes('custo'));
 
           if (dateIdx !== -1 && (descIdx !== -1 || amountIdx !== -1)) {
             headerRowIndex = i;
@@ -83,6 +87,8 @@ const PasteImportDialog = ({ trigger, selectedObraId, selectedObraNome }: PasteI
           setIsLoading(false);
           return;
         }
+        
+        console.log("[PasteImport] Mapeamento de colunas:", colMap);
 
         const rawEntries: RawCostEntry[] = [];
         for (let i = headerRowIndex + 1; i < rows.length; i++) {
@@ -92,6 +98,8 @@ const PasteImportDialog = ({ trigger, selectedObraId, selectedObraNome }: PasteI
               Data: row[colMap.date],
               Descricao: row[colMap.desc] || 'Sem descrição',
               Valor: row[colMap.amount],
+              // Se o valor não for encontrado na coluna 'Valor', tentar a coluna 'Pagamentos' se houver
+              Pagamentos: colMap.amount === -1 ? row.find((_, idx) => normalizeText(rows[headerRowIndex][idx]).includes('pagamento')) : undefined,
             });
           }
         }
@@ -149,7 +157,7 @@ const PasteImportDialog = ({ trigger, selectedObraId, selectedObraNome }: PasteI
             <Textarea 
               id="csv-paste"
               rows={8}
-              placeholder="Data;Descrição;Valor..."
+              placeholder="Data	Descrição	Valor..."
               value={csvContent}
               onChange={(e) => {
                 setCsvContent(e.target.value);
