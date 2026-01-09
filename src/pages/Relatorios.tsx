@@ -19,6 +19,7 @@ import { formatCurrency } from "@/utils/formatters";
 import { useKmCost } from "@/hooks/use-km-cost";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ptBR } from "date-fns/locale";
 
 const Relatorios = () => {
   const { data: obras, isLoading: isLoadingObras } = useObras();
