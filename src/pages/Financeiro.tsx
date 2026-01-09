@@ -2,8 +2,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useObras, Obra } from "@/hooks/use-obras";
 import { useState, useMemo, useEffect } from "react";
-import { Loader2, Plus, Clipboard, FileUp, Filter, AlertTriangle, Settings, RotateCcw, Trash2 } from "lucide-react";
-import ObraSelector from "@/components/financeiro/ObraSelector";
+import { Loader2, Plus, Clipboard, FileUp, AlertTriangle, Settings, Trash2, ArrowLeft, LayoutGrid } from "lucide-react";
 import FinancialSummary from "@/components/financeiro/FinancialSummary";
 import EntriesTable from "@/components/financeiro/EntriesTable";
 import EntryDialog from "@/components/financeiro/EntryDialog";
@@ -16,18 +15,13 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import CategoryManagementDialog from "@/components/financeiro/CategoryManagementDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { showSuccess, showError } from "@/utils/toast";
+import ObraCardSelection from "@/components/financeiro/ObraCardSelection";
 
 const Financeiro = () => {
   const { data: obras, isLoading: isLoadingObras } = useObras();
   const [selectedObraId, setSelectedObraId] = useState<string | undefined>(undefined);
   const [filters, setFilters] = useState({});
   const deleteAllMutation = useDeleteAllFinancialEntries();
-
-  useEffect(() => {
-    if (obras && obras.length > 0 && !selectedObraId) {
-      setSelectedObraId(obras[0].id);
-    }
-  }, [obras, selectedObraId]);
 
   const selectedObra: Obra | undefined = useMemo(() => {
     return obras?.find(o => o.id === selectedObraId);
@@ -50,11 +44,6 @@ const Financeiro = () => {
     }
   };
 
-  const handleClearFilters = () => {
-    setFilters({});
-    refetch();
-  };
-
   if (isLoadingObras) {
     return (
       <DashboardLayout>
@@ -66,98 +55,122 @@ const Financeiro = () => {
     );
   }
 
-  const hasEntries = entries && entries.length > 0;
-  const isFiltered = Object.keys(filters).length > 0;
-
-  const renderContent = () => {
-    if (!selectedObra) {
-      return (
-        <div className="text-center py-12 border border-dashed rounded-lg bg-muted/50">
-          <p className="text-muted-foreground">Selecione uma obra para visualizar o financeiro.</p>
-        </div>
-      );
-    }
-    
-    if (entriesError) {
-      return (
-        <Alert variant="destructive" className="mt-6">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Erro ao carregar lançamentos</AlertTitle>
-          <AlertDescription>{entriesError.message}</AlertDescription>
-        </Alert>
-      );
-    }
-
+  // Visualização Inicial: Seleção de Obra
+  if (!selectedObraId) {
     return (
-      <>
-        <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-primary truncate">Obra: {selectedObra.nome}</h2>
-            {hasEntries && (
-                <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10">
-                            <Trash2 className="w-4 h-4 mr-2" /> Limpar Financeiro
-                        </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Apagar todos os lançamentos?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Isso removerá permanentemente TODOS os {entries?.length} lançamentos financeiros desta obra. Use isso apenas se quiser reiniciar o controle financeiro para importar novamente do zero.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleClearAll} className="bg-destructive hover:bg-destructive/90">
-                                Sim, Apagar Tudo
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-            )}
-        </div>
-        
-        <FinancialSummary obra={selectedObra} entriesResult={entriesResult} isLoading={isLoadingEntries} />
-        {(hasEntries || isLoadingEntries) && <ExpenseCharts entriesResult={entriesResult} isLoading={isLoadingEntries} />}
-        
-        <Card>
-            <CardHeader><CardTitle className="text-xl">Lançamentos de Despesas</CardTitle></CardHeader>
-            <CardContent>
-              <EntriesTable 
-                entriesResult={entriesResult} 
-                obraId={selectedObraId!} 
-                isLoading={isLoadingEntries} 
-                refetch={refetch}
-                setFilters={setFilters}
-                currentFilters={filters}
-              />
-            </CardContent>
-        </Card>
-      </>
-    );
-  };
+      <DashboardLayout>
+        <div className="p-6 space-y-8 animate-in fade-in duration-500">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-3xl font-bold">Controle Financeiro</h1>
+            <p className="text-muted-foreground text-lg">Selecione uma obra para gerenciar os lançamentos e custos.</p>
+          </div>
 
+          {!obras || obras.length === 0 ? (
+            <Card className="border-dashed py-20 text-center">
+              <CardContent>
+                <AlertTriangle className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">Você ainda não possui obras cadastradas.</p>
+                <Button variant="link" onClick={() => window.location.href='/obras'} className="mt-2">Cadastrar Obras</Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {obras.map(obra => (
+                <ObraCardSelection 
+                  key={obra.id} 
+                  obra={obra} 
+                  onClick={setSelectedObraId} 
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Visualização Detalhada
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
-          <h1 className="text-3xl font-bold">Controle Financeiro</h1>
-          <div className="flex flex-wrap gap-3 items-center">
-            <ObraSelector selectedObraId={selectedObraId} onSelectObra={setSelectedObraId} />
-            <div className="flex gap-2">
-              <CategoryManagementDialog trigger={<Button variant="outline"><Settings className="w-4 h-4 mr-2" /> Categorias</Button>} />
-              <PasteImportDialog selectedObraId={selectedObraId} selectedObraNome={selectedObra?.nome} trigger={<Button variant="outline"><Clipboard className="w-4 h-4 mr-2" /> Colar CSV</Button>} />
-              <ImportDialog selectedObraId={selectedObraId} selectedObraNome={selectedObra?.nome} trigger={<Button variant="outline"><FileUp className="w-4 h-4 mr-2" /> Importar Arquivo</Button>} />
+      <div className="p-6 space-y-6 animate-in slide-in-from-bottom-2 duration-300">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => setSelectedObraId(undefined)} title="Voltar à seleção">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold truncate max-w-md">{selectedObra?.nome}</h1>
+              <p className="text-muted-foreground">Controle financeiro detalhado</p>
             </div>
           </div>
+          
+          <div className="flex flex-wrap gap-2">
+            <CategoryManagementDialog trigger={<Button variant="outline" size="sm"><Settings className="w-4 h-4 mr-2" /> Categorias</Button>} />
+            <PasteImportDialog selectedObraId={selectedObraId} selectedObraNome={selectedObra?.nome} trigger={<Button variant="outline" size="sm"><Clipboard className="w-4 h-4 mr-2" /> Colar CSV</Button>} />
+            <ImportDialog selectedObraId={selectedObraId} selectedObraNome={selectedObra?.nome} trigger={<Button variant="outline" size="sm"><FileUp className="w-4 h-4 mr-2" /> Importar Arquivo</Button>} />
+          </div>
         </div>
-        {renderContent()}
+
+        {entriesError ? (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Erro ao carregar lançamentos</AlertTitle>
+            <AlertDescription>{entriesError.message}</AlertDescription>
+          </Alert>
+        ) : (
+          <>
+            <div className="flex justify-between items-center">
+                <Button variant="ghost" size="sm" onClick={() => setSelectedObraId(undefined)} className="text-primary">
+                    <LayoutGrid className="w-4 h-4 mr-2" /> Trocar Obra
+                </Button>
+                {entries && entries.length > 0 && (
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10">
+                                <Trash2 className="w-4 h-4 mr-2" /> Limpar Tudo
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Apagar todos os lançamentos?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Isso removerá permanentemente TODOS os {entries?.length} lançamentos desta obra.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleClearAll} className="bg-destructive hover:bg-destructive/90">
+                                    Sim, Apagar Tudo
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                )}
+            </div>
+            
+            <FinancialSummary obra={selectedObra!} entriesResult={entriesResult} isLoading={isLoadingEntries} />
+            {(entries && entries.length > 0 || isLoadingEntries) && <ExpenseCharts entriesResult={entriesResult} isLoading={isLoadingEntries} />}
+            
+            <Card className="border-t-4 border-t-primary shadow-lg">
+                <CardHeader><CardTitle className="text-xl">Lançamentos de Despesas</CardTitle></CardHeader>
+                <CardContent>
+                  <EntriesTable 
+                    entriesResult={entriesResult} 
+                    obraId={selectedObraId!} 
+                    isLoading={isLoadingEntries} 
+                    refetch={refetch}
+                    setFilters={setFilters}
+                    currentFilters={filters}
+                  />
+                </CardContent>
+            </Card>
+          </>
+        )}
       </div>
-      {selectedObraId && (
-        <div className="fixed bottom-6 right-6 z-10">
-          <EntryDialog obraId={selectedObraId} trigger={<Button size="lg" className="rounded-full shadow-lg"><Plus className="w-6 h-6" /></Button>} />
-        </div>
-      )}
+      
+      <div className="fixed bottom-6 right-6 z-10">
+        <EntryDialog obraId={selectedObraId} trigger={<Button size="lg" className="rounded-full shadow-2xl h-14 w-14 p-0"><Plus className="w-8 h-8" /></Button>} />
+      </div>
     </DashboardLayout>
   );
 };

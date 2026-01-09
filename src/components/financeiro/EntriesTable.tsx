@@ -11,6 +11,7 @@ import { useExpenseCategories } from "@/hooks/use-expense-categories";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatDate } from "@/utils/formatters";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -105,8 +106,31 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
           {searchText && <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setSearchText('')}><X className="h-4 w-4" /></Button>}
         </div>
         <Popover>
-          <PopoverTrigger asChild><Button variant="outline" className="w-full md:w-[240px] justify-start"><CalendarIcon className="mr-2 h-4 w-4" />Período</Button></PopoverTrigger>
-          <PopoverContent className="w-auto p-0"><Calendar mode="range" selected={dateRange} onSelect={handleDateSelect} numberOfMonths={2} /></PopoverContent>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="w-full md:w-[280px] justify-start text-left font-normal overflow-hidden">
+              <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+              <span className="truncate">
+                {dateRange.from ? (
+                  dateRange.to ? (
+                    `${format(dateRange.from, "dd/MM/yy")} - ${format(dateRange.to, "dd/MM/yy")}`
+                  ) : (
+                    format(dateRange.from, "dd/MM/yy")
+                  )
+                ) : (
+                  "Filtrar Período"
+                )}
+              </span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar 
+              mode="range" 
+              selected={dateRange} 
+              onSelect={handleDateSelect} 
+              numberOfMonths={2} 
+              locale={ptBR}
+            />
+          </PopoverContent>
         </Popover>
         <Select value={selectedCategory || "all"} onValueChange={handleCategoryChange}>
           <SelectTrigger className="w-full md:w-[180px]"><SelectValue placeholder="Categoria" /></SelectTrigger>

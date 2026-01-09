@@ -3,15 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { useMemo } from "react";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { formatCurrency } from "@/utils/formatters";
-import { Loader2 } from "lucide-react"; // Importando Loader2
+import { Loader2 } from "lucide-react";
 
 interface ExpenseChartsProps {
   entriesResult: FinancialEntriesResult | undefined;
-  isLoading: boolean; // Novo prop
+  isLoading: boolean;
 }
 
-// Cores mais vibrantes e acessíveis para o tema escuro
 const COLORS = ['#FF7A00', '#00C49F', '#FFBB28', '#0088FE', '#8884d8', '#FF8042', '#82ca9d', '#ffc658', '#d0ed57'];
 
 const ExpenseCharts = ({ entriesResult, isLoading }: ExpenseChartsProps) => {
@@ -22,7 +22,6 @@ const ExpenseCharts = ({ entriesResult, isLoading }: ExpenseChartsProps) => {
       return { categoryData: [], monthlyData: [] };
     }
 
-    // 1. Data for Pie Chart (Category Breakdown)
     const categoryMap = entries.reduce((acc, entry) => {
       const categoryName = entry.categorias_despesa?.nome || 'Outros';
       acc[categoryName] = (acc[categoryName] || 0) + entry.valor;
@@ -34,7 +33,6 @@ const ExpenseCharts = ({ entriesResult, isLoading }: ExpenseChartsProps) => {
       value,
     })).sort((a, b) => b.value - a.value);
 
-    // 2. Data for Line Chart (Monthly Evolution)
     const monthlyMap = entries.reduce((acc, entry) => {
       const monthKey = format(new Date(entry.data_gasto), 'yyyy-MM');
       acc[monthKey] = (acc[monthKey] || 0) + entry.valor;
@@ -43,7 +41,7 @@ const ExpenseCharts = ({ entriesResult, isLoading }: ExpenseChartsProps) => {
 
     const monthlyData = Object.entries(monthlyMap)
       .map(([key, value]) => ({
-        name: format(new Date(key + '-01'), 'MMM/yy'),
+        name: format(new Date(key + '-01'), 'MMM/yy', { locale: ptBR }),
         Gasto: value,
         sortKey: key,
       }))
@@ -69,7 +67,6 @@ const ExpenseCharts = ({ entriesResult, isLoading }: ExpenseChartsProps) => {
     return null;
   }
 
-  // Custom Tooltip Content for Pie Chart to show percentage
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
@@ -89,7 +86,6 @@ const ExpenseCharts = ({ entriesResult, isLoading }: ExpenseChartsProps) => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      {/* Gráfico de Rosca (Donut Chart): Gastos por Categoria */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Gastos por Categoria</CardTitle>
@@ -103,7 +99,7 @@ const ExpenseCharts = ({ entriesResult, isLoading }: ExpenseChartsProps) => {
                 nameKey="name"
                 cx="50%"
                 cy="50%"
-                innerRadius={60} // Donut Chart
+                innerRadius={60}
                 outerRadius={100}
                 fill="#8884d8"
                 label={false} 
@@ -117,14 +113,12 @@ const ExpenseCharts = ({ entriesResult, isLoading }: ExpenseChartsProps) => {
                 content={<CustomTooltip />}
                 wrapperStyle={{ outline: 'none' }}
               />
-              {/* Legenda na parte inferior para melhor visualização */}
               <Legend layout="horizontal" verticalAlign="bottom" align="center" wrapperStyle={{ paddingTop: '20px' }} />
             </PieChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
 
-      {/* Gráfico de Linha: Evolução Mensal */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Evolução Mensal dos Gastos</CardTitle>
@@ -141,7 +135,6 @@ const ExpenseCharts = ({ entriesResult, isLoading }: ExpenseChartsProps) => {
               <Tooltip 
                 contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '0.5rem' }}
                 formatter={(value: number) => [formatCurrency(value), 'Gasto']}
-                // Adicionando a classe text-foreground ao wrapper do Tooltip do LineChart
                 wrapperClassName="text-foreground"
               />
               <Line type="monotone" dataKey="Gasto" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
