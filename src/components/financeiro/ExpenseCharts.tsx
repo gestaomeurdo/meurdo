@@ -13,42 +13,15 @@ interface ExpenseChartsProps {
   isLoading: boolean;
 }
 
-const COLORS = ['#FF7A00', '#00C49F', '#FFBB28', '#0088FE', '#8884d8', '#FF8042', '#82ca9d', '#ffc658', '#d0ed57'];
-
-// Function to group small categories into "Outros"
-const groupSmallCategories = (data: { name: string; value: number }[], thresholdPercent: number = 2) => {
-  if (!data || data.length === 0) return [];
-  
-  const total = data.reduce((sum, item) => sum + item.value, 0);
-  const threshold = total * (thresholdPercent / 100);
-  
-  const aboveThreshold: { name: string; value: number }[] = [];
-  let othersValue = 0;
-  const othersItems: string[] = [];
-  
-  data.forEach(item => {
-    if (item.value >= threshold) {
-      aboveThreshold.push(item);
-    } else {
-      othersValue += item.value;
-      othersItems.push(item.name);
-    }
-  });
-  
-  if (othersValue > 0) {
-    aboveThreshold.push({ name: 'Outros', value: othersValue });
-  }
-  
-  return { groupedData: aboveThreshold, othersItems };
-};
+const COLORS = ['#FF7A00', '#00C49F', '#FFBB28', '#0088FE', '#8884d8', '#FF8042', '#82ca9d', '#ffc658', '#d0ed57', '#8dd1e1', '#a4de6c', '#d0ed57', '#ff9999', '#9999ff'];
 
 const ExpenseCharts = ({ entriesResult, isLoading }: ExpenseChartsProps) => {
   const entries = entriesResult?.entries;
   const isMobile = useIsMobile();
 
-  const { categoryData, monthlyData, othersItems } = useMemo(() => {
+  const { categoryData, monthlyData } = useMemo(() => {
     if (!entries || entries.length === 0) {
-      return { categoryData: [], monthlyData: [], othersItems: [] };
+      return { categoryData: [], monthlyData: [] };
     }
 
     const categoryMap = entries.reduce((acc, entry) => {
@@ -61,9 +34,6 @@ const ExpenseCharts = ({ entriesResult, isLoading }: ExpenseChartsProps) => {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
 
-    // Group small categories
-    const { groupedData, othersItems } = groupSmallCategories(categoryData, 3);
-    
     const monthlyMap = entries.reduce((acc, entry) => {
       const monthKey = format(new Date(entry.data_gasto), 'yyyy-MM');
       acc[monthKey] = (acc[monthKey] || 0) + entry.valor;
@@ -78,7 +48,7 @@ const ExpenseCharts = ({ entriesResult, isLoading }: ExpenseChartsProps) => {
       }))
       .sort((a, b) => a.sortKey.localeCompare(b.sortKey));
 
-    return { categoryData: groupedData, monthlyData, othersItems };
+    return { categoryData, monthlyData };
   }, [entries]);
 
   if (isLoading) {
@@ -109,16 +79,6 @@ const ExpenseCharts = ({ entriesResult, isLoading }: ExpenseChartsProps) => {
           <p className="font-semibold text-primary">{data.name}</p>
           <p>Valor: {formatCurrency(data.value)}</p>
           <p>Percentual: {percentage}%</p>
-          {data.name === 'Outros' && othersItems.length > 0 && (
-            <div className="mt-2">
-              <p className="font-medium">Itens agrupados:</p>
-              <ul className="max-h-32 overflow-y-auto">
-                {othersItems.map((item, index) => (
-                  <li key={index} className="text-xs truncate">• {item}</li>
-                ))}
-              </ul>
-            </div>
-          )}
         </div>
       );
     }
@@ -140,18 +100,25 @@ const ExpenseCharts = ({ entriesResult, isLoading }: ExpenseChartsProps) => {
                 nameKey="name"
                 cx="50%"
                 cy="50%"
-                innerRadius={isMobile ? 45 : 60}
-                outerRadius={isMobile ? 70 : 100}
+                innerRadius={isMobile ? 30 : 50}
+                outerRadius={isMobile ? 60 : 90}
                 fill="#8884d8"
                 label={false}
                 labelLine={false}
-                paddingAngle={2}
+                paddingAngle={1}
               >
                 {categoryData.map((_, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={COLORS[index % COLORS.length]} 
+                  />
                 ))}
               </Pie>
-              <Tooltip content={<CustomTooltip />} wrapperStyle={{ outline: 'none' }} />
+              <Tooltip 
+                content={<CustomTooltip />} 
+                wrapperStyle={{ outline: 'none' }} 
+                isAnimationActive={false}
+              />
               <Legend 
                 layout="horizontal" 
                 verticalAlign="bottom" 
@@ -160,7 +127,9 @@ const ExpenseCharts = ({ entriesResult, isLoading }: ExpenseChartsProps) => {
                 wrapperStyle={{ 
                   paddingTop: '10px', 
                   fontSize: isMobile ? '10px' : '12px',
-                  lineHeight: '14px'
+                  lineHeight: '14px',
+                  maxHeight: '80px',
+                  overflowY: 'auto'
                 }} 
               />
             </PieChart>
