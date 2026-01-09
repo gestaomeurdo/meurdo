@@ -40,6 +40,7 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | undefined>(currentFilters.paymentMethod);
   const [searchText, setSearchText] = useState<string>('');
   const [selectedEntryIds, setSelectedEntryIds] = useState<string[]>([]);
+  const [showIdColumn, setShowIdColumn] = useState(false); // Novo estado para a coluna ID
 
   const handleSelectEntry = (id: string, checked: boolean) => {
     setSelectedEntryIds(prev => 
@@ -335,6 +336,16 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
           )}
           Exportar CSV ({filteredEntries.length})
         </Button>
+        
+        {/* Toggle ID Column Button for Debugging */}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={() => setShowIdColumn(!showIdColumn)}
+          title="Mostrar/Ocultar IDs"
+        >
+          <Search className="w-4 h-4" />
+        </Button>
       </div>
       
       {/* Total Display */}
@@ -362,6 +373,7 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
                   indeterminate={isIndeterminate ? true : undefined}
                 />
               </TableHead>
+              {showIdColumn && <TableHead className="w-[100px]">ID (Debug)</TableHead>}
               <TableHead className="w-[100px]">Data</TableHead>
               <TableHead className="w-[150px]">Categoria</TableHead>
               <TableHead>Descrição</TableHead>
@@ -384,6 +396,7 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
                       aria-label={`Selecionar lançamento ${entry.descricao}`}
                     />
                   </TableCell>
+                  {showIdColumn && <TableCell className="text-xs text-muted-foreground truncate max-w-[100px]">{entry.id.slice(0, 8)}...</TableCell>}
                   <TableCell>{formatDate(entry.data_gasto)}</TableCell>
                   <TableCell className="font-medium">{entry.categorias_despesa?.nome || 'N/A'}</TableCell>
                   <TableCell className="max-w-xs truncate">{entry.descricao}</TableCell>
@@ -445,7 +458,7 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
             })}
             {filteredEntries.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={showIdColumn ? 10 : 9} className="text-center py-8 text-muted-foreground">
                   Nenhum lançamento encontrado com os filtros aplicados.
                 </TableCell>
               </TableRow>
