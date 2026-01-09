@@ -18,6 +18,7 @@ import BulkCategoryUpdateDialog from "./BulkCategoryUpdateDialog";
 import BulkUpdateDialog from "./BulkUpdateDialog";
 import { Input } from "@/components/ui/input";
 import { useExportFinancialCsv } from "@/hooks/use-export-financial-csv";
+import { Badge } from "@/components/ui/badge";
 
 interface EntriesTableProps {
   entriesResult: FinancialEntriesResult | undefined;
@@ -64,7 +65,7 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
 
   const handleDelete = async (id: string, descricao: string) => {
     try {
-      await deleteMutation.mutateAsync({ id, obraId });
+      await deleteMutation.mutateAsync({ id, dramaId: obraId } as any);
       showSuccess(`Lançamento "${descricao}" excluído com sucesso.`);
     } catch (err) {
       showError(`Erro ao excluir lançamento: ${err instanceof Error ? err.message : "Erro desconhecido"}`);
