@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FinancialEntry, FinancialEntriesResult } from "@/hooks/use-financial-entries";
+import { FinancialEntriesResult } from "@/hooks/use-financial-entries";
 import { Obra } from "@/hooks/use-obras";
-import { AlertTriangle, DollarSign, TrendingUp, Percent, Route } from "lucide-react";
+import { AlertTriangle, DollarSign, TrendingUp, Percent, Route, Calculator } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { formatCurrency } from "@/utils/formatters";
@@ -10,18 +10,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface FinancialSummaryProps {
   obra: Obra;
   entriesResult: FinancialEntriesResult | undefined;
-  isLoading: boolean; // Novo prop
+  isLoading: boolean;
 }
 
 const FinancialSummary = ({ obra, entriesResult, isLoading }: FinancialSummaryProps) => {
   const entries = entriesResult?.entries;
   const totalActivityCost = entriesResult?.totalActivityCost || 0;
-  const kmCost = entriesResult?.kmCost || 1.50;
   
-  const totalGasto = entries?.reduce((sum, entry) => sum + entry.valor, 0) || 0;
+  // Total dos lançamentos carregados no momento (pode estar filtrado)
+  const totalFiltrado = entries?.reduce((sum, entry) => sum + entry.valor, 0) || 0;
+  
   const orcamentoInicial = obra.orcamento_inicial || 0;
-  const saldoDisponivel = orcamentoInicial - totalGasto;
-  const percentualUsado = orcamentoInicial > 0 ? (totalGasto / orcamentoInicial) * 100 : 0;
+  const percentualUsado = orcamentoInicial > 0 ? (totalFiltrado / orcamentoInicial) * 100 : 0;
 
   const isWarning = percentualUsado >= 80 && percentualUsado < 100;
   const isCritical = percentualUsado >= 100;
@@ -32,53 +32,41 @@ const FinancialSummary = ({ obra, entriesResult, isLoading }: FinancialSummaryPr
     return "bg-primary";
   };
   
-  const renderValue = (value: string | number, isCurrency: boolean = true, isNegative: boolean = false) => {
-    if (isLoading) {
-      return <Skeleton className="h-8 w-3/4" />;
-    }
-    const formattedValue = isCurrency ? formatCurrency(value as number) : value;
-    const colorClass = isNegative ? 'text-destructive' : 'text-green-600';
-    
-    return (
-      <div className={`text-2xl font-bold ${isNegative ? colorClass : ''}`}>
-        {formattedValue}
-      </div>
-    );
-  };
-
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="border-l-4 border-l-primary">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Orçamento Inicial</CardTitle>
+            <CardTitle className="text-sm font-medium">Orçamento da Obra</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {renderValue(orcamentoInicial)}
+            {isLoading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">{formatCurrency(orcamentoInicial)}</div>}
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="border-l-4 border-l-destructive">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Gasto (Lançamentos)</CardTitle>
-            <TrendingUp className="h-4 w-4 text-destructive" />
+            <CardTitle className="text-sm font-medium">Total de Despesas (Lançadas)</CardTitle>
+            <Calculator className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            {renderValue(totalGasto, true, true)}
+            {isLoading ? <Skeleton className="h-8 w-3/4" /> : (
+              <div className="text-2xl font-bold text-destructive">
+                {formatCurrency(totalFiltrado)}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">Soma de todos os itens na lista abaixo</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Custo Atividades (KM + Pedágio)</CardTitle>
+            <CardTitle className="text-sm font-medium">Custos de Atividade (KM/Pedágio)</CardTitle>
             <Route className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {renderValue(totalActivityCost)}
-            <p className="text-xs text-muted-foreground mt-1">
-              Custo KM: {formatCurrency(kmCost)}/km
-            </p>
+            {isLoading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold text-green-600">{formatCurrency(totalActivityCost)}</div>}
           </CardContent>
         </Card>
 
@@ -98,23 +86,11 @@ const FinancialSummary = ({ obra, entriesResult, isLoading }: FinancialSummaryPr
         </Card>
       </div>
 
-      {/* Alerts */}
       {isCritical && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Orçamento Estourado!</AlertTitle>
-          <AlertDescription>
-            O total gasto ({formatCurrency(totalGasto)}) excedeu o orçamento inicial ({formatCurrency(orcamentoInicial)}).
-          </AlertDescription>
-        </Alert>
-      )}
-      {isWarning && (
-        <Alert className="bg-yellow-100 border-yellow-400 text-yellow-800 dark:bg-yellow-900 dark:border-yellow-600 dark:text-yellow-200">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Atenção ao Orçamento</AlertTitle>
-          <AlertDescription>
-            Você já utilizou {percentualUsado.toFixed(1)}% do orçamento inicial da obra.
-          </AlertDescription>
+          <AlertTitle>Orçamento Excedido!</AlertTitle>
+          <AlertDescription>O total gasto superou o orçamento inicial planejado.</AlertDescription>
         </Alert>
       )}
     </div>
