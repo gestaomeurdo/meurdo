@@ -28,6 +28,7 @@ const CATEGORY_RULES: Record<string, string[]> = {
 };
 
 async function getCategoryMap(): Promise<Map<string, string>> {
+  // Busca todas as categorias (RLS permite SELECT true)
   const { data, error } = await supabase
     .from('categorias_despesa')
     .select('id, nome');
@@ -55,7 +56,8 @@ function categorizeEntry(description: string, categoryMap: Map<string, string>):
   const defaultCategoryId = categoryMap.get(defaultCategoryName);
 
   if (!defaultCategoryId) {
-    throw new Error(`Categoria padrão '${defaultCategoryName}' não encontrada.`);
+    // Se a categoria padrão não foi carregada, isso é um erro de configuração
+    throw new Error(`Categoria padrão '${defaultCategoryName}' não encontrada. Certifique-se de que ela existe.`);
   }
 
   return { categoryId: defaultCategoryId, categoryName: defaultCategoryName };
@@ -73,10 +75,11 @@ export async function importFinancialEntries(
 
   const categoryMap = await getCategoryMap();
   
+  // Garante que a categoria 'Outros' exista, criando-a se necessário (associada ao usuário)
   if (!categoryMap.has('Outros')) {
     const { data, error } = await supabase
       .from('categorias_despesa')
-      .insert({ nome: 'Outros', descricao: 'Lançamentos sem categoria definida.' })
+      .insert({ nome: 'Outros', descricao: 'Lançamentos sem categoria definida.', user_id: userId })
       .select('id, nome')
       .single();
     
@@ -89,6 +92,7 @@ export async function importFinancialEntries(
 
   for (const entry of rawEntries) {
     try {
+      // Prioriza Pagamentos (Excel) e depois Valor
       const rawValue = (entry.Pagamentos || entry.Valor || "").toString().trim();
       
       if (!entry.Data || !entry.Descricao || !rawValue) {
@@ -110,6 +114,7 @@ export async function importFinancialEntries(
       const dateParts = cleanDate.includes('/') ? cleanDate.split('/') : cleanDate.split('-');
       
       if (dateParts.length === 3) {
+          // Tenta inferir o formato (DD/MM/YYYY ou YYYY-MM-DD)
           if (dateParts[0].length === 4) { // YYYY-MM-DD
             dateString = `${dateParts[0]}-${dateParts[1].padStart(2, '0')}-${dateParts[2].padStart(2, '0')}`;
           } else { // DD/MM/YYYY
@@ -122,13 +127,13 @@ export async function importFinancialEntries(
       }
 
       entriesToInsert.push({
-        obra_id: obraId,
+        obra_id: obraId, // GARANTIDO que usa o ID da obra selecionada
         user_id: userId,
         data_gasto: dateString,
         categoria_id: categoryId,
         descricao: entry.Descricao.trim(),
         valor: parsedValue,
-        forma_pagamento: 'Transferência' as PaymentMethod,
+        forma_pagamento: 'Transferência' as PaymentMethod, // Default para importação
       });
       
     } catch (e) {
