@@ -1,5 +1,5 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useObras, Obra } from "@/hooks/use-obras";
 import { useState, useMemo } from "react";
 import { Loader2, Plus, Clipboard, FileUp, AlertTriangle, Settings, Trash2, ArrowLeft, LayoutGrid } from "lucide-react";
