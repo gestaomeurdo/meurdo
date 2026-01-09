@@ -1,8 +1,9 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useObras, Obra } from "@/hooks/use-obras";
-import { useState, useMemo } from "react";
-import { Loader2, Plus, Clipboard, FileUp, AlertTriangle, Settings, Trash2, ArrowLeft, LayoutGrid } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Loader2, Plus, Clipboard, FileUp, AlertTriangle, Settings, Trash2 } from "lucide-react";
+import ObraSelector from "@/components/financeiro/ObraSelector";
 import FinancialSummary from "@/components/financeiro/FinancialSummary";
 import EntriesTable from "@/components/financeiro/EntriesTable";
 import EntryDialog from "@/components/financeiro/EntryDialog";
@@ -15,13 +16,19 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import CategoryManagementDialog from "@/components/financeiro/CategoryManagementDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { showSuccess, showError } from "@/utils/toast";
-import ObraCardSelection from "@/components/financeiro/ObraCardSelection";
 
 const Financeiro = () => {
   const { data: obras, isLoading: isLoadingObras } = useObras();
   const [selectedObraId, setSelectedObraId] = useState<string | undefined>(undefined);
   const [filters, setFilters] = useState({});
   const deleteAllMutation = useDeleteAllFinancialEntries();
+
+  // Seleciona a primeira obra automaticamente se nenhuma estiver selecionada
+  useEffect(() => {
+    if (obras && obras.length > 0 && !selectedObraId) {
+      setSelectedObraId(obras[0].id);
+    }
+  }, [obras, selectedObraId]);
 
   const selectedObra: Obra | undefined = useMemo(() => {
     return obras?.find(o => o.id === selectedObraId);
@@ -44,136 +51,125 @@ const Financeiro = () => {
     }
   };
 
-  if (isLoadingObras) {
-    return (
-      <DashboardLayout>
-        <div className="p-6 flex justify-center items-center h-full">
+  const renderContent = () => {
+    if (isLoadingObras) {
+      return (
+        <div className="flex justify-center items-center h-full py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-2">Carregando dados iniciais...</span>
+          <span className="ml-2">Carregando obras...</span>
         </div>
-      </DashboardLayout>
-    );
-  }
+      );
+    }
 
-  // Visualização Inicial: Seleção de Obra
-  if (!selectedObraId) {
+    if (!selectedObraId) {
+      return (
+        <div className="text-center py-12 border border-dashed rounded-lg bg-muted/50">
+          <AlertTriangle className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Nenhuma obra selecionada</h2>
+          <p className="text-muted-foreground">Selecione uma obra no menu acima para gerenciar o financeiro.</p>
+        </div>
+      );
+    }
+
+    if (entriesError) {
+      return (
+        <Alert variant="destructive" className="mt-6">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Erro ao carregar lançamentos</AlertTitle>
+          <AlertDescription>
+            Não foi possível carregar os dados financeiros. Verifique sua conexão.
+            <p className="mt-2 text-sm italic">Detalhe: {entriesError.message}</p>
+          </AlertDescription>
+        </Alert>
+      );
+    }
+
     return (
-      <DashboardLayout>
-        <div className="p-6 space-y-10 animate-in fade-in slide-in-from-top-4 duration-700">
-          <div className="max-w-2xl">
-            <h1 className="text-4xl font-extrabold tracking-tight">Controle Financeiro</h1>
-            <p className="text-muted-foreground text-xl mt-3">
-              Selecione a obra abaixo para visualizar o fluxo de caixa, despesas e orçamentos.
-            </p>
-          </div>
+      <div className="space-y-6">
+        <FinancialSummary obra={selectedObra!} entriesResult={entriesResult} isLoading={isLoadingEntries} />
 
-          {!obras || obras.length === 0 ? (
-            <Card className="border-dashed py-24 text-center bg-muted/20">
-              <CardContent>
-                <AlertTriangle className="w-16 h-16 mx-auto text-muted-foreground/50 mb-6" />
-                <h3 className="text-xl font-bold mb-2">Sem Obras para Exibir</h3>
-                <p className="text-muted-foreground mb-6">Você precisa cadastrar uma obra antes de gerenciar o financeiro.</p>
-                <Button onClick={() => window.location.href='/obras'} className="shadow-lg">Cadastrar Minha Primeira Obra</Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {obras.map(obra => (
-                <ObraCardSelection 
-                  key={obra.id} 
-                  obra={obra} 
-                  onClick={setSelectedObraId} 
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </DashboardLayout>
+        {(entries && entries.length > 0 || isLoadingEntries) && (
+          <ExpenseCharts entriesResult={entriesResult} isLoading={isLoadingEntries} />
+        )}
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-xl">Lançamentos de Despesas</CardTitle>
+            {entries && entries.length > 0 && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10">
+                    <Trash2 className="w-4 h-4 mr-2" /> Limpar Tudo
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Apagar todos os lançamentos?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta ação removerá permanentemente TODOS os {entries?.length} lançamentos desta obra. Esta ação não pode ser desfeita.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleClearAll} className="bg-destructive hover:bg-destructive/90">
+                      Sim, Apagar Tudo
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </CardHeader>
+          <CardContent>
+            <EntriesTable 
+              entriesResult={entriesResult} 
+              obraId={selectedObraId} 
+              isLoading={isLoadingEntries} 
+              refetch={refetch}
+              setFilters={setFilters}
+              currentFilters={filters}
+            />
+          </CardContent>
+        </Card>
+      </div>
     );
-  }
+  };
 
-  // Visualização Detalhada
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-6 animate-in slide-in-from-bottom-2 duration-300">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => setSelectedObraId(undefined)} title="Voltar à seleção">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold truncate max-w-md">{selectedObra?.nome}</h1>
-              <p className="text-muted-foreground">Controle financeiro detalhado</p>
-            </div>
+      <div className="p-6 space-y-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">Gestão Financeira</h1>
+            <p className="text-muted-foreground">Controle de custos, notas fiscais e orçamentos.</p>
           </div>
-          
-          <div className="flex flex-wrap gap-2">
-            <CategoryManagementDialog trigger={<Button variant="outline" size="sm"><Settings className="w-4 h-4 mr-2" /> Categorias</Button>} />
-            <PasteImportDialog selectedObraId={selectedObraId} selectedObraNome={selectedObra?.nome} trigger={<Button variant="outline" size="sm"><Clipboard className="w-4 h-4 mr-2" /> Colar CSV</Button>} />
-            <ImportDialog selectedObraId={selectedObraId} selectedObraNome={selectedObra?.nome} trigger={<Button variant="outline" size="sm"><FileUp className="w-4 h-4 mr-2" /> Importar Arquivo</Button>} />
+          <div className="flex flex-wrap gap-3 items-center">
+            <ObraSelector 
+              selectedObraId={selectedObraId} 
+              onSelectObra={setSelectedObraId} 
+            />
+            <div className="flex gap-2">
+              <CategoryManagementDialog trigger={<Button variant="outline" size="sm"><Settings className="w-4 h-4 mr-2" /> Categorias</Button>} />
+              <PasteImportDialog selectedObraId={selectedObraId} selectedObraNome={selectedObra?.nome} trigger={<Button variant="outline" size="sm"><Clipboard className="w-4 h-4 mr-2" /> Colar CSV</Button>} />
+              <ImportDialog selectedObraId={selectedObraId} selectedObraNome={selectedObra?.nome} trigger={<Button variant="outline" size="sm"><FileUp className="w-4 h-4 mr-2" /> Importar Arquivo</Button>} />
+            </div>
           </div>
         </div>
 
-        {entriesError ? (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Erro ao carregar lançamentos</AlertTitle>
-            <AlertDescription>{entriesError.message}</AlertDescription>
-          </Alert>
-        ) : (
-          <>
-            <div className="flex justify-between items-center">
-                <Button variant="ghost" size="sm" onClick={() => setSelectedObraId(undefined)} className="text-primary font-bold">
-                    <LayoutGrid className="w-4 h-4 mr-2" /> Alterar Obra
-                </Button>
-                {entries && entries.length > 0 && (
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10">
-                                <Trash2 className="w-4 h-4 mr-2" /> Limpar Tudo
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Apagar todos os lançamentos?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    Isso removerá permanentemente TODOS os {entries?.length} lançamentos desta obra.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleClearAll} className="bg-destructive hover:bg-destructive/90">
-                                    Sim, Apagar Tudo
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                )}
-            </div>
-            
-            <FinancialSummary obra={selectedObra!} entriesResult={entriesResult} isLoading={isLoadingEntries} />
-            {(entries && entries.length > 0 || isLoadingEntries) && <ExpenseCharts entriesResult={entriesResult} isLoading={isLoadingEntries} />}
-            
-            <Card className="border-t-4 border-t-primary shadow-lg">
-                <CardHeader><CardTitle className="text-xl">Lançamentos de Despesas</CardTitle></CardHeader>
-                <CardContent>
-                  <EntriesTable 
-                    entriesResult={entriesResult} 
-                    obraId={selectedObraId!} 
-                    isLoading={isLoadingEntries} 
-                    refetch={refetch}
-                    setFilters={setFilters}
-                    currentFilters={filters}
-                  />
-                </CardContent>
-            </Card>
-          </>
-        )}
+        {renderContent()}
       </div>
       
-      <div className="fixed bottom-6 right-6 z-10">
-        <EntryDialog obraId={selectedObraId} trigger={<Button size="lg" className="rounded-full shadow-2xl h-14 w-14 p-0"><Plus className="w-8 h-8" /></Button>} />
-      </div>
+      {selectedObraId && (
+        <div className="fixed bottom-6 right-6 z-10">
+          <EntryDialog 
+            obraId={selectedObraId} 
+            trigger={
+              <Button size="lg" className="rounded-full shadow-lg h-14 w-14 p-0">
+                <Plus className="w-8 h-8" />
+              </Button>
+            }
+          />
+        </div>
+      )}
     </DashboardLayout>
   );
 };
