@@ -25,7 +25,13 @@ const BulkCategoryUpdateDialog = ({ selectedEntryIds, obraId, onSuccess }: BulkC
       return;
     }
 
+    if (selectedEntryIds.length === 0) {
+      showError("Nenhum lançamento selecionado.");
+      return;
+    }
+
     try {
+      console.log("Starting bulk category update for", selectedEntryIds.length, "entries");
       await bulkUpdateMutation.mutateAsync({
         ids: selectedEntryIds,
         categoria_id: newCategoryId,
@@ -34,6 +40,7 @@ const BulkCategoryUpdateDialog = ({ selectedEntryIds, obraId, onSuccess }: BulkC
       onSuccess();
       setOpen(false);
     } catch (error) {
+      console.error("Bulk category update failed:", error);
       showError(`Erro ao atualizar em massa: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
     }
   };
@@ -43,9 +50,9 @@ const BulkCategoryUpdateDialog = ({ selectedEntryIds, obraId, onSuccess }: BulkC
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button 
-          variant="secondary" 
-          size="sm" 
+        <Button
+          variant="secondary"
+          size="sm"
           disabled={selectedEntryIds.length === 0}
           className="flex items-center"
         >
@@ -57,7 +64,7 @@ const BulkCategoryUpdateDialog = ({ selectedEntryIds, obraId, onSuccess }: BulkC
         <DialogHeader>
           <DialogTitle>Atualização de Categoria em Massa</DialogTitle>
           <DialogDescription>
-            Você está prestes a alterar a categoria de **{selectedEntryIds.length}** lançamentos.
+            Você está prestes a alterar a categoria de <strong>{selectedEntryIds.length}</strong> lançamentos.
           </DialogDescription>
         </DialogHeader>
 

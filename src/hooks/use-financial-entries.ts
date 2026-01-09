@@ -150,10 +150,25 @@ export const useBulkUpdateCategory = () => {
   const queryClient = useQueryClient();
   return useMutation<void, Error, { ids: string[], categoria_id: string }>({
     mutationFn: async ({ ids, categoria_id }) => {
-      const { error } = await supabase.from('lancamentos_financeiros').update({ categoria_id }).in('id', ids);
-      if (error) throw new Error(error.message);
+      console.log("Bulk update category - IDs:", ids, "Category ID:", categoria_id);
+      const { data, error } = await supabase
+        .from('lancamentos_financeiros')
+        .update({ categoria_id })
+        .in('id', ids)
+        .select();
+
+      if (error) {
+        console.error("Bulk update error:", error);
+        throw new Error(error.message);
+      }
+
+      console.log("Bulk update result:", data);
+      return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['financialEntries'] }),
+    onSuccess: () => {
+      console.log("Bulk update successful, invalidating queries");
+      queryClient.invalidateQueries({ queryKey: ['financialEntries'] });
+    },
   });
 };
 
