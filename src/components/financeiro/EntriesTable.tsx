@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { FinancialEntry, useDeleteFinancialEntry, PaymentMethod, FinancialEntriesResult } from "@/hooks/use-financial-entries";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Loader2, CalendarIcon, Search, X, FileDown } from "lucide-react";
+import { Edit, Trash2, Loader2, CalendarIcon, Search, X } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import EntryDialog from "./EntryDialog";
@@ -16,7 +16,6 @@ import { formatCurrency, formatDate } from "@/utils/formatters";
 import { Checkbox } from "@/components/ui/checkbox";
 import BulkUpdateDialog from "./BulkUpdateDialog";
 import { Input } from "@/components/ui/input";
-import { useExportFinancialCsv } from "@/hooks/use-export-financial-csv";
 import { Badge } from "@/components/ui/badge";
 
 interface EntriesTableProps {
@@ -32,7 +31,6 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
   const entries = entriesResult?.entries;
   const deleteMutation = useDeleteFinancialEntry();
   const { data: categories } = useExpenseCategories();
-  const { exportCsv, isExporting } = useExportFinancialCsv();
   
   const [dateRange, setDateRange] = useState<{ from: Date | undefined, to: Date | undefined }>({ 
     from: currentFilters.startDate ? new Date(currentFilters.startDate) : undefined, 
@@ -83,10 +81,6 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
     setFilters(prev => ({ ...prev, categoryId: val === "all" ? undefined : val }));
   };
 
-  const handleExport = () => {
-    exportCsv({ obraId, ...currentFilters });
-  };
-
   const filteredEntries = useMemo(() => {
     if (!entries) return [];
     if (!searchText) return entries;
@@ -97,8 +91,6 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
       entry.valor.toString().includes(searchText)
     );
   }, [entries, searchText]);
-
-  const totalAtivo = filteredEntries.filter(e => !e.ignorar_soma).reduce((sum, e) => sum + e.valor, 0);
 
   if (isLoading) return <div className="flex justify-center items-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
@@ -122,15 +114,9 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
         </Select>
         <div className="flex gap-2 ml-auto">
           {selectedEntryIds.length > 0 && <BulkUpdateDialog selectedEntryIds={selectedEntryIds} onSuccess={handleBulkUpdateSuccess} />}
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting}><FileDown className="w-4 h-4 mr-2" /> Exportar</Button>
         </div>
       </div>
       
-      <div className="flex justify-between items-center p-4 bg-primary/5 border border-primary/20 rounded-lg">
-        <h3 className="text-lg font-bold">Saldo Ativo (Lista): <span className="text-primary">{formatCurrency(totalAtivo)}</span></h3>
-        <span className="text-sm text-muted-foreground">{filteredEntries.length} itens</span>
-      </div>
-
       <div className="rounded-md border overflow-x-auto bg-card">
         <Table>
           <TableHeader>
