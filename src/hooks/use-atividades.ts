@@ -92,3 +92,19 @@ export const useDeleteAtividade = () => {
     },
   });
 };
+
+export const useDeleteAllAtividades = () => {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: async (obraId) => {
+      const { error } = await supabase
+        .from('atividades_obra')
+        .delete()
+        .eq('obra_id', obraId);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: (_, obraId) => {
+      queryClient.invalidateQueries({ queryKey: ['atividades', obraId] });
+    },
+  });
+};

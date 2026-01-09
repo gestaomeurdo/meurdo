@@ -83,3 +83,21 @@ export const useDeleteCargo = () => {
     },
   });
 };
+
+export const useDeleteAllCargos = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  return useMutation<void, Error, void>({
+    mutationFn: async () => {
+      if (!user) return;
+      const { error } = await supabase
+        .from('cargos')
+        .delete()
+        .eq('user_id', user.id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cargos'] });
+    },
+  });
+};

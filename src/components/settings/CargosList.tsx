@@ -1,4 +1,4 @@
-import { useCargos, useDeleteCargo, Cargo } from "@/hooks/use-cargos";
+import { useCargos, useDeleteCargo, useDeleteAllCargos, Cargo } from "@/hooks/use-cargos";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2, Loader2, Users, FileUp, AlertTriangle } from "lucide-react";
@@ -9,12 +9,24 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import CargoImportDialog from "./CargoImportDialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { showSuccess, showError } from "@/utils/toast";
 
 const CargosList = () => {
   const { data: cargos, isLoading, error } = useCargos();
   const deleteMutation = useDeleteCargo();
+  const deleteAllMutation = useDeleteAllCargos();
   const [editingCargo, setEditingCargo] = useState<Cargo | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const handleClearAll = async () => {
+    try {
+      await deleteAllMutation.mutateAsync();
+      showSuccess("Banco de cargos limpo com sucesso.");
+    } catch (err) {
+      showError("Erro ao limpar cargos.");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -41,7 +53,31 @@ const CargosList = () => {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
         <h3 className="text-lg font-semibold flex items-center"><Users className="w-5 h-5 mr-2" /> Cargos Cadastrados</h3>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {cargos && cargos.length > 0 && (
+             <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10">
+                    <Trash2 className="w-4 h-4 mr-2" /> Limpar Banco
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Apagar todos os cargos?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Isso removerá definitivamente todos os cargos cadastrados no seu banco de referência.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleClearAll} className="bg-destructive hover:bg-destructive/90">
+                      Sim, Apagar Tudo
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+          )}
+
           <CargoImportDialog trigger={
             <Button variant="outline" size="sm" className="flex items-center">
               <FileUp className="w-4 h-4 mr-2" /> Importar CSV

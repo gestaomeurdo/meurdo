@@ -18,8 +18,8 @@ export interface RdoMaoDeObra {
   diario_id: string;
   funcao: string;
   quantidade: number;
-  custo_unitario: number; // Added missing field
-  cargo_id: string | null; // Added missing field
+  custo_unitario: number; 
+  cargo_id: string | null;
 }
 
 export interface RdoEquipamento {
@@ -140,7 +140,7 @@ export interface RdoInput {
   observacoes_gerais: string | null;
   impedimentos_comentarios: string | null;
   atividades: Omit<RdoAtividadeDetalhe, 'id' | 'diario_id'>[];
-  mao_de_obra: Omit<RdoMaoDeObra, 'id' | 'diario_id' | 'cargo_id'>[]; // cargo_id is optional on input
+  mao_de_obra: Omit<RdoMaoDeObra, 'id' | 'diario_id' | 'cargo_id'>[]; 
   equipamentos: Omit<RdoEquipamento, 'id' | 'diario_id'>[];
 }
 
@@ -234,6 +234,22 @@ export const useDeleteRdo = () => {
   });
 };
 
+export const useDeleteAllRdo = () => {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: async (obraId) => {
+      const { error } = await supabase
+        .from('diarios_obra')
+        .delete()
+        .eq('obra_id', obraId);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: (_, obraId) => {
+      queryClient.invalidateQueries({ queryKey: ['rdoList', obraId] });
+    },
+  });
+};
+
 // --- RDO Payment Hook ---
 
 interface RdoPaymentInput {
@@ -251,7 +267,6 @@ const getManpowerCategoryId = async (): Promise<string> => {
     .single();
 
   if (error) {
-    // Fallback or throw if category is missing
     throw new Error("Categoria 'Mão de Obra' não encontrada. Cadastre-a primeiro.");
   }
   return data.id;
@@ -279,7 +294,7 @@ export const usePayRdo = () => {
         categoria_id: categoryId,
         descricao: description,
         valor: totalCost,
-        forma_pagamento: 'Transferência', // Default payment method for RDO
+        forma_pagamento: 'Transferência', 
       };
 
       const { error } = await supabase
@@ -291,7 +306,6 @@ export const usePayRdo = () => {
       }
     },
     onSuccess: (_, variables) => {
-      // Invalidate financial entries and dashboard data
       queryClient.invalidateQueries({ queryKey: ['financialEntries', { obraId: variables.obraId }] });
       queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
       queryClient.invalidateQueries({ queryKey: ['reportData'] });
