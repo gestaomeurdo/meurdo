@@ -80,7 +80,7 @@ const RdoCalendar = ({ obraId, rdoList, currentDate }: RdoCalendarProps) => {
                     }
                   />
                 ))}
-                
+
                 {isCurrentMonth && day <= new Date() && (
                   <RdoDialog
                     obraId={obraId}

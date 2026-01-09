@@ -34,17 +34,17 @@ export const generateRdoPdf = async (rdo: DiarioObra, obraNome: string) => {
   doc.setFontSize(20);
   doc.setTextColor(255, 122, 0); // Primary Orange
   doc.text("Relatório Diário de Obra", 45, y);
-  
+
   y += 15;
   doc.setFontSize(10);
   doc.setTextColor(100);
   doc.text(`Obra: ${obraNome}`, margin, y);
   doc.text(`Data: ${formatDate(rdo.data_rdo)}`, 140, y);
-  
+
   y += 6;
   doc.text(`Clima: ${rdo.clima_condicoes || 'N/A'}`, margin, y);
   doc.text(`Status: ${rdo.status_dia}`, 140, y);
-  
+
   y += 10;
   doc.setDrawColor(200);
   doc.line(margin, y, 195, y);
@@ -119,12 +119,12 @@ export const generateRdoPdf = async (rdo: DiarioObra, obraNome: string) => {
 
     for (let i = 0; i < photos.length; i++) {
       if (y > 220) { doc.addPage(); y = 20; currentX = margin; }
-      
+
       try {
         const photoUrl = photos[i].foto_anexo_url!;
         // Simple way to add images in PDF
         doc.addImage(photoUrl, 'JPEG', currentX, y, imgWidth, imgHeight);
-        
+
         if (i % 2 === 0) {
           currentX = margin + imgWidth + 5;
         } else {

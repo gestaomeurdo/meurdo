@@ -23,7 +23,7 @@ const RdoEquipmentForm = () => {
               <Trash2 className="w-4 h-4 text-destructive" />
             </Button>
           </div>
-          
+
           <div className="grid grid-cols-3 gap-3">
             <div>
               <Label htmlFor={`equipamento-${index}`}>Equipamento</Label>

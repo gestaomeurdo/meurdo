@@ -64,7 +64,7 @@ interface RdoFormProps {
   obraId: string;
   initialData?: DiarioObra;
   onSuccess: () => void;
-  previousRdoData?: DiarioObra | null; 
+  previousRdoData?: DiarioObra | null;
 }
 
 const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormProps) => {
@@ -117,7 +117,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
         .eq('data_gasto', rdoDateString)
         .ilike('descricao', 'Pagamento Mão de Obra RDO%') // Check for RDO payment description pattern
         .maybeSingle();
-      
+
       if (error) {
         console.error("Error checking existing payment:", error);
         return null;
@@ -138,7 +138,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
         })));
         showSuccess("Equipe copiada do dia anterior para facilitar o preenchimento.");
       }
-      
+
       if (previousRdoData.rdo_equipamentos && previousRdoData.rdo_equipamentos.length > 0) {
         methods.setValue("equipamentos", previousRdoData.rdo_equipamentos.map(e => ({
           equipamento: e.equipamento,
@@ -167,7 +167,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
       showError("O custo estimado da mão de obra é zero. Não há o que pagar.");
       return;
     }
-    
+
     if (existingPayment) {
       showError("O pagamento para este RDO já foi registrado.");
       return;
@@ -185,12 +185,12 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
         })),
       });
       showSuccess("Pagamento do RDO registrado com sucesso no Financeiro!");
-      queryClient.invalidateQueries({ queryKey: ['rdoPaymentCheck'] }); 
+      queryClient.invalidateQueries({ queryKey: ['rdoPaymentCheck'] });
     } catch (error) {
       showError(`Erro ao registrar pagamento: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
     }
   };
-  
+
   const handleDeleteRdo = async () => {
     if (!initialData?.id) return;
     try {
@@ -244,10 +244,10 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
             {isEditing && (
-              <Button 
-                type="button" 
-                variant={isPaymentRegistered ? "secondary" : "default"} 
-                onClick={handlePayRdo} 
+              <Button
+                type="button"
+                variant={isPaymentRegistered ? "secondary" : "default"}
+                onClick={handlePayRdo}
                 disabled={!canPay || isPaying}
                 className="flex-1 sm:flex-none"
               >
@@ -264,7 +264,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
             {isEditing && (
               <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
                 <AlertDialogTrigger asChild>
-                  <Button 
+                  <Button
                     type="button"
                     variant="destructive"
                     className="flex-1 sm:flex-none"
@@ -283,7 +283,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction 
+                    <AlertDialogAction
                       onClick={handleDeleteRdo}
                       disabled={isDeleting}
                       className="bg-destructive hover:bg-destructive/90"

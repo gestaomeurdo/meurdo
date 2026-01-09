@@ -1,4 +1,4 @@
-import { DiarioObra, RdoClima, useDeleteRdo } from "@/hooks/use-rdo";
+import { DiarioObra, useDeleteRdo } from "@/hooks/use-rdo";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Trash2, Sun, Cloud, CloudRain, CloudLightning, AlertTriangle, Loader2, FileSearch } from "lucide-react";
@@ -16,7 +16,7 @@ interface RdoListTableProps {
   isLoading: boolean;
 }
 
-const climaIconMap: Record<RdoClima, React.ElementType> = {
+const climaIconMap: Record<string, React.ElementType> = {
   'Sol': Sun,
   'Nublado': Cloud,
   'Chuva Leve': CloudRain,
@@ -80,17 +80,17 @@ const RdoListTable = ({ rdoList, obraId, isLoading }: RdoListTableProps) => {
             const dayOfWeek = format(dateObj, 'EEEE', { locale: ptBR });
             const ClimaIcon = rdo.clima_condicoes ? climaIconMap[rdo.clima_condicoes] : Cloud;
             const statusColor = statusColorMap[rdo.status_dia];
-            
+
             // Fix: Create date at noon to avoid UTC/Local shifts
             const rdoDate = new Date(rdo.data_rdo + 'T12:00:00');
 
             return (
-              <TableRow 
-                key={rdo.id} 
+              <TableRow
+                key={rdo.id}
                 className="hover:bg-muted/30 transition-colors cursor-pointer group"
               >
                 <TableCell className="font-medium p-0">
-                  <RdoDialog 
+                  <RdoDialog
                     obraId={obraId}
                     date={rdoDate}
                     trigger={
@@ -101,7 +101,7 @@ const RdoListTable = ({ rdoList, obraId, isLoading }: RdoListTableProps) => {
                   />
                 </TableCell>
                 <TableCell className="capitalize text-muted-foreground p-0">
-                  <RdoDialog 
+                  <RdoDialog
                     obraId={obraId}
                     date={rdoDate}
                     trigger={
@@ -112,7 +112,7 @@ const RdoListTable = ({ rdoList, obraId, isLoading }: RdoListTableProps) => {
                   />
                 </TableCell>
                 <TableCell className="p-0">
-                  <RdoDialog 
+                  <RdoDialog
                     obraId={obraId}
                     date={rdoDate}
                     trigger={
@@ -124,7 +124,7 @@ const RdoListTable = ({ rdoList, obraId, isLoading }: RdoListTableProps) => {
                   />
                 </TableCell>
                 <TableCell className="p-0">
-                  <RdoDialog 
+                  <RdoDialog
                     obraId={obraId}
                     date={rdoDate}
                     trigger={
@@ -137,7 +137,7 @@ const RdoListTable = ({ rdoList, obraId, isLoading }: RdoListTableProps) => {
                   />
                 </TableCell>
                 <TableCell className="text-sm p-0">
-                   <RdoDialog 
+                   <RdoDialog
                     obraId={obraId}
                     date={rdoDate}
                     trigger={
@@ -164,7 +164,7 @@ const RdoListTable = ({ rdoList, obraId, isLoading }: RdoListTableProps) => {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction 
+                          <AlertDialogAction
                             onClick={() => handleDelete(rdo.id, rdo.data_rdo)}
                             disabled={deleteMutation.isPending}
                             className="bg-destructive hover:bg-destructive/90"

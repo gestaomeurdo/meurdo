@@ -20,7 +20,7 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
     control,
     name: "atividades",
   });
-  
+
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
 
   const handleFileUpload = async (file: File, index: number) => {
@@ -53,7 +53,7 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
       setUploadingIndex(null);
     }
   };
-  
+
   const handleRemoveFile = (index: number) => {
     setValue(`atividades.${index}.foto_anexo_url`, null, { shouldDirty: true });
   };
@@ -71,7 +71,7 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
       {fields.map((field, index) => {
         const photoUrl = watch(`atividades.${index}.foto_anexo_url`);
         const isImage = photoUrl && photoUrl.match(/\.(jpeg|jpg|png|gif)$/i);
-        
+
         return (
           <div key={field.id} className="p-4 border rounded-lg space-y-3 bg-secondary/10">
             <div className="flex justify-between items-start">
@@ -80,7 +80,7 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
                 <Trash2 className="w-4 h-4 text-destructive" />
               </Button>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="md:col-span-2">
                 <Label htmlFor={`descricao-${index}`}>Descrição do Serviço</Label>
@@ -130,13 +130,13 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
                         }}
                         disabled={uploadingIndex === index}
                     />
-                    
+
                     {photoUrl && (
                         <div className="flex items-center space-x-2">
-                            <a 
-                                href={photoUrl} 
-                                target="_blank" 
-                                rel="noopener noreferrer" 
+                            <a
+                                href={photoUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 className="text-sm text-primary hover:underline flex items-center"
                             >
                                 {getFileIcon(photoUrl)}
@@ -148,7 +148,7 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
                         </div>
                     )}
                 </div>
-                
+
                 {/* Image Preview */}
                 {isImage && (
                     <div className="mt-3 max-w-xs border rounded-lg overflow-hidden">

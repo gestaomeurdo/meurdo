@@ -16,7 +16,7 @@ interface RdoDialogProps {
 const RdoDialog = ({ obraId, date, trigger }: RdoDialogProps) => {
   const [open, setOpen] = useState(false);
   const dateString = format(date, 'yyyy-MM-dd');
-  
+
   const { data: rdoData, isLoading: isLoadingRdo, refetch } = useRdoByDate(obraId, dateString);
   const isEditing = !!rdoData;
 
@@ -44,7 +44,7 @@ const RdoDialog = ({ obraId, date, trigger }: RdoDialogProps) => {
 
   const title = isEditing ? `Editar RDO de ${format(date, 'dd/MM/yyyy')}` : `Criar RDO para ${format(date, 'dd/MM/yyyy')}`;
   const description = isEditing ? "Atualize o Relatório Diário de Obra." : "Preencha o Relatório Diário de Obra para esta data.";
-  
+
   const isLoading = isLoadingRdo || (!isEditing && isLoadingPreviousRdo);
 
   return (
@@ -62,17 +62,17 @@ const RdoDialog = ({ obraId, date, trigger }: RdoDialogProps) => {
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        
+
         {isLoading ? (
             <div className="flex justify-center items-center h-64">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <span className="ml-2">Carregando dados...</span>
             </div>
         ) : (
-            <RdoForm 
-                obraId={obraId} 
-                initialData={rdoData || undefined} 
-                onSuccess={handleSuccess} 
+            <RdoForm
+                obraId={obraId}
+                initialData={rdoData || undefined}
+                onSuccess={handleSuccess}
                 previousRdoData={previousRdoData}
             />
         )}

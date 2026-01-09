@@ -15,7 +15,7 @@ const RdoManpowerForm = () => {
     control,
     name: "mao_de_obra",
   });
-  
+
   const { data: cargos } = useCargos();
   const maoDeObra = watch("mao_de_obra");
 
@@ -44,11 +44,11 @@ const RdoManpowerForm = () => {
 
         return (
           <div key={field.id} className="p-4 border rounded-xl space-y-4 bg-secondary/5 relative group transition-all hover:border-primary/50">
-            <Button 
+            <Button
               type="button"
-              variant="ghost" 
-              size="icon" 
-              className="absolute top-2 right-2 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" 
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={() => remove(index)}
             >
               <Trash2 className="w-4 h-4" />
@@ -68,7 +68,7 @@ const RdoManpowerForm = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="md:col-span-3">
                 <Label className="text-xs uppercase text-muted-foreground">Nome Exibido</Label>
                 <Input
