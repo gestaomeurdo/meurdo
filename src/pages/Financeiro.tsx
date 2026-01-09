@@ -1,7 +1,7 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { useObras, Obra } from "@/hooks/use-obras";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Loader2, Plus, Clipboard, FileUp, AlertTriangle, Settings, Trash2, ArrowLeft, LayoutGrid } from "lucide-react";
 import FinancialSummary from "@/components/financeiro/FinancialSummary";
 import EntriesTable from "@/components/financeiro/EntriesTable";
@@ -59,22 +59,25 @@ const Financeiro = () => {
   if (!selectedObraId) {
     return (
       <DashboardLayout>
-        <div className="p-6 space-y-8 animate-in fade-in duration-500">
-          <div className="flex flex-col gap-1">
-            <h1 className="text-3xl font-bold">Controle Financeiro</h1>
-            <p className="text-muted-foreground text-lg">Selecione uma obra para gerenciar os lançamentos e custos.</p>
+        <div className="p-6 space-y-10 animate-in fade-in slide-in-from-top-4 duration-700">
+          <div className="max-w-2xl">
+            <h1 className="text-4xl font-extrabold tracking-tight">Controle Financeiro</h1>
+            <p className="text-muted-foreground text-xl mt-3">
+              Selecione a obra abaixo para visualizar o fluxo de caixa, despesas e orçamentos.
+            </p>
           </div>
 
           {!obras || obras.length === 0 ? (
-            <Card className="border-dashed py-20 text-center">
+            <Card className="border-dashed py-24 text-center bg-muted/20">
               <CardContent>
-                <AlertTriangle className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">Você ainda não possui obras cadastradas.</p>
-                <Button variant="link" onClick={() => window.location.href='/obras'} className="mt-2">Cadastrar Obras</Button>
+                <AlertTriangle className="w-16 h-16 mx-auto text-muted-foreground/50 mb-6" />
+                <h3 className="text-xl font-bold mb-2">Sem Obras para Exibir</h3>
+                <p className="text-muted-foreground mb-6">Você precisa cadastrar uma obra antes de gerenciar o financeiro.</p>
+                <Button onClick={() => window.location.href='/obras'} className="shadow-lg">Cadastrar Minha Primeira Obra</Button>
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {obras.map(obra => (
                 <ObraCardSelection 
                   key={obra.id} 
@@ -120,8 +123,8 @@ const Financeiro = () => {
         ) : (
           <>
             <div className="flex justify-between items-center">
-                <Button variant="ghost" size="sm" onClick={() => setSelectedObraId(undefined)} className="text-primary">
-                    <LayoutGrid className="w-4 h-4 mr-2" /> Trocar Obra
+                <Button variant="ghost" size="sm" onClick={() => setSelectedObraId(undefined)} className="text-primary font-bold">
+                    <LayoutGrid className="w-4 h-4 mr-2" /> Alterar Obra
                 </Button>
                 {entries && entries.length > 0 && (
                     <AlertDialog>
