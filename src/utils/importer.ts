@@ -28,7 +28,6 @@ const CATEGORY_RULES: Record<string, string[]> = {
 };
 
 async function getCategoryMap(): Promise<Map<string, string>> {
-  // Busca todas as categorias (RLS permite SELECT true)
   const { data, error } = await supabase
     .from('categorias_despesa')
     .select('id, nome');
@@ -54,13 +53,7 @@ function categorizeEntry(description: string, categoryMap: Map<string, string>):
 
   const defaultCategoryName = 'Outros';
   const defaultCategoryId = categoryMap.get(defaultCategoryName);
-
-  if (!defaultCategoryId) {
-    // Se a categoria padrão não foi carregada, isso é um erro de configuração
-    throw new Error(`Categoria padrão '${defaultCategoryName}' não encontrada. Certifique-se de que ela existe.`);
-  }
-
-  return { categoryId: defaultCategoryId, categoryName: defaultCategoryName };
+  return { categoryId: defaultCategoryId || '', categoryName: defaultCategoryName };
 }
 
 export async function importFinancialEntries(
@@ -68,23 +61,20 @@ export async function importFinancialEntries(
   userId: string, 
   obraId: string
 ): Promise<{ successCount: number, errorCount: number, newCategories: string[] }> {
-  console.log(`[Importer] Iniciando importação para Obra ID: ${obraId}, Total de entradas: ${rawEntries.length}`);
+  console.log(`[Importer] Iniciando importação. Linhas brutas: ${rawEntries.length}`);
   
-  if (!userId) throw new Error("Usuário não autenticado.");
-  if (!obraId) throw new Error("ID da obra não fornecido.");
+  if (!userId || !obraId) throw new Error("Usuário ou Obra não identificados.");
 
   const categoryMap = await getCategoryMap();
   
-  // Garante que a categoria 'Outros' exista, criando-a se necessário (associada ao usuário)
+  // Garante categoria 'Outros'
   if (!categoryMap.has('Outros')) {
     const { data, error } = await supabase
       .from('categorias_despesa')
-      .insert({ nome: 'Outros', descricao: 'Lançamentos sem categoria definida.', user_id: userId })
+      .insert({ nome: 'Outros', descricao: 'Lançamentos gerais.', user_id: userId })
       .select('id, nome')
       .single();
-    
-    if (error) throw new Error(`Falha ao criar categoria padrão: ${error.message}`);
-    categoryMap.set(data.nome, data.id);
+    if (!error) categoryMap.set(data.nome, data.id);
   }
 
   let errorCount = 0;
@@ -92,68 +82,62 @@ export async function importFinancialEntries(
 
   for (const entry of rawEntries) {
     try {
-      // Prioriza Pagamentos (Excel) e depois Valor
-      const rawValue = (entry.Pagamentos || entry.Valor || "").toString().trim();
-      
-      if (!entry.Data || !entry.Descricao || !rawValue) {
+      const dataStr = entry.Data?.toString().trim();
+      const descStr = entry.Descricao?.toString().trim();
+      const valStr = (entry.Pagamentos || entry.Valor || "").toString().trim();
+
+      // REGRA: Ignorar linhas de totalização do Excel
+      if (dataStr.toLowerCase().startsWith('total') || descStr.toLowerCase().startsWith('total')) {
+          console.log("[Importer] Linha de total ignorada:", entry);
+          continue;
+      }
+
+      if (!dataStr || !descStr || !valStr) {
           errorCount++;
           continue;
       }
 
-      const { categoryId } = categorizeEntry(entry.Descricao, categoryMap);
-      const parsedValue = parseCurrencyInput(rawValue);
-      
+      const parsedValue = parseCurrencyInput(valStr);
       if (isNaN(parsedValue) || parsedValue <= 0) {
-          console.warn(`[Importer] Valor inválido ignorado: "${rawValue}" na descrição "${entry.Descricao}"`);
           errorCount++;
           continue;
       }
       
-      let dateString: string;
-      const cleanDate = entry.Data.trim().replace(/\s/g, '');
-      const dateParts = cleanDate.includes('/') ? cleanDate.split('/') : cleanDate.split('-');
-      
-      if (dateParts.length === 3) {
-          // Tenta inferir o formato (DD/MM/YYYY ou YYYY-MM-DD)
-          if (dateParts[0].length === 4) { // YYYY-MM-DD
-            dateString = `${dateParts[0]}-${dateParts[1].padStart(2, '0')}-${dateParts[2].padStart(2, '0')}`;
+      // Tratamento de Data (DD/MM/YYYY)
+      let dateIso: string;
+      const parts = dataStr.split(/[/-]/);
+      if (parts.length === 3) {
+          if (parts[0].length === 4) { // YYYY-MM-DD
+            dateIso = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
           } else { // DD/MM/YYYY
-            dateString = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`;
+            dateIso = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
           }
       } else {
-          console.warn(`[Importer] Data inválida ignorada: "${entry.Data}"`);
           errorCount++;
           continue;
       }
 
+      const { categoryId } = categorizeEntry(descStr, categoryMap);
+
       entriesToInsert.push({
-        obra_id: obraId, // GARANTIDO que usa o ID da obra selecionada
+        obra_id: obraId,
         user_id: userId,
-        data_gasto: dateString,
-        categoria_id: categoryId,
-        descricao: entry.Descricao.trim(),
+        data_gasto: dateIso,
+        categoria_id: categoryId || categoryMap.get('Outros'),
+        descricao: descStr,
         valor: parsedValue,
-        forma_pagamento: 'Transferência' as PaymentMethod, // Default para importação
+        forma_pagamento: 'Transferência' as PaymentMethod,
       });
       
     } catch (e) {
-      console.error("[Importer] Erro inesperado ao processar linha:", entry, e);
+      console.error("[Importer] Erro na linha:", entry, e);
       errorCount++;
     }
   }
 
   if (entriesToInsert.length > 0) {
-    console.log(`[Importer] Preparando inserção de ${entriesToInsert.length} registros no banco...`);
-
-    const { error: insertError } = await supabase
-      .from('lancamentos_financeiros')
-      .insert(entriesToInsert);
-
-    if (insertError) {
-      console.error("[Importer] Erro crítico no Supabase durante o insert:", insertError);
-      throw new Error(`Erro ao inserir no banco: ${insertError.message}`);
-    }
-    
+    const { error } = await supabase.from('lancamentos_financeiros').insert(entriesToInsert);
+    if (error) throw new Error(error.message);
     return { successCount: entriesToInsert.length, errorCount, newCategories: [] };
   }
 
