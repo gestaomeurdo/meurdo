@@ -16,6 +16,7 @@ export interface FinancialEntry {
   forma_pagamento: PaymentMethod;
   documento_url: string | null;
   criado_em: string;
+  ignorar_soma: boolean; // Adicionado
   // Joined data (for display)
   categorias_despesa: ExpenseCategory;
   profiles: { first_name: string | null, last_name: string | null, email: string | null };
@@ -27,7 +28,7 @@ export interface FinancialEntriesResult {
   kmCost: number;
 }
 
-interface FetchEntriesParams {
+export interface FetchEntriesParams {
   obraId: string;
   startDate?: string;
   endDate?: string;
@@ -128,7 +129,6 @@ export const useDeleteFinancialEntry = () => {
   });
 };
 
-// NOVO: Hook para apagar todos os lançamentos de uma obra
 export const useDeleteAllFinancialEntries = () => {
   const queryClient = useQueryClient();
   return useMutation<void, Error, string>({
@@ -159,7 +159,7 @@ export const useBulkUpdateCategory = () => {
 
 export const useBulkUpdateFinancialEntries = () => {
   const queryClient = useQueryClient();
-  return useMutation<void, Error, { ids: string[], data_gasto?: string, forma_pagamento?: PaymentMethod }>({
+  return useMutation<void, Error, { ids: string[], data_gasto?: string, forma_pagamento?: PaymentMethod, ignorar_soma?: boolean }>({
     mutationFn: async ({ ids, ...updateData }) => {
       const { error } = await supabase.from('lancamentos_financeiros').update(updateData).in('id', ids);
       if (error) throw new Error(error.message);
