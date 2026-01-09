@@ -11,12 +11,13 @@ import { useExpenseCategories } from "@/hooks/use-expense-categories";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { formatCurrency, formatDate } from "@/utils/formatters";
 import { Checkbox } from "@/components/ui/checkbox";
 import BulkCategoryUpdateDialog from "./BulkCategoryUpdateDialog";
 import BulkUpdateDialog from "./BulkUpdateDialog";
 import { Input } from "@/components/ui/input";
-import { useExportFinancialCsv } from "@/hooks/use-export-financial-csv"; // Importando o novo hook
+import { useExportFinancialCsv } from "@/hooks/use-export-financial-csv";
 
 interface EntriesTableProps {
   entriesResult: FinancialEntriesResult | undefined;
@@ -24,7 +25,7 @@ interface EntriesTableProps {
   isLoading: boolean;
   refetch: () => void;
   setFilters: (filters: any) => void;
-  currentFilters: any; // Adicionando prop para filtros atuais
+  currentFilters: any;
 }
 
 const paymentMethods: PaymentMethod[] = ['Pix', 'Dinheiro', 'Cartão', 'Boleto', 'Transferência'];
@@ -33,14 +34,14 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
   const entries = entriesResult?.entries;
   const deleteMutation = useDeleteFinancialEntry();
   const { data: categories } = useExpenseCategories();
-  const { exportCsv, isExporting } = useExportFinancialCsv(); // Usando o hook de exportação
+  const { exportCsv, isExporting } = useExportFinancialCsv();
   
   const [dateRange, setDateRange] = useState<{ from: Date | undefined, to: Date | undefined }>({ from: currentFilters.startDate ? new Date(currentFilters.startDate) : undefined, to: currentFilters.endDate ? new Date(currentFilters.endDate) : undefined });
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(currentFilters.categoryId);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | undefined>(currentFilters.paymentMethod);
   const [searchText, setSearchText] = useState<string>('');
   const [selectedEntryIds, setSelectedEntryIds] = useState<string[]>([]);
-  const [showIdColumn, setShowIdColumn] = useState(false); // Novo estado para a coluna ID
+  const [showIdColumn, setShowIdColumn] = useState(false);
 
   const handleSelectEntry = (id: string, checked: boolean) => {
     setSelectedEntryIds(prev => 
@@ -72,21 +73,16 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
   
   const handleBulkDelete = async () => {
     if (selectedEntryIds.length === 0) return;
-    
     try {
-      // We need to run individual delete mutations because Supabase RLS policies
-      // usually restrict bulk deletes unless the user is an admin or the policy is permissive.
-      // Running them sequentially ensures RLS is respected for each entry.
       const deletePromises = selectedEntryIds.map(id => 
         deleteMutation.mutateAsync({ id, obraId })
       );
-      
       await Promise.all(deletePromises);
       showSuccess(`${selectedEntryIds.length} lançamentos excluídos com sucesso.`);
       setSelectedEntryIds([]);
       refetch();
     } catch (err) {
-      showError(`Erro ao excluir em massa. Verifique se você tem permissão para excluir todos os lançamentos selecionados.`);
+      showError(`Erro ao excluir em massa.`);
     }
   };
 
@@ -113,9 +109,7 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
   };
   
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const text = e.target.value;
-    setSearchText(text);
-    // Note: Filtering by text is done client-side here since Supabase doesn't support text search in RPC/Query hooks easily
+    setSearchText(e.target.value);
   };
 
   const handleExport = () => {
@@ -131,37 +125,26 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
   const getLancerName = (entry: FinancialEntry) => {
     const firstName = entry.profiles?.first_name;
     const lastName = entry.profiles?.last_name;
-    
-    // 1. Try to return full name
-    if (firstName || lastName) {
-      return `${firstName || ''} ${lastName || ''}`.trim();
-    }
-    
-    // 2. Fallback to first part of email
-    if (entry.profiles?.email) {
-      return entry.profiles.email.split('@')[0];
-    }
-    
-    // 3. Final fallback
+    if (firstName || lastName) return `${firstName || ''} ${lastName || ''}`.trim();
+    if (entry.profiles?.email) return entry.profiles.email.split('@')[0];
     return 'N/A';
   };
   
   const filteredEntries = useMemo(() => {
     if (!entries) return [];
     if (!searchText) return entries;
-    
     const lowerSearch = searchText.toLowerCase();
     return entries.filter(entry => 
       entry.descricao.toLowerCase().includes(lowerSearch) ||
       entry.categorias_despesa?.nome.toLowerCase().includes(lowerSearch) ||
-      entry.forma_pagamento.toLowerCase().includes(lowerSearch)
+      entry.forma_pagamento.toLowerCase().includes(lowerSearch) ||
+      entry.valor.toString().includes(searchText)
     );
   }, [entries, searchText]);
 
   const totalFilteredValue = useMemo(() => {
     return filteredEntries.reduce((sum, entry) => sum + entry.valor, 0);
   }, [filteredEntries]);
-
 
   if (isLoading) {
     return (
@@ -172,297 +155,100 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
     );
   }
 
-  if (!entries || entries.length === 0) {
-    return (
-      <div className="text-center py-12 border border-dashed rounded-lg bg-muted/50">
-        <Filter className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-        <h2 className="text-xl font-semibold mb-2">Nenhum lançamento encontrado</h2>
-        <p className="text-muted-foreground mb-4">
-          {entries === undefined ? "Selecione uma obra para ver os lançamentos." : "Comece adicionando um novo lançamento financeiro."}
-        </p>
-      </div>
-    );
-  }
-  
   const isAllSelected = filteredEntries.length > 0 && selectedEntryIds.length === filteredEntries.length;
   const isIndeterminate = selectedEntryIds.length > 0 && selectedEntryIds.length < filteredEntries.length;
 
   return (
     <div className="space-y-4">
-      {/* Filters and Bulk Actions */}
       <div className="flex flex-wrap gap-4 items-center p-4 border rounded-lg bg-card">
-        <span className="font-medium text-sm text-muted-foreground">Filtros:</span>
-        
-        {/* Search Input */}
         <div className="relative w-full md:w-[240px]">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por descrição..."
-            value={searchText}
-            onChange={handleSearchChange}
-            className="pl-9"
-          />
+          <Input placeholder="Buscar (descrição ou valor)..." value={searchText} onChange={handleSearchChange} className="pl-9" />
           {searchText && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 text-muted-foreground"
-              onClick={() => setSearchText('')}
-            >
+            <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7" onClick={() => setSearchText('')}>
               <X className="h-4 w-4" />
             </Button>
           )}
         </div>
         
-        {/* Date Range Filter */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button
-              id="date"
-              variant={"outline"}
-              className="w-full md:w-[240px] justify-start text-left font-normal"
-            >
+            <Button variant={"outline"} className="w-full md:w-[240px] justify-start text-left font-normal">
               <CalendarIcon className="mr-2 h-4 w-4" />
-              {dateRange?.from ? (
-                dateRange.to ? (
-                  <>
-                    {format(dateRange.from, "LLL dd, y")} -{" "}
-                    {format(dateRange.to, "LLL dd, y")}
-                  </>
-                ) : (
-                  format(dateRange.from, "LLL dd, y")
-                )
-              ) : (
-                <span>Filtrar por Período</span>
-              )}
+              {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")) : <span>Filtrar por Período</span>}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              initialFocus
-              mode="range"
-              defaultMonth={dateRange?.from}
-              selected={dateRange}
-              onSelect={handleDateSelect}
-              numberOfMonths={2}
-            />
-          </PopoverContent>
+          <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={handleDateSelect} numberOfMonths={2} /></PopoverContent>
         </Popover>
 
-        {/* Category Filter */}
         <Select value={selectedCategory || "all"} onValueChange={handleCategoryChange}>
-          <SelectTrigger className="w-full md:w-[180px]">
-            <SelectValue placeholder="Filtrar por Categoria" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas as Categorias</SelectItem>
-            {categories?.map(cat => (
-              <SelectItem key={cat.id} value={cat.id}>{cat.nome}</SelectItem>
-            ))}
-          </SelectContent>
+          <SelectTrigger className="w-full md:w-[180px]"><SelectValue placeholder="Categoria" /></SelectTrigger>
+          <SelectContent><SelectItem value="all">Todas</SelectItem>{categories?.map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.nome}</SelectItem>)}</SelectContent>
         </Select>
 
-        {/* Payment Method Filter */}
-        <Select value={selectedPaymentMethod || "all"} onValueChange={handlePaymentMethodChange}>
-          <SelectTrigger className="w-full md:w-[180px]">
-            <SelectValue placeholder="Filtrar por Pagamento" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas as Formas</SelectItem>
-            {paymentMethods.map(method => (
-              <SelectItem key={method} value={method}>{method}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        
-        {/* Bulk Action Buttons */}
-        {selectedEntryIds.length > 0 && (
-          <>
-            <BulkCategoryUpdateDialog
-              selectedEntryIds={selectedEntryIds}
-              obraId={obraId}
-              onSuccess={handleBulkUpdateSuccess}
-            />
-            <BulkUpdateDialog
-              selectedEntryIds={selectedEntryIds}
-              onSuccess={handleBulkUpdateSuccess}
-            />
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button 
-                  variant="destructive" 
-                  size="sm" 
-                  disabled={deleteMutation.isPending}
-                  className="flex items-center"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Apagar em Massa ({selectedEntryIds.length})
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Confirmar Exclusão em Massa</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Tem certeza que deseja excluir {selectedEntryIds.length} lançamentos? Esta ação é irreversível.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction 
-                    onClick={handleBulkDelete}
-                    disabled={deleteMutation.isPending}
-                    className="bg-destructive hover:bg-destructive/90"
-                  >
-                    {deleteMutation.isPending ? "Excluindo..." : "Excluir Todos"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </>
-        )}
-        
-        {/* Export Button - Moved to the end of the flex container */}
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleExport}
-          disabled={isExporting || isLoading || filteredEntries.length === 0}
-          className="flex items-center ml-auto"
-        >
-          {isExporting ? (
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <FileDown className="w-4 h-4 mr-2" />
+        <div className="flex gap-2 ml-auto">
+          {selectedEntryIds.length > 0 && (
+            <div className="flex gap-2 animate-in fade-in slide-in-from-right-4">
+              <BulkUpdateDialog selectedEntryIds={selectedEntryIds} onSuccess={handleBulkUpdateSuccess} />
+              <AlertDialog>
+                <AlertDialogTrigger asChild><Button variant="destructive" size="sm"><Trash2 className="w-4 h-4 mr-2" /> Apagar ({selectedEntryIds.length})</Button></AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader><AlertDialogTitle>Apagar em Massa</AlertDialogTitle><AlertDialogDescription>Deseja excluir {selectedEntryIds.length} lançamentos?</AlertDialogDescription></AlertDialogHeader>
+                  <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleBulkDelete} className="bg-destructive">Excluir Tudo</AlertDialogAction></AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           )}
-          Exportar CSV ({filteredEntries.length})
-        </Button>
-        
-        {/* Toggle ID Column Button for Debugging */}
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => setShowIdColumn(!showIdColumn)}
-          title="Mostrar/Ocultar IDs"
-        >
-          <Search className="w-4 h-4" />
-        </Button>
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting || filteredEntries.length === 0}>
+            {isExporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileDown className="w-4 h-4 mr-2" />} Exportar CSV
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => setShowIdColumn(!showIdColumn)} title="Mostrar IDs"><Search className="w-4 h-4" /></Button>
+        </div>
       </div>
       
-      {/* Total Display */}
-      <div className="flex justify-between items-center p-4 bg-secondary/5 border rounded-lg">
-        <h3 className="text-lg font-bold">
-            Total Gasto (Filtrado): <span className="text-primary">{formatCurrency(totalFilteredValue)}</span>
-        </h3>
-        <span className="text-sm text-muted-foreground">
-            {filteredEntries.length} lançamentos exibidos
-        </span>
+      <div className="flex justify-between items-center p-4 bg-primary/5 border border-primary/20 rounded-lg">
+        <h3 className="text-lg font-bold">Total Gasto (Filtrado): <span className="text-primary">{formatCurrency(totalFilteredValue)}</span></h3>
+        <span className="text-sm font-medium text-muted-foreground">{filteredEntries.length} lançamentos encontrados</span>
       </div>
 
-      {/* Table */}
-      <div className="rounded-md border overflow-x-auto">
+      <div className="rounded-md border overflow-x-auto bg-card">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[40px] text-center">
-                <Checkbox
-                  checked={isAllSelected}
-                  onCheckedChange={handleSelectAll}
-                  aria-label="Selecionar todos"
-                  className="translate-y-[2px]"
-                  // Corrigido: Passa indeterminate apenas se for true
-                  indeterminate={isIndeterminate ? true : undefined}
-                />
-              </TableHead>
-              {showIdColumn && <TableHead className="w-[100px]">ID (Debug)</TableHead>}
-              <TableHead className="w-[100px]">Data</TableHead>
-              <TableHead className="w-[150px]">Categoria</TableHead>
+              <TableHead className="w-[40px] text-center"><Checkbox checked={isAllSelected} onCheckedChange={handleSelectAll} /></TableHead>
+              {showIdColumn && <TableHead className="w-[100px]">ID</TableHead>}
+              <TableHead>Data</TableHead>
+              <TableHead>Categoria</TableHead>
               <TableHead>Descrição</TableHead>
-              <TableHead className="text-right w-[150px]">Valor</TableHead>
-              <TableHead className="w-[120px]">Pagamento</TableHead>
-              <TableHead className="w-[150px]">Lançado por</TableHead>
-              <TableHead className="w-[100px]">Documento</TableHead>
-              <TableHead className="text-right w-[100px]">Ações</TableHead>
+              <TableHead className="text-right">Valor</TableHead>
+              <TableHead>Pagamento</TableHead>
+              <TableHead>Lançado por</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredEntries.map((entry) => {
-              const isSelected = selectedEntryIds.includes(entry.id);
-              return (
-                <TableRow key={entry.id} className={isSelected ? "bg-primary/5 hover:bg-primary/10" : ""}>
-                  <TableCell className="text-center">
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={(checked) => handleSelectEntry(entry.id, !!checked)}
-                      aria-label={`Selecionar lançamento ${entry.descricao}`}
-                    />
-                  </TableCell>
-                  {showIdColumn && <TableCell className="text-xs text-muted-foreground truncate max-w-[100px]">{entry.id.slice(0, 8)}...</TableCell>}
-                  <TableCell>{formatDate(entry.data_gasto)}</TableCell>
-                  <TableCell className="font-medium">{entry.categorias_despesa?.nome || 'N/A'}</TableCell>
-                  <TableCell className="max-w-xs truncate">{entry.descricao}</TableCell>
-                  <TableCell className="text-right font-semibold text-destructive">
-                    {formatCurrency(entry.valor)}
-                  </TableCell>
-                  <TableCell>{entry.forma_pagamento}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {getLancerName(entry)}
-                  </TableCell>
-                  <TableCell>
-                    {entry.documento_url ? (
-                      <a href={entry.documento_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center text-sm">
-                        <Download className="w-4 h-4 mr-1" />
-                        Ver
-                      </a>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">N/A</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <EntryDialog 
-                      obraId={obraId}
-                      initialData={entry}
-                      trigger={
-                        <Button variant="ghost" size="icon" title="Editar">
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                      }
-                    />
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" title="Excluir">
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Tem certeza que deseja excluir o lançamento: <span className="font-bold">"{entry.descricao}"</span> no valor de {formatCurrency(entry.valor)}? Esta ação é irreversível.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction 
-                            onClick={() => handleDelete(entry.id, entry.descricao)}
-                            disabled={deleteMutation.isPending}
-                            className="bg-destructive hover:bg-destructive/90"
-                          >
-                            {deleteMutation.isPending ? "Excluindo..." : "Excluir"}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-            {filteredEntries.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={showIdColumn ? 10 : 9} className="text-center py-8 text-muted-foreground">
-                  Nenhum lançamento encontrado com os filtros aplicados.
+            {filteredEntries.map((entry) => (
+              <TableRow key={entry.id} className={selectedEntryIds.includes(entry.id) ? "bg-primary/5" : ""}>
+                <TableCell className="text-center"><Checkbox checked={selectedEntryIds.includes(entry.id)} onCheckedChange={(checked) => handleSelectEntry(entry.id, !!checked)} /></TableCell>
+                {showIdColumn && <TableCell className="text-xs text-muted-foreground font-mono">{entry.id.slice(0, 8)}</TableCell>}
+                <TableCell>{formatDate(entry.data_gasto)}</TableCell>
+                <TableCell><Badge variant="outline">{entry.categorias_despesa?.nome || 'N/A'}</Badge></TableCell>
+                <TableCell className="max-w-xs truncate" title={entry.descricao}>{entry.descricao}</TableCell>
+                <TableCell className="text-right font-bold text-destructive">{formatCurrency(entry.valor)}</TableCell>
+                <TableCell className="text-xs">{entry.forma_pagamento}</TableCell>
+                <TableCell className="text-xs text-muted-foreground">{getLancerName(entry)}</TableCell>
+                <TableCell className="text-right space-x-1">
+                  <EntryDialog obraId={obraId} initialData={entry} trigger={<Button variant="ghost" size="icon"><Edit className="w-4 h-4" /></Button>} />
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader><AlertDialogTitle>Excluir Lançamento</AlertDialogTitle><AlertDialogDescription>Deseja excluir "{entry.descricao}"?</AlertDialogDescription></AlertDialogHeader>
+                      <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDelete(entry.id, entry.descricao)} className="bg-destructive">Excluir</AlertDialogAction></AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </TableCell>
               </TableRow>
-            )}
+            ))}
           </TableBody>
         </Table>
       </div>
