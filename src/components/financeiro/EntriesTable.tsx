@@ -157,6 +157,10 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
     );
   }, [entries, searchText]);
 
+  const totalFilteredValue = useMemo(() => {
+    return filteredEntries.reduce((sum, entry) => sum + entry.valor, 0);
+  }, [filteredEntries]);
+
 
   if (isLoading) {
     return (
@@ -331,6 +335,16 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
           )}
           Exportar CSV ({filteredEntries.length})
         </Button>
+      </div>
+      
+      {/* Total Display */}
+      <div className="flex justify-between items-center p-4 bg-secondary/5 border rounded-lg">
+        <h3 className="text-lg font-bold">
+            Total Gasto (Filtrado): <span className="text-primary">{formatCurrency(totalFilteredValue)}</span>
+        </h3>
+        <span className="text-sm text-muted-foreground">
+            {filteredEntries.length} lançamentos exibidos
+        </span>
       </div>
 
       {/* Table */}
