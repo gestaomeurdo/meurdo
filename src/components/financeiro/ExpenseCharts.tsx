@@ -1,4 +1,4 @@
-import { FinancialEntry } from "@/hooks/use-financial-entries";
+import { FinancialEntry, FinancialEntriesResult } from "@/hooks/use-financial-entries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { useMemo } from "react";
@@ -7,14 +7,16 @@ import { formatCurrency } from "@/utils/formatters";
 import { Loader2 } from "lucide-react"; // Importando Loader2
 
 interface ExpenseChartsProps {
-  entries: FinancialEntry[] | undefined;
+  entriesResult: FinancialEntriesResult | undefined;
   isLoading: boolean; // Novo prop
 }
 
 // Cores mais vibrantes e acessíveis para o tema escuro
 const COLORS = ['#FF7A00', '#00C49F', '#FFBB28', '#0088FE', '#8884d8', '#FF8042', '#82ca9d', '#ffc658', '#d0ed57'];
 
-const ExpenseCharts = ({ entries, isLoading }: ExpenseChartsProps) => {
+const ExpenseCharts = ({ entriesResult, isLoading }: ExpenseChartsProps) => {
+  const entries = entriesResult?.entries;
+  
   const { categoryData, monthlyData } = useMemo(() => {
     if (!entries || entries.length === 0) {
       return { categoryData: [], monthlyData: [] };

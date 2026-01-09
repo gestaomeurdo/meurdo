@@ -21,6 +21,13 @@ export interface FinancialEntry {
   profiles: { first_name: string | null, last_name: string | null, email: string | null };
 }
 
+// Novo tipo de retorno para incluir métricas de atividade
+export interface FinancialEntriesResult {
+  entries: FinancialEntry[];
+  totalActivityCost: number;
+  kmCost: number;
+}
+
 // --- Fetching ---
 
 interface FetchEntriesParams {
@@ -31,7 +38,8 @@ interface FetchEntriesParams {
   paymentMethod?: PaymentMethod;
 }
 
-const fetchFinancialEntries = async ({ obraId, startDate, endDate, categoryId, paymentMethod }: FetchEntriesParams): Promise<FinancialEntry[]> => {
+const fetchFinancialEntries = async ({ obraId, startDate, endDate, categoryId, paymentMethod }: FetchEntriesParams): Promise<FinancialEntriesResult> => {
+  // 1. Fetch Financial Entries
   let query = supabase
     .from('lancamentos_financeiros')
     .select(`
@@ -55,13 +63,13 @@ const fetchFinancialEntries = async ({ obraId, startDate, endDate, categoryId, p
     query = query.eq('forma_pagamento', paymentMethod);
   }
 
-  const { data, error } = await query;
+  const { data: entriesData, error: entriesError } = await query;
 
-  if (error) {
-    throw new Error(error.message);
+  if (entriesError) {
+    throw new Error(entriesError.message);
   }
   
-  const entries = data.map(entry => {
+  const entries = entriesData.map(entry => {
     const profileData = (entry as any).profiles || {};
 
     return {
@@ -74,11 +82,41 @@ const fetchFinancialEntries = async ({ obraId, startDate, endDate, categoryId, p
     }
   }) as FinancialEntry[];
 
-  return entries;
+  // 2. Fetch KM Cost
+  const { data: kmCostData } = await supabase
+    .from('configuracoes_globais')
+    .select('valor')
+    .eq('chave', 'custo_km_rodado')
+    .single()
+    .catch(() => ({ data: null })); // Handle potential error gracefully
+
+  const kmCost = kmCostData?.valor ?? 1.50;
+
+  // 3. Calculate Total Activity Cost (KM + Pedágio)
+  const { data: activitiesData, error: activitiesError } = await supabase
+    .from('atividades_obra')
+    .select('pedagio, km_rodado')
+    .eq('obra_id', obraId);
+
+  if (activitiesError) {
+    console.error("Error fetching activities for cost calculation:", activitiesError);
+    // Proceed with 0 cost if fetching activities fails
+  }
+  
+  let totalActivityCost = 0;
+  if (activitiesData) {
+    totalActivityCost = activitiesData.reduce((sum, activity) => {
+      const pedagio = activity.pedagio || 0;
+      const kmRodadoCost = (activity.km_rodado || 0) * kmCost;
+      return sum + pedagio + kmRodadoCost;
+    }, 0);
+  }
+
+  return { entries, totalActivityCost, kmCost };
 };
 
 export const useFinancialEntries = (params: FetchEntriesParams) => {
-  return useQuery<FinancialEntry[], Error>({
+  return useQuery<FinancialEntriesResult, Error>({
     queryKey: ['financialEntries', params],
     queryFn: () => fetchFinancialEntries(params),
     enabled: !!params.obraId,
@@ -86,7 +124,7 @@ export const useFinancialEntries = (params: FetchEntriesParams) => {
   });
 };
 
-// --- Mutations ---
+// --- Mutations (kept the same, only updating types) ---
 
 interface FinancialEntryInput {
   obra_id: string;
@@ -167,7 +205,7 @@ export const useDeleteFinancialEntry = () => {
       }
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['financialEntries', { obraId: variables.obraId }] });
+      queryClient.invalidateQueries({ queryKey: ['financialEntries', { obraId: variables.obra_id }] });
       queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
     },
   });

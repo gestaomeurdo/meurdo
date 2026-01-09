@@ -30,11 +30,13 @@ const Financeiro = () => {
     return obras?.find(o => o.id === selectedObraId);
   }, [obras, selectedObraId]);
 
-  const { data: entries, isLoading: isLoadingEntries, error: entriesError, refetch } = useFinancialEntries({
+  const { data: entriesResult, isLoading: isLoadingEntries, error: entriesError, refetch } = useFinancialEntries({
     obraId: selectedObraId || '',
     ...filters,
   });
   
+  const entries = entriesResult?.entries;
+
   const handleClearFilters = () => {
     setFilters({});
     // Força o refetch com filtros vazios
@@ -85,10 +87,10 @@ const Financeiro = () => {
         <h2 className="text-xl font-semibold text-primary truncate">Obra Selecionada: {selectedObra.nome}</h2>
         
         {/* Summary and Charts now handle their own loading state */}
-        <FinancialSummary obra={selectedObra} entries={entries} isLoading={isLoadingEntries} />
+        <FinancialSummary obra={selectedObra} entriesResult={entriesResult} isLoading={isLoadingEntries} />
         
         {/* Render charts only if there are entries or if loading (to show skeleton) */}
-        {(hasEntries || isLoadingEntries) && <ExpenseCharts entries={entries} isLoading={isLoadingEntries} />}
+        {(hasEntries || isLoadingEntries) && <ExpenseCharts entriesResult={entriesResult} isLoading={isLoadingEntries} />}
         
         {/* Table or Empty State */}
         {hasEntries || isLoadingEntries ? (
@@ -98,7 +100,7 @@ const Financeiro = () => {
             </CardHeader>
             <CardContent>
               <EntriesTable 
-                entries={entries} 
+                entriesResult={entriesResult} 
                 obraId={selectedObraId!} 
                 isLoading={isLoadingEntries} 
                 refetch={refetch}

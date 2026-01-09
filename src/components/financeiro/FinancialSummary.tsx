@@ -1,19 +1,23 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FinancialEntry } from "@/hooks/use-financial-entries";
+import { FinancialEntry, FinancialEntriesResult } from "@/hooks/use-financial-entries";
 import { Obra } from "@/hooks/use-obras";
-import { AlertTriangle, DollarSign, TrendingUp, Percent } from "lucide-react";
+import { AlertTriangle, DollarSign, TrendingUp, Percent, Route } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { formatCurrency } from "@/utils/formatters";
-import { Skeleton } from "@/components/ui/skeleton"; // Importando Skeleton
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface FinancialSummaryProps {
   obra: Obra;
-  entries: FinancialEntry[] | undefined;
+  entriesResult: FinancialEntriesResult | undefined;
   isLoading: boolean; // Novo prop
 }
 
-const FinancialSummary = ({ obra, entries, isLoading }: FinancialSummaryProps) => {
+const FinancialSummary = ({ obra, entriesResult, isLoading }: FinancialSummaryProps) => {
+  const entries = entriesResult?.entries;
+  const totalActivityCost = entriesResult?.totalActivityCost || 0;
+  const kmCost = entriesResult?.kmCost || 1.50;
+  
   const totalGasto = entries?.reduce((sum, entry) => sum + entry.valor, 0) || 0;
   const orcamentoInicial = obra.orcamento_inicial || 0;
   const saldoDisponivel = orcamentoInicial - totalGasto;
@@ -57,7 +61,7 @@ const FinancialSummary = ({ obra, entries, isLoading }: FinancialSummaryProps) =
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Gasto</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Gasto (Lançamentos)</CardTitle>
             <TrendingUp className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
@@ -67,11 +71,14 @@ const FinancialSummary = ({ obra, entries, isLoading }: FinancialSummaryProps) =
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Saldo Disponível</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Custo Atividades (KM + Pedágio)</CardTitle>
+            <Route className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {renderValue(saldoDisponivel, true, saldoDisponivel < 0)}
+            {renderValue(totalActivityCost)}
+            <p className="text-xs text-muted-foreground mt-1">
+              Custo KM: {formatCurrency(kmCost)}/km
+            </p>
           </CardContent>
         </Card>
 

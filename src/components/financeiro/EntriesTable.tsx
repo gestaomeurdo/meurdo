@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { FinancialEntry, useDeleteFinancialEntry, PaymentMethod } from "@/hooks/use-financial-entries";
+import { FinancialEntry, useDeleteFinancialEntry, PaymentMethod, FinancialEntriesResult } from "@/hooks/use-financial-entries";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2, Download, Loader2, Filter, CalendarIcon, Tag, Search, X } from "lucide-react";
@@ -18,7 +18,7 @@ import BulkUpdateDialog from "./BulkUpdateDialog"; // Importando o novo componen
 import { Input } from "@/components/ui/input"; // Importando Input
 
 interface EntriesTableProps {
-  entries: FinancialEntry[] | undefined;
+  entriesResult: FinancialEntriesResult | undefined;
   obraId: string;
   isLoading: boolean;
   refetch: () => void;
@@ -27,7 +27,8 @@ interface EntriesTableProps {
 
 const paymentMethods: PaymentMethod[] = ['Pix', 'Dinheiro', 'Cartão', 'Boleto', 'Transferência'];
 
-const EntriesTable = ({ entries, obraId, isLoading, refetch, setFilters }: EntriesTableProps) => {
+const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters }: EntriesTableProps) => {
+  const entries = entriesResult?.entries;
   const deleteMutation = useDeleteFinancialEntry();
   const { data: categories } = useExpenseCategories();
   
