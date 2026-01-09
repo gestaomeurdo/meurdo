@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { FinancialEntry, useDeleteFinancialEntry, PaymentMethod, FinancialEntriesResult } from "@/hooks/use-financial-entries";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Loader2, CalendarIcon, Search, X, FileDown, EyeOff } from "lucide-react";
+import { Edit, Trash2, Loader2, CalendarIcon, Search, X, FileDown } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import EntryDialog from "./EntryDialog";
@@ -41,7 +41,6 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(currentFilters.categoryId);
   const [searchText, setSearchText] = useState<string>('');
   const [selectedEntryIds, setSelectedEntryIds] = useState<string[]>([]);
-  const [showIdColumn, setShowIdColumn] = useState(false);
 
   const handleSelectEntry = (id: string, checked: boolean) => {
     setSelectedEntryIds(prev => checked ? [...prev, id] : prev.filter(entryId => entryId !== id));
@@ -66,18 +65,6 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
       showSuccess(`Lançamento excluído.`);
     } catch (err) {
       showError(`Erro ao excluir.`);
-    }
-  };
-  
-  const handleBulkDelete = async () => {
-    if (selectedEntryIds.length === 0) return;
-    try {
-      await Promise.all(selectedEntryIds.map(id => deleteMutation.mutateAsync({ id, obraId })));
-      showSuccess("Excluídos com sucesso.");
-      setSelectedEntryIds([]);
-      refetch();
-    } catch (err) {
-      showError(`Erro ao excluir em massa.`);
     }
   };
 
@@ -153,28 +140,18 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
               <TableHead>Categoria</TableHead>
               <TableHead>Descrição</TableHead>
               <TableHead className="text-right">Valor</TableHead>
-              <TableHead className="text-center">Soma?</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredEntries.map((entry) => (
-              <TableRow key={entry.id} className={cn(selectedEntryIds.includes(entry.id) && "bg-primary/5", entry.ignorar_soma && "opacity-60 grayscale")}>
+              <TableRow key={entry.id} className={cn(selectedEntryIds.includes(entry.id) && "bg-primary/5")}>
                 <TableCell className="text-center"><Checkbox checked={selectedEntryIds.includes(entry.id)} onCheckedChange={(c) => handleSelectEntry(entry.id, !!c)} /></TableCell>
                 <TableCell>{formatDate(entry.data_gasto)}</TableCell>
                 <TableCell><Badge variant="outline">{entry.categorias_despesa?.nome}</Badge></TableCell>
                 <TableCell className="max-w-xs truncate">{entry.descricao}</TableCell>
-                <TableCell className={cn("text-right font-bold", entry.ignorar_soma ? "line-through text-muted-foreground" : "text-destructive")}>
+                <TableCell className="text-right font-bold text-destructive">
                   {formatCurrency(entry.valor)}
-                </TableCell>
-                <TableCell className="text-center">
-                  {entry.ignorar_soma ? (
-                    <Badge variant="secondary" className="bg-orange-500/10 text-orange-500 border-orange-500/20">
-                      <EyeOff className="w-3 h-3 mr-1" /> Ignorado
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-green-500 border-green-500/20">Sim</Badge>
-                  )}
                 </TableCell>
                 <TableCell className="text-right space-x-1">
                   <EntryDialog obraId={obraId} initialData={entry} trigger={<Button variant="ghost" size="icon"><Edit className="w-4 h-4" /></Button>} />

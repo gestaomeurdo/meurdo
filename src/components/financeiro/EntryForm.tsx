@@ -3,12 +3,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { showSuccess, showError } from "@/utils/toast";
-import { CalendarIcon, Upload, Loader2, X, EyeOff } from "lucide-react";
+import { CalendarIcon, Loader2, X } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -55,7 +55,6 @@ const EntryForm = ({ obraId, initialData, onSuccess, onCancel }: EntryFormProps)
   const updateMutation = useUpdateFinancialEntry();
   const { data: categories, isLoading: isLoadingCategories } = useExpenseCategories();
   const [isUploading, setIsUploading] = useState(false);
-  const [documentPreview, setDocumentPreview] = useState<string | null>(initialData?.documento_url || null);
 
   const form = useForm<EntryFormValues>({
     resolver: zodResolver(EntrySchema),
@@ -85,7 +84,6 @@ const EntryForm = ({ obraId, initialData, onSuccess, onCancel }: EntryFormProps)
       const { error: uploadError } = await supabase.storage.from('documentos_financeiros').upload(filePath, file);
       if (uploadError) throw uploadError;
       const { data: publicUrlData } = supabase.storage.from('documentos_financeiros').getPublicUrl(filePath);
-      setDocumentPreview(publicUrlData.publicUrl);
       return publicUrlData.publicUrl;
     } catch (error) {
       showError("Erro ao fazer upload do documento.");
@@ -102,7 +100,6 @@ const EntryForm = ({ obraId, initialData, onSuccess, onCancel }: EntryFormProps)
       if (values.documento_file && values.documento_file.length > 0) {
         const file = values.documento_file[0];
         documentoUrl = await handleFileUpload(file);
-        if (!documentoUrl && file) return;
       }
       const dataToSubmit = {
         obra_id: values.obra_id,
@@ -183,7 +180,7 @@ const EntryForm = ({ obraId, initialData, onSuccess, onCancel }: EntryFormProps)
           render={({ field }) => (
             <FormItem>
               <FormLabel>Descrição</FormLabel>
-              <FormControl><Textarea placeholder="Ex: Câmera ipe" {...field} disabled={isLoading} /></FormControl>
+              <FormControl><Textarea placeholder="Ex: Compra de materiais" {...field} disabled={isLoading} /></FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -225,7 +222,7 @@ const EntryForm = ({ obraId, initialData, onSuccess, onCancel }: EntryFormProps)
           control={form.control}
           name="ignorar_soma"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 bg-muted/30">
+            <FormItem className="flex flex-row items-center space-x-3 space-y-0 p-2">
               <FormControl>
                 <Checkbox
                   checked={field.value}
@@ -233,14 +230,9 @@ const EntryForm = ({ obraId, initialData, onSuccess, onCancel }: EntryFormProps)
                   disabled={isLoading}
                 />
               </FormControl>
-              <div className="space-y-1 leading-none">
-                <FormLabel className="flex items-center gap-2 cursor-pointer">
-                  <EyeOff className="w-4 h-4 text-orange-500" /> Ignorar na soma total
-                </FormLabel>
-                <FormDescription>
-                  O item continuará na lista, mas o valor não será somado ao total da obra.
-                </FormDescription>
-              </div>
+              <FormLabel className="font-normal text-xs text-muted-foreground cursor-pointer">
+                Ignorar este lançamento no cálculo do saldo total
+              </FormLabel>
             </FormItem>
           )}
         />
