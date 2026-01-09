@@ -16,14 +16,15 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import CategoryManagementDialog from "@/components/financeiro/CategoryManagementDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { showSuccess, showError } from "@/utils/toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Financeiro = () => {
   const { data: obras, isLoading: isLoadingObras } = useObras();
   const [selectedObraId, setSelectedObraId] = useState<string | undefined>(undefined);
   const [filters, setFilters] = useState({});
+  const isMobile = useIsMobile();
   const deleteAllMutation = useDeleteAllFinancialEntries();
 
-  // Seleciona a primeira obra automaticamente se nenhuma estiver selecionada
   useEffect(() => {
     if (obras && obras.length > 0 && !selectedObraId) {
       setSelectedObraId(obras[0].id);
@@ -77,7 +78,7 @@ const Financeiro = () => {
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Erro ao carregar lançamentos</AlertTitle>
           <AlertDescription>
-            Não foi possível carregar os dados financeiros. Verifique sua conexão.
+            Não foi possível carregar os dados financeiros.
             <p className="mt-2 text-sm italic">Detalhe: {entriesError.message}</p>
           </AlertDescription>
         </Alert>
@@ -88,38 +89,39 @@ const Financeiro = () => {
       <div className="space-y-6">
         <FinancialSummary obra={selectedObra!} entriesResult={entriesResult} isLoading={isLoadingEntries} />
 
+        {/* Gráficos em coluna no mobile */}
         {(entries && entries.length > 0 || isLoadingEntries) && (
-          <ExpenseCharts entriesResult={entriesResult} isLoading={isLoadingEntries} />
+          <div className="grid grid-cols-1 gap-6">
+            <ExpenseCharts entriesResult={entriesResult} isLoading={isLoadingEntries} />
+          </div>
         )}
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-xl">Lançamentos de Despesas</CardTitle>
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0">
+            <CardTitle className="text-xl">Lançamentos</CardTitle>
             {entries && entries.length > 0 && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10">
-                    <Trash2 className="w-4 h-4 mr-2" /> Limpar Tudo
+                  <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 w-full sm:w-auto justify-start sm:justify-center">
+                    <Trash2 className="w-4 h-4 mr-2" /> Limpar Todos Lançamentos
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent>
+                <AlertDialogContent className="w-[90vw] max-w-md rounded-xl">
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Apagar todos os lançamentos?</AlertDialogTitle>
+                    <AlertDialogTitle>Apagar tudo?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Esta ação removerá permanentemente TODOS os {entries?.length} lançamentos desta obra. Esta ação não pode ser desfeita.
+                      Isso removerá os {entries?.length} lançamentos desta obra definitivamente.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleClearAll} className="bg-destructive hover:bg-destructive/90">
-                      Sim, Apagar Tudo
-                    </AlertDialogAction>
+                  <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                    <AlertDialogCancel className="w-full sm:w-auto">Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleClearAll} className="bg-destructive w-full sm:w-auto">Sim, Apagar Tudo</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
             )}
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-2 sm:px-6">
             <EntriesTable 
               entriesResult={entriesResult} 
               obraId={selectedObraId} 
@@ -136,21 +138,37 @@ const Financeiro = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Gestão Financeira</h1>
-            <p className="text-muted-foreground">Controle de custos, notas fiscais e orçamentos.</p>
+      <div className="p-4 sm:p-6 space-y-6 animate-in fade-in duration-500">
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-2xl sm:text-3xl font-bold">Financeiro</h1>
+            <p className="text-sm text-muted-foreground">Gestão de custos e orçamentos.</p>
           </div>
-          <div className="flex flex-wrap gap-3 items-center">
-            <ObraSelector 
-              selectedObraId={selectedObraId} 
-              onSelectObra={setSelectedObraId} 
-            />
-            <div className="flex gap-2">
-              <CategoryManagementDialog trigger={<Button variant="outline" size="sm"><Settings className="w-4 h-4 mr-2" /> Categorias</Button>} />
-              <PasteImportDialog selectedObraId={selectedObraId} selectedObraNome={selectedObra?.nome} trigger={<Button variant="outline" size="sm"><Clipboard className="w-4 h-4 mr-2" /> Colar CSV</Button>} />
-              <ImportDialog selectedObraId={selectedObraId} selectedObraNome={selectedObra?.nome} trigger={<Button variant="outline" size="sm"><FileUp className="w-4 h-4 mr-2" /> Importar Arquivo</Button>} />
+          
+          <div className="flex flex-col gap-4">
+            <div className="w-full sm:max-w-sm">
+              <ObraSelector 
+                selectedObraId={selectedObraId} 
+                onSelectObra={setSelectedObraId} 
+              />
+            </div>
+            
+            <div className="flex flex-wrap gap-2">
+              <CategoryManagementDialog trigger={
+                <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+                  <Settings className="w-4 h-4 mr-2" /> Categorias
+                </Button>
+              } />
+              <PasteImportDialog selectedObraId={selectedObraId} selectedObraNome={selectedObra?.nome} trigger={
+                <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+                  <Clipboard className="w-4 h-4 mr-2" /> Colar CSV
+                </Button>
+              } />
+              <ImportDialog selectedObraId={selectedObraId} selectedObraNome={selectedObra?.nome} trigger={
+                <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+                  <FileUp className="w-4 h-4 mr-2" /> Importar
+                </Button>
+              } />
             </div>
           </div>
         </div>
@@ -159,11 +177,11 @@ const Financeiro = () => {
       </div>
       
       {selectedObraId && (
-        <div className="fixed bottom-6 right-6 z-10">
+        <div className="fixed bottom-6 right-6 z-10 sm:bottom-10 sm:right-10">
           <EntryDialog 
             obraId={selectedObraId} 
             trigger={
-              <Button size="lg" className="rounded-full shadow-lg h-14 w-14 p-0">
+              <Button size="lg" className="rounded-full shadow-2xl h-14 w-14 p-0 bg-primary hover:bg-primary/90">
                 <Plus className="w-8 h-8" />
               </Button>
             }

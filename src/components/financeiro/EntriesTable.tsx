@@ -1,8 +1,10 @@
+"use client";
+
 import { useState, useMemo } from "react";
-import { FinancialEntry, useDeleteFinancialEntry, PaymentMethod, FinancialEntriesResult } from "@/hooks/use-financial-entries";
+import { FinancialEntry, useDeleteFinancialEntry, FinancialEntriesResult } from "@/hooks/use-financial-entries";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Loader2, CalendarIcon, Search, X } from "lucide-react";
+import { Edit, Trash2, Loader2, CalendarIcon, Search, X, MoreHorizontal, ReceiptText } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import EntryDialog from "./EntryDialog";
@@ -18,6 +20,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import BulkUpdateDialog from "./BulkUpdateDialog";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface EntriesTableProps {
   entriesResult: FinancialEntriesResult | undefined;
@@ -32,6 +37,7 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
   const entries = entriesResult?.entries;
   const deleteMutation = useDeleteFinancialEntry();
   const { data: categories } = useExpenseCategories();
+  const isMobile = useIsMobile();
   
   const [dateRange, setDateRange] = useState<{ from: Date | undefined, to: Date | undefined }>({ 
     from: currentFilters.startDate ? new Date(currentFilters.startDate) : undefined, 
@@ -58,7 +64,7 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
     refetch();
   };
 
-  const handleDelete = async (id: string, descricao: string) => {
+  const handleDelete = async (id: string) => {
     try {
       await deleteMutation.mutateAsync({ id, obraId });
       showSuccess(`Lançamento excluído.`);
@@ -99,15 +105,17 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-4 items-center p-4 border rounded-lg bg-card">
-        <div className="relative w-full md:w-[240px]">
+      {/* Filtros Responsivos */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-3 items-center p-4 border rounded-xl bg-card shadow-sm">
+        <div className="relative w-full lg:w-[240px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar..." value={searchText} onChange={(e) => setSearchText(e.target.value)} className="pl-9" />
+          <Input placeholder="Buscar..." value={searchText} onChange={(e) => setSearchText(e.target.value)} className="pl-9 bg-background" />
           {searchText && <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setSearchText('')}><X className="h-4 w-4" /></Button>}
         </div>
+        
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="w-full md:w-[280px] justify-start text-left font-normal overflow-hidden">
+            <Button variant="outline" className="w-full lg:w-[260px] justify-start text-left font-normal bg-background">
               <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
               <span className="truncate">
                 {dateRange.from ? (
@@ -127,57 +135,133 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
               mode="range" 
               selected={dateRange} 
               onSelect={handleDateSelect} 
-              numberOfMonths={2} 
+              numberOfMonths={isMobile ? 1 : 2} 
               locale={ptBR}
             />
           </PopoverContent>
         </Popover>
+
         <Select value={selectedCategory || "all"} onValueChange={handleCategoryChange}>
-          <SelectTrigger className="w-full md:w-[180px]"><SelectValue placeholder="Categoria" /></SelectTrigger>
-          <SelectContent><SelectItem value="all">Todas</SelectItem>{categories?.map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.nome}</SelectItem>)}</SelectContent>
+          <SelectTrigger className="w-full lg:w-[180px] bg-background">
+            <SelectValue placeholder="Categoria" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas Categorias</SelectItem>
+            {categories?.map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.nome}</SelectItem>)}
+          </SelectContent>
         </Select>
-        <div className="flex gap-2 ml-auto">
-          {selectedEntryIds.length > 0 && <BulkUpdateDialog selectedEntryIds={selectedEntryIds} onSuccess={handleBulkUpdateSuccess} />}
+
+        <div className="flex gap-2 w-full lg:w-auto lg:ml-auto">
+          {selectedEntryIds.length > 0 && (
+            <BulkUpdateDialog selectedEntryIds={selectedEntryIds} onSuccess={handleBulkUpdateSuccess} />
+          )}
         </div>
       </div>
       
-      <div className="rounded-md border overflow-x-auto bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[40px] text-center"><Checkbox checked={isAllSelected} onCheckedChange={handleSelectAll} /></TableHead>
-              <TableHead>Data</TableHead>
-              <TableHead>Categoria</TableHead>
-              <TableHead>Descrição</TableHead>
-              <TableHead className="text-right">Valor</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+      {/* Visualização Mobile: Cards */}
+      {isMobile ? (
+        <div className="space-y-3">
+            <div className="flex items-center justify-between px-2 mb-2">
+                <div className="flex items-center gap-2">
+                    <Checkbox checked={isAllSelected} onCheckedChange={handleSelectAll} id="select-all-mobile" />
+                    <label htmlFor="select-all-mobile" className="text-sm font-medium text-muted-foreground">Selecionar Todos</label>
+                </div>
+                <span className="text-xs text-muted-foreground">{filteredEntries.length} lançamentos</span>
+            </div>
             {filteredEntries.map((entry) => (
-              <TableRow key={entry.id} className={cn(selectedEntryIds.includes(entry.id) && "bg-primary/5")}>
-                <TableCell className="text-center"><Checkbox checked={selectedEntryIds.includes(entry.id)} onCheckedChange={(c) => handleSelectEntry(entry.id, !!c)} /></TableCell>
-                <TableCell>{formatDate(entry.data_gasto)}</TableCell>
-                <TableCell><Badge variant="outline">{entry.categorias_despesa?.nome}</Badge></TableCell>
-                <TableCell className="max-w-xs truncate">{entry.descricao}</TableCell>
-                <TableCell className="text-right font-bold text-destructive">
-                  {formatCurrency(entry.valor)}
-                </TableCell>
-                <TableCell className="text-right space-x-1">
-                  <EntryDialog obraId={obraId} initialData={entry} trigger={<Button variant="ghost" size="icon"><Edit className="w-4 h-4" /></Button>} />
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader><AlertDialogTitle>Excluir?</AlertDialogTitle></AlertDialogHeader>
-                      <AlertDialogFooter><AlertDialogCancel>Não</AlertDialogCancel><AlertDialogAction onClick={() => handleDelete(entry.id, entry.descricao)} className="bg-destructive">Sim</AlertDialogAction></AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </TableCell>
-              </TableRow>
+                <Card key={entry.id} className={cn("relative overflow-hidden border-l-4", entry.ignorar_soma ? "border-l-muted opacity-80" : "border-l-destructive", selectedEntryIds.includes(entry.id) && "ring-1 ring-primary bg-primary/5")}>
+                    <CardContent className="p-4">
+                        <div className="flex justify-between items-start gap-2">
+                            <div className="flex items-start gap-3">
+                                <Checkbox checked={selectedEntryIds.includes(entry.id)} onCheckedChange={(c) => handleSelectEntry(entry.id, !!c)} className="mt-1" />
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-bold text-muted-foreground">{formatDate(entry.data_gasto)}</span>
+                                        <Badge variant="outline" className="text-[10px] py-0">{entry.categorias_despesa?.nome}</Badge>
+                                    </div>
+                                    <p className="font-semibold text-sm leading-snug line-clamp-2">{entry.descricao}</p>
+                                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                                        <span className="flex items-center"><ReceiptText className="w-3 h-3 mr-1" /> {entry.forma_pagamento}</span>
+                                        {entry.ignorar_soma && <span className="text-amber-600 font-bold">• Ignorado no saldo</span>}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="text-right flex flex-col items-end gap-2">
+                                <span className="font-bold text-destructive text-lg">{formatCurrency(entry.valor)}</span>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <EntryDialog obraId={obraId} initialData={entry} trigger={<DropdownMenuItem onSelect={(e) => e.preventDefault()}>Editar</DropdownMenuItem>} />
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">Excluir</DropdownMenuItem>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent className="w-[90vw] max-w-sm rounded-xl">
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Excluir Lançamento?</AlertDialogTitle>
+                                                    <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter className="flex-col gap-2">
+                                                    <AlertDialogCancel className="w-full">Voltar</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => handleDelete(entry.id)} className="bg-destructive w-full">Confirmar Exclusão</AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
             ))}
-          </TableBody>
-        </Table>
-      </div>
+        </div>
+      ) : (
+        /* Visualização Desktop: Tabela */
+        <div className="rounded-xl border overflow-hidden bg-card shadow-sm">
+          <Table>
+            <TableHeader className="bg-muted/50">
+              <TableRow>
+                <TableHead className="w-[40px] text-center"><Checkbox checked={isAllSelected} onCheckedChange={handleSelectAll} /></TableHead>
+                <TableHead>Data</TableHead>
+                <TableHead>Categoria</TableHead>
+                <TableHead>Descrição</TableHead>
+                <TableHead className="text-right">Valor</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredEntries.map((entry) => (
+                <TableRow key={entry.id} className={cn(selectedEntryIds.includes(entry.id) && "bg-primary/5", entry.ignorar_soma && "opacity-60")}>
+                  <TableCell className="text-center"><Checkbox checked={selectedEntryIds.includes(entry.id)} onCheckedChange={(c) => handleSelectEntry(entry.id, !!c)} /></TableCell>
+                  <TableCell>{formatDate(entry.data_gasto)}</TableCell>
+                  <TableCell><Badge variant="outline">{entry.categorias_despesa?.nome}</Badge></TableCell>
+                  <TableCell className="max-w-xs truncate" title={entry.descricao}>{entry.descricao}</TableCell>
+                  <TableCell className="text-right font-bold text-destructive">
+                    {formatCurrency(entry.valor)}
+                  </TableCell>
+                  <TableCell className="text-right space-x-1">
+                    <EntryDialog obraId={obraId} initialData={entry} trigger={<Button variant="ghost" size="icon" title="Editar"><Edit className="w-4 h-4" /></Button>} />
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive" title="Excluir"><Trash2 className="w-4 h-4" /></Button></AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader><AlertDialogTitle>Excluir Lançamento?</AlertDialogTitle><AlertDialogDescription>Deseja realmente remover "{entry.descricao}"?</AlertDialogDescription></AlertDialogHeader>
+                        <AlertDialogFooter><AlertDialogCancel>Não</AlertDialogCancel><AlertDialogAction onClick={() => handleDelete(entry.id)} className="bg-destructive">Sim, Excluir</AlertDialogAction></AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {filteredEntries.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">Nenhum lançamento encontrado com os filtros atuais.</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 };

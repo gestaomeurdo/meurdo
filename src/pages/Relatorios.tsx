@@ -18,16 +18,15 @@ import ActivityCostChart from "@/components/relatorios/ActivityCostChart";
 import { formatCurrency } from "@/utils/formatters";
 import { useKmCost } from "@/hooks/use-km-cost";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Relatorios = () => {
   const { data: obras, isLoading: isLoadingObras } = useObras();
   const { data: kmCost, isLoading: isLoadingKmCost } = useKmCost();
   const [selectedObraId, setSelectedObraId] = useState<string | undefined>(undefined);
-  
-  // Initialize date range to undefined, will be set in useEffect
+  const isMobile = useIsMobile();
   const [date, setDate] = useState<DateRange | undefined>(undefined); 
 
-  // 1. Set the first obra as default when they load
   useEffect(() => {
     if (obras && obras.length > 0 && !selectedObraId) {
       setSelectedObraId(obras[0].id);
@@ -36,10 +35,8 @@ const Relatorios = () => {
 
   const selectedObra = obras?.find(o => o.id === selectedObraId);
 
-  // 2. Set default date range (Start of Obra to Today) when selectedObra changes
   useEffect(() => {
     if (selectedObra && selectedObra.data_inicio && !date) {
-        // Set default range from obra start date to today
         setDate({
             from: new Date(selectedObra.data_inicio),
             to: new Date(),
@@ -73,95 +70,76 @@ const Relatorios = () => {
     
   const timeRemaining = useMemo(() => {
     if (!selectedObra || !selectedObra.previsao_entrega) return "N/A";
-    
     const today = new Date();
     const deliveryDate = new Date(selectedObra.previsao_entrega);
-    
     if (selectedObra.status === 'concluida') return "Concluída";
-    
-    if (deliveryDate < today) {
-        return "Atrasada";
-    }
-    
+    if (deliveryDate < today) return "Atrasada";
     const diffDays = differenceInDays(deliveryDate, today);
-    
-    if (diffDays > 60) {
-        const diffMonths = differenceInMonths(deliveryDate, today);
-        return `${diffMonths} meses restantes`;
-    }
-    return `${diffDays} dias restantes`;
+    if (diffDays > 60) return `${differenceInMonths(deliveryDate, today)} meses`;
+    return `${diffDays} dias`;
   }, [selectedObra]);
 
   const renderContent = () => {
     if (isLoadingObras || isLoadingKmCost) {
       return (
-        <div className="flex justify-center items-center h-full py-12">
+        <div className="flex justify-center items-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-2">Carregando configurações e obras...</span>
         </div>
       );
     }
 
-    if (!selectedObra || !selectedObraId) {
+    if (!selectedObraId) {
       return (
         <div className="text-center py-12 border border-dashed rounded-lg bg-muted/50">
-          <p className="text-muted-foreground">Selecione uma obra no menu acima para gerar um relatório.</p>
+          <p className="text-muted-foreground">Selecione uma obra para gerar o relatório.</p>
         </div>
       );
     }
     
-    // Check for errors in data fetching
     if (reportError || activitiesError) {
-        const error = reportError || activitiesError;
         return (
             <Alert variant="destructive" className="mt-6">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Erro ao carregar dados do Relatório</AlertTitle>
-                <AlertDescription>
-                    Ocorreu um erro ao buscar os dados. Verifique as permissões (RLS) ou a função RPC.
-                    <p className="mt-2 text-sm italic">Detalhe: {error.message}</p>
-                </AlertDescription>
+                <AlertTitle>Erro ao carregar relatório</AlertTitle>
+                <AlertDescription>Falha ao buscar dados.</AlertDescription>
             </Alert>
         );
     }
     
-    // If obra is selected but data is loading
     if (isLoadingReport || isLoadingActivities) {
         return (
-            <div className="flex justify-center items-center h-full py-12">
+            <div className="flex justify-center items-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <span className="ml-2">Carregando dados do relatório...</span>
             </div>
         );
     }
 
     return (
       <div className="space-y-6">
-        {/* Overall Project Summary */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard
-            title="Status da Obra"
+            title="Status"
             value={selectedObra.status.charAt(0).toUpperCase() + selectedObra.status.slice(1)}
-            description={`Iniciada em ${format(new Date(selectedObra.data_inicio), 'dd/MM/yyyy')}`}
+            description={`Início: ${format(new Date(selectedObra.data_inicio), 'dd/MM/yy')}`}
             icon={Clock}
             isLoading={false}
           />
           <KpiCard
-            title="Tempo Restante (Previsão)"
+            title="Tempo Restante"
             value={timeRemaining}
-            description={selectedObra.previsao_entrega ? `Entrega prevista: ${format(new Date(selectedObra.previsao_entrega), 'dd/MM/yyyy')}` : "Previsão de entrega não definida."}
+            description="Até a entrega prevista."
             icon={Clock}
             isLoading={false}
           />
           <KpiCard
             title="Gasto Total (Obra)"
             value={formatCurrency(reportData?.totalSpentObra)}
-            description={`Orçamento inicial: ${formatCurrency(reportData?.initialBudget)}`}
+            description={`Orçamento: ${formatCurrency(reportData?.initialBudget)}`}
             icon={TrendingUp}
             isLoading={isLoadingReport}
           />
           <KpiCard
-            title="Uso do Orçamento"
+            title="Uso Orçamento"
             value={`${(reportData?.budgetUsedPercent || 0).toFixed(1)}%`}
             description={`Saldo: ${formatCurrency(reportData?.initialBudget - reportData?.totalSpentObra)}`}
             icon={DollarSign}
@@ -169,41 +147,43 @@ const Relatorios = () => {
           />
         </div>
         
-        <h2 className="text-2xl font-semibold pt-4">Métricas do Período ({periodoString})</h2>
-        <div className="grid gap-4 md:grid-cols-4">
-          <KpiCard
-            title="Custo Total Atividades"
-            value={formatCurrency(totalActivityCost)}
-            description={`Inclui pedágio e KM rodado (R$ ${kmCost?.toFixed(2)}/km).`}
-            icon={DollarSign}
-            isLoading={isLoadingReport}
-          />
-          <KpiCard
-            title="Total Pedágio"
-            value={formatCurrency(reportData?.totalTollsPeriod)}
-            description="Custo total de pedágios registrados nas atividades."
-            icon={DollarSign}
-            isLoading={isLoadingReport}
-          />
-          <KpiCard
-            title="Total KM Rodado"
-            value={`${(reportData?.totalMileagePeriod || 0).toFixed(0)} km`}
-            description={`Custo de KM: ${formatCurrency(totalKmCost)}`}
-            icon={Route}
-            isLoading={isLoadingReport}
-          />
-          <KpiCard
-            title="Atividades Concluídas"
-            value={reportData?.activitiesCompleted ?? 0}
-            description="Total de atividades marcadas como 'Concluída' no período."
-            icon={ClipboardCheck}
-            isLoading={isLoadingReport}
-          />
+        <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Métricas do Período</h2>
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                <KpiCard
+                    title="Custo Atividades"
+                    value={formatCurrency(totalActivityCost)}
+                    description="Pedágio + KM rodado."
+                    icon={DollarSign}
+                    isLoading={isLoadingReport}
+                />
+                <KpiCard
+                    title="Pedágios"
+                    value={formatCurrency(reportData?.totalTollsPeriod)}
+                    description="Total no período."
+                    icon={DollarSign}
+                    isLoading={isLoadingReport}
+                />
+                <KpiCard
+                    title="KM Rodado"
+                    value={`${(reportData?.totalMileagePeriod || 0).toFixed(0)} km`}
+                    description={`Custo: ${formatCurrency(totalKmCost)}`}
+                    icon={Route}
+                    isLoading={isLoadingReport}
+                />
+                <KpiCard
+                    title="Concluídas"
+                    value={reportData?.activitiesCompleted ?? 0}
+                    description="No período selecionado."
+                    icon={ClipboardCheck}
+                    isLoading={isLoadingReport}
+                />
+            </div>
         </div>
         
         <ActivityCostChart activities={activities} isLoading={isLoadingActivities} />
 
-        <div className="flex justify-end">
+        <div className="flex justify-end pt-4">
           <ExportDialog 
             obraNome={selectedObra.nome} 
             periodo={periodoString} 
@@ -220,50 +200,45 @@ const Relatorios = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
-          <div>
-            <h1 className="text-3xl font-bold">Relatórios de Obra</h1>
-            <p className="text-muted-foreground">Gere e exporte relatórios detalhados sobre o progresso e custos.</p>
+      <div className="p-4 sm:p-6 space-y-6 animate-in fade-in duration-500">
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-2xl sm:text-3xl font-bold">Relatórios</h1>
+            <p className="text-sm text-muted-foreground">Análise de progresso e custos.</p>
           </div>
-          <div className="flex flex-wrap items-center gap-4">
-            <ObraSelector 
-              selectedObraId={selectedObraId} 
-              onSelectObra={setSelectedObraId} 
-            />
+          <div className="flex flex-col gap-4">
+            <div className="w-full sm:max-w-sm">
+                <ObraSelector 
+                  selectedObraId={selectedObraId} 
+                  onSelectObra={setSelectedObraId} 
+                />
+            </div>
             <Popover>
               <PopoverTrigger asChild>
-                <Button
-                  id="date"
-                  variant={"outline"}
-                  className={cn(
-                    "w-full md:w-[300px] justify-start text-left font-normal",
-                    !date && "text-muted-foreground"
-                  )}
-                >
+                <Button variant={"outline"} className="w-full sm:w-[300px] justify-start text-left font-normal bg-background">
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {date?.from ? (
-                    date.to ? (
-                      <>
-                        {format(date.from, "LLL dd, y")} -{" "}
-                        {format(date.to, "LLL dd, y")}
-                      </>
-                    ) : (
-                      format(date.from, "LLL dd, y")
-                    )
-                  ) : (
-                    <span>Selecione um período</span>
-                  )}
+                  <span className="truncate">
+                      {date?.from ? (
+                        date.to ? (
+                          `${format(date.from, "dd/MM/yy")} - ${format(date.to, "dd/MM/yy")}`
+                        ) : (
+                          format(date.from, "dd/MM/yy")
+                        )
+                      ) : (
+                        <span>Selecione um período</span>
+                      )}
+                  </span>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
+              <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   initialFocus
                   mode="range"
                   defaultMonth={date?.from}
                   selected={date}
                   onSelect={setDate}
-                  numberOfMonths={2}
+                  numberOfMonths={isMobile ? 1 : 2}
+                  locale={ptBR}
                 />
               </PopoverContent>
             </Popover>

@@ -15,18 +15,18 @@ const Dashboard = () => {
   const firstName = profile?.first_name || user?.email?.split('@')[0] || "Usuário";
 
   const MetricCard = ({ title, value, description, icon: Icon, loading }) => (
-    <Card>
+    <Card className="shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
+        <CardTitle className="text-sm font-medium truncate pr-2">{title}</CardTitle>
+        <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
       </CardHeader>
       <CardContent>
         {loading ? (
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         ) : (
-          <div className="text-2xl font-bold">{value}</div>
+          <div className="text-xl sm:text-2xl font-bold truncate">{value}</div>
         )}
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 line-clamp-2">
           {description}
         </p>
       </CardContent>
@@ -35,45 +35,46 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-6">
-        <h1 className="text-3xl font-bold mb-2">Bem-vindo(a), {firstName}!</h1>
-        <p className="text-lg text-muted-foreground mb-6">
-          Visão geral do Diário de Obra.
-        </p>
+      <div className="p-4 sm:p-6 space-y-6">
+        <div className="space-y-1">
+          <h1 className="text-2xl sm:text-3xl font-bold truncate">Olá, {firstName}!</h1>
+          <p className="text-sm sm:text-lg text-muted-foreground">
+            Resumo do Diário de Obra.
+          </p>
+        </div>
         
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <MetricCard
             title="Obras Ativas"
             value={data?.activeObrasCount ?? 0}
-            description="Acompanhe o progresso das suas construções."
+            description="Progresso das suas construções."
             icon={Construction}
             loading={isLoading}
           />
           <MetricCard
-            title="Orçamento Total (Inicial)"
+            title="Orçamento Total"
             value={formatCurrency(data?.totalInitialBudget ?? 0)}
-            description="Soma dos orçamentos iniciais de todas as obras."
+            description="Soma dos orçamentos iniciais."
             icon={DollarSign}
             loading={isLoading}
           />
           <MetricCard
-            title="Alertas Pendentes"
+            title="Alertas"
             value={0}
-            description="Orçamento, materiais ou documentos."
+            description="Itens pendentes detectados."
             icon={AlertTriangle}
             loading={false}
           />
           <MetricCard
-            title="Próxima Tarefa"
+            title="Agenda"
             value={"N/A"}
-            description="Agenda de Mão de Obra."
+            description="Próximas atividades planejadas."
             icon={Clock}
             loading={false}
           />
         </div>
 
-        {/* Power BI-like Visualization */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-6">
           <BudgetChart data={data?.chartData} isLoading={isLoading} />
         </div>
       </div>
