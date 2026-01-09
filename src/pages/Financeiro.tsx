@@ -105,6 +105,7 @@ const Financeiro = () => {
                 isLoading={isLoadingEntries} 
                 refetch={refetch}
                 setFilters={setFilters}
+                currentFilters={filters} // Passando os filtros atuais
               />
             </CardContent>
           </Card>

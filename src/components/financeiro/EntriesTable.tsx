@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { FinancialEntry, useDeleteFinancialEntry, PaymentMethod, FinancialEntriesResult } from "@/hooks/use-financial-entries";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Download, Loader2, Filter, CalendarIcon, Tag, Search, X } from "lucide-react";
+import { Edit, Trash2, Download, Loader2, Filter, CalendarIcon, Tag, Search, X, FileDown } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import EntryDialog from "./EntryDialog";
@@ -14,8 +14,9 @@ import { format } from "date-fns";
 import { formatCurrency, formatDate } from "@/utils/formatters";
 import { Checkbox } from "@/components/ui/checkbox";
 import BulkCategoryUpdateDialog from "./BulkCategoryUpdateDialog";
-import BulkUpdateDialog from "./BulkUpdateDialog"; // Importando o novo componente
-import { Input } from "@/components/ui/input"; // Importando Input
+import BulkUpdateDialog from "./BulkUpdateDialog";
+import { Input } from "@/components/ui/input";
+import { useExportFinancialCsv } from "@/hooks/use-export-financial-csv"; // Importando o novo hook
 
 interface EntriesTableProps {
   entriesResult: FinancialEntriesResult | undefined;
@@ -23,18 +24,20 @@ interface EntriesTableProps {
   isLoading: boolean;
   refetch: () => void;
   setFilters: (filters: any) => void;
+  currentFilters: any; // Adicionando prop para filtros atuais
 }
 
 const paymentMethods: PaymentMethod[] = ['Pix', 'Dinheiro', 'Cartão', 'Boleto', 'Transferência'];
 
-const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters }: EntriesTableProps) => {
+const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, currentFilters }: EntriesTableProps) => {
   const entries = entriesResult?.entries;
   const deleteMutation = useDeleteFinancialEntry();
   const { data: categories } = useExpenseCategories();
+  const { exportCsv, isExporting } = useExportFinancialCsv(); // Usando o hook de exportação
   
-  const [dateRange, setDateRange] = useState<{ from: Date | undefined, to: Date | undefined }>({ from: undefined, to: undefined });
-  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | undefined>(undefined);
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined, to: Date | undefined }>({ from: currentFilters.startDate ? new Date(currentFilters.startDate) : undefined, to: currentFilters.endDate ? new Date(currentFilters.endDate) : undefined });
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(currentFilters.categoryId);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | undefined>(currentFilters.paymentMethod);
   const [searchText, setSearchText] = useState<string>('');
   const [selectedEntryIds, setSelectedEntryIds] = useState<string[]>([]);
 
@@ -112,6 +115,16 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters }:
     const text = e.target.value;
     setSearchText(text);
     // Note: Filtering by text is done client-side here since Supabase doesn't support text search in RPC/Query hooks easily
+  };
+
+  const handleExport = () => {
+    exportCsv({
+      obraId,
+      startDate: currentFilters.startDate,
+      endDate: currentFilters.endDate,
+      categoryId: currentFilters.categoryId,
+      paymentMethod: currentFilters.paymentMethod,
+    });
   };
 
   const getLancerName = (entry: FinancialEntry) => {
@@ -302,6 +315,22 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters }:
             </AlertDialog>
           </>
         )}
+        
+        {/* Export Button */}
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleExport}
+          disabled={isExporting || isLoading || filteredEntries.length === 0}
+          className="flex items-center ml-auto"
+        >
+          {isExporting ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <FileDown className="w-4 h-4 mr-2" />
+          )}
+          Exportar CSV ({filteredEntries.length})
+        </Button>
       </div>
 
       {/* Table */}
