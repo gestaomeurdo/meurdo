@@ -21,14 +21,11 @@ export interface FinancialEntry {
   profiles: { first_name: string | null, last_name: string | null, email: string | null };
 }
 
-// Novo tipo de retorno para incluir métricas de atividade
 export interface FinancialEntriesResult {
   entries: FinancialEntry[];
   totalActivityCost: number;
   kmCost: number;
 }
-
-// --- Fetching ---
 
 interface FetchEntriesParams {
   obraId: string;
@@ -39,7 +36,6 @@ interface FetchEntriesParams {
 }
 
 const fetchFinancialEntries = async ({ obraId, startDate, endDate, categoryId, paymentMethod }: FetchEntriesParams): Promise<FinancialEntriesResult> => {
-  // 1. Fetch Financial Entries
   let query = supabase
     .from('lancamentos_financeiros')
     .select(`
@@ -50,28 +46,16 @@ const fetchFinancialEntries = async ({ obraId, startDate, endDate, categoryId, p
     .eq('obra_id', obraId)
     .order('data_gasto', { ascending: false });
 
-  if (startDate) {
-    query = query.gte('data_gasto', startDate);
-  }
-  if (endDate) {
-    query = query.lte('data_gasto', endDate);
-  }
-  if (categoryId) {
-    query = query.eq('categoria_id', categoryId);
-  }
-  if (paymentMethod) {
-    query = query.eq('forma_pagamento', paymentMethod);
-  }
+  if (startDate) query = query.gte('data_gasto', startDate);
+  if (endDate) query = query.lte('data_gasto', endDate);
+  if (categoryId) query = query.eq('categoria_id', categoryId);
+  if (paymentMethod) query = query.eq('forma_pagamento', paymentMethod);
 
   const { data: entriesData, error: entriesError } = await query;
-
-  if (entriesError) {
-    throw new Error(entriesError.message);
-  }
+  if (entriesError) throw new Error(entriesError.message);
   
   const entries = entriesData.map(entry => {
     const profileData = (entry as any).profiles || {};
-
     return {
       ...entry,
       profiles: {
@@ -82,44 +66,16 @@ const fetchFinancialEntries = async ({ obraId, startDate, endDate, categoryId, p
     }
   }) as FinancialEntry[];
 
-  // 2. Fetch KM Cost
   let kmCost = 1.50;
-  try {
-    const { data: kmCostData, error: kmCostError } = await supabase
-      .from('configuracoes_globais')
-      .select('valor')
-      .eq('chave', 'custo_km_rodado')
-      .single();
-      
-    if (kmCostError && kmCostError.code !== 'PGRST116') { // PGRST116 = No rows found (expected error if config doesn't exist)
-        console.warn("Error fetching km cost, using default 1.50:", kmCostError);
-    }
-    
-    if (kmCostData?.valor !== undefined) {
-        kmCost = kmCostData.valor;
-    }
-  } catch (e) {
-    console.warn("Failed to fetch km cost configuration, using default 1.50.");
-  }
+  const { data: kmCostData } = await supabase.from('configuracoes_globais').select('valor').eq('chave', 'custo_km_rodado').maybeSingle();
+  if (kmCostData) kmCost = kmCostData.valor;
 
-
-  // 3. Calculate Total Activity Cost (KM + Pedágio)
-  const { data: activitiesData, error: activitiesError } = await supabase
-    .from('atividades_obra')
-    .select('pedagio, km_rodado')
-    .eq('obra_id', obraId);
-
-  if (activitiesError) {
-    console.error("Error fetching activities for cost calculation:", activitiesError);
-    // Proceed with 0 cost if fetching activities fails
-  }
+  const { data: activitiesData } = await supabase.from('atividades_obra').select('pedagio, km_rodado').eq('obra_id', obraId);
   
   let totalActivityCost = 0;
   if (activitiesData) {
     totalActivityCost = activitiesData.reduce((sum, activity) => {
-      const pedagio = activity.pedagio || 0;
-      const kmRodadoCost = (activity.km_rodado || 0) * kmCost;
-      return sum + pedagio + kmRodadoCost;
+      return sum + (activity.pedagio || 0) + ((activity.km_rodado || 0) * kmCost);
     }, 0);
   }
 
@@ -131,41 +87,20 @@ export const useFinancialEntries = (params: FetchEntriesParams) => {
     queryKey: ['financialEntries', params],
     queryFn: () => fetchFinancialEntries(params),
     enabled: !!params.obraId,
-    staleTime: 1000 * 60 * 1, // Cache data for 1 minute
+    staleTime: 1000 * 60 * 1,
   });
 };
-
-// --- Mutations (kept the same, only updating types) ---
-
-interface FinancialEntryInput {
-  obra_id: string;
-  data_gasto: string; // YYYY-MM-DD
-  categoria_id: string;
-  descricao: string;
-  valor: number;
-  forma_pagamento: PaymentMethod;
-  documento_url?: string | null;
-}
 
 export const useCreateFinancialEntry = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const userId = user?.id;
-
-  return useMutation<void, Error, FinancialEntryInput>({
+  return useMutation<void, Error, any>({
     mutationFn: async (newEntry) => {
-      if (!userId) throw new Error("User not authenticated.");
-      
-      const { error } = await supabase
-        .from('lancamentos_financeiros')
-        .insert({ ...newEntry, user_id: userId });
-
-      if (error) {
-        throw new Error(error.message);
-      }
+      const { error } = await supabase.from('lancamentos_financeiros').insert({ ...newEntry, user_id: user?.id });
+      if (error) throw new Error(error.message);
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['financialEntries', { obraId: variables.obra_id }] });
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['financialEntries'] });
       queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
     },
   });
@@ -173,121 +108,62 @@ export const useCreateFinancialEntry = () => {
 
 export const useUpdateFinancialEntry = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
-  const userId = user?.id;
-
-  return useMutation<void, Error, FinancialEntryInput & { id: string }>({
-    mutationFn: async (updatedEntry) => {
-      if (!userId) throw new Error("User not authenticated.");
-      const { id, ...rest } = updatedEntry;
-
-      const { error } = await supabase
-        .from('lancamentos_financeiros')
-        .update(rest)
-        .eq('id', id);
-
-      if (error) {
-        throw new Error(error.message);
-      }
+  return useMutation<void, Error, any>({
+    mutationFn: async ({ id, ...rest }) => {
+      const { error } = await supabase.from('lancamentos_financeiros').update(rest).eq('id', id);
+      if (error) throw new Error(error.message);
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['financialEntries', { obraId: variables.obra_id }] });
-      queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['financialEntries'] }),
   });
 };
 
 export const useDeleteFinancialEntry = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
-  const userId = user?.id;
-
   return useMutation<void, Error, { id: string, obraId: string }>({
     mutationFn: async ({ id }) => {
-      if (!userId) throw new Error("User not authenticated.");
+      const { error } = await supabase.from('lancamentos_financeiros').delete().eq('id', id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['financialEntries'] }),
+  });
+};
 
+// NOVO: Hook para apagar todos os lançamentos de uma obra
+export const useDeleteAllFinancialEntries = () => {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: async (obraId) => {
       const { error } = await supabase
         .from('lancamentos_financeiros')
         .delete()
-        .eq('id', id);
-
-      if (error) {
-        throw new Error(error.message);
-      }
+        .eq('obra_id', obraId);
+      if (error) throw new Error(error.message);
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['financialEntries', { obraId: variables.obra_id }] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['financialEntries'] });
       queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
     },
   });
 };
-
-interface BulkUpdateCategoryInput {
-  ids: string[];
-  categoria_id: string;
-}
 
 export const useBulkUpdateCategory = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
-  const userId = user?.id;
-
-  return useMutation<void, Error, BulkUpdateCategoryInput>({
+  return useMutation<void, Error, { ids: string[], categoria_id: string }>({
     mutationFn: async ({ ids, categoria_id }) => {
-      if (!userId) throw new Error("User not authenticated.");
-      if (ids.length === 0) return;
-
-      const { error } = await supabase
-        .from('lancamentos_financeiros')
-        .update({ categoria_id })
-        .in('id', ids);
-
-      if (error) {
-        throw new Error(error.message);
-      }
+      const { error } = await supabase.from('lancamentos_financeiros').update({ categoria_id }).in('id', ids);
+      if (error) throw new Error(error.message);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['financialEntries'] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['financialEntries'] }),
   });
 };
 
-interface BulkUpdateInput {
-  ids: string[];
-  data_gasto?: string; // YYYY-MM-DD
-  forma_pagamento?: PaymentMethod;
-}
-
 export const useBulkUpdateFinancialEntries = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
-  const userId = user?.id;
-
-  return useMutation<void, Error, BulkUpdateInput>({
+  return useMutation<void, Error, { ids: string[], data_gasto?: string, forma_pagamento?: PaymentMethod }>({
     mutationFn: async ({ ids, ...updateData }) => {
-      if (!userId) throw new Error("User not authenticated.");
-      if (ids.length === 0) return;
-
-      const payload: Partial<Omit<BulkUpdateInput, 'ids'>> = Object.fromEntries(
-        Object.entries(updateData).filter(([, value]) => value !== undefined)
-      );
-
-      if (Object.keys(payload).length === 0) {
-        throw new Error("Nenhum campo para atualizar foi fornecido.");
-      }
-
-      const { error } = await supabase
-        .from('lancamentos_financeiros')
-        .update(payload)
-        .in('id', ids);
-
-      if (error) {
-        throw new Error(error.message);
-      }
+      const { error } = await supabase.from('lancamentos_financeiros').update(updateData).in('id', ids);
+      if (error) throw new Error(error.message);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['financialEntries'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['financialEntries'] }),
   });
 };
