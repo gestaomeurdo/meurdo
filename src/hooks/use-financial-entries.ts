@@ -54,7 +54,7 @@ const fetchFinancialEntries = async ({ obraId, startDate, endDate, categoryId, p
 
   const { data: entriesData, error: entriesError } = await query;
   if (entriesError) throw new Error(entriesError.message);
-  
+
   const entries = entriesData.map(entry => {
     const profileData = (entry as any).profiles || {};
     return {
@@ -72,7 +72,7 @@ const fetchFinancialEntries = async ({ obraId, startDate, endDate, categoryId, p
   if (kmCostData) kmCost = kmCostData.valor;
 
   const { data: activitiesData } = await supabase.from('atividades_obra').select('pedagio, km_rodado').eq('obra_id', obraId);
-  
+
   let totalActivityCost = 0;
   if (activitiesData) {
     totalActivityCost = activitiesData.reduce((sum, activity) => {

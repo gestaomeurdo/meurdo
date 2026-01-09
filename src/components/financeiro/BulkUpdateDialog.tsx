@@ -58,9 +58,9 @@ const BulkUpdateDialog = ({ selectedEntryIds, onSuccess }: BulkUpdateDialogProps
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button 
-          variant="secondary" 
-          size="sm" 
+        <Button
+          variant="secondary"
+          size="sm"
           disabled={selectedEntryIds.length === 0}
           className="flex items-center"
         >
@@ -76,7 +76,7 @@ const BulkUpdateDialog = ({ selectedEntryIds, onSuccess }: BulkUpdateDialogProps
             Deixe o campo em branco se não quiser alterá-lo.
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-6 py-4">
           {/* New Date Field */}
           <div className="space-y-2">

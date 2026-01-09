@@ -26,7 +26,7 @@ export const useExpenseCategories = () => {
   return useQuery<ExpenseCategory[], Error>({
     queryKey: ['expenseCategories'],
     queryFn: fetchExpenseCategories,
-    staleTime: 1000 * 60 * 5, 
+    staleTime: 1000 * 60 * 5,
   });
 };
 
@@ -44,11 +44,11 @@ export const useCreateExpenseCategory = () => {
   return useMutation<void, Error, CategoryInput>({
     mutationFn: async (newCategory) => {
       if (!user) throw new Error("Usuário não autenticado.");
-      
+
       const { error } = await supabase
         .from('categorias_despesa')
         .insert({ ...newCategory, user_id: user.id });
-        
+
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
@@ -65,7 +65,7 @@ export const useUpdateExpenseCategory = () => {
     mutationFn: async (updatedCategory) => {
       if (!user) throw new Error("Usuário não autenticado.");
       const { id, ...rest } = updatedCategory;
-      
+
       // Tentamos atualizar e pedimos o retorno da linha para confirmar a ação
       const { data, error, count } = await supabase
         .from('categorias_despesa')
@@ -74,7 +74,7 @@ export const useUpdateExpenseCategory = () => {
         .select(); // Adicionamos select para confirmar que algo voltou
 
       if (error) throw new Error(error.message);
-      
+
       // Se data for nulo ou vazio, significa que o RLS bloqueou ou o ID não existe
       if (!data || data.length === 0) {
         throw new Error("Você não tem permissão para editar esta categoria ou ela não foi encontrada.");
@@ -94,13 +94,13 @@ export const useDeleteExpenseCategory = () => {
   return useMutation<void, Error, string>({
     mutationFn: async (id) => {
       if (!user) throw new Error("Usuário não autenticado.");
-      
+
       const { error, data } = await supabase
         .from('categorias_despesa')
         .delete()
         .eq('id', id)
         .select();
-        
+
       if (error) throw new Error(error.message);
 
       if (!data || data.length === 0) {

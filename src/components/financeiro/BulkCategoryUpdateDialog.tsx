@@ -60,7 +60,7 @@ const BulkCategoryUpdateDialog = ({ selectedEntryIds, obraId, onSuccess }: BulkC
             Você está prestes a alterar a categoria de **{selectedEntryIds.length}** lançamentos.
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4 py-4">
           <label className="block text-sm font-medium">Nova Categoria</label>
           <Select onValueChange={setNewCategoryId} disabled={isLoading}>

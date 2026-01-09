@@ -39,7 +39,7 @@ const Financeiro = () => {
     obraId: selectedObraId || '',
     ...filters,
   });
-  
+
   const entries = entriesResult?.entries;
 
   const handleClearAll = async () => {
@@ -122,10 +122,10 @@ const Financeiro = () => {
             )}
           </CardHeader>
           <CardContent className="px-2 sm:px-6">
-            <EntriesTable 
-              entriesResult={entriesResult} 
-              obraId={selectedObraId} 
-              isLoading={isLoadingEntries} 
+            <EntriesTable
+              entriesResult={entriesResult}
+              obraId={selectedObraId}
+              isLoading={isLoadingEntries}
               refetch={refetch}
               setFilters={setFilters}
               currentFilters={filters}
@@ -144,15 +144,15 @@ const Financeiro = () => {
             <h1 className="text-2xl sm:text-3xl font-bold">Financeiro</h1>
             <p className="text-sm text-muted-foreground">Gestão de custos e orçamentos.</p>
           </div>
-          
+
           <div className="flex flex-col gap-4">
             <div className="w-full sm:max-w-sm">
-              <ObraSelector 
-                selectedObraId={selectedObraId} 
-                onSelectObra={setSelectedObraId} 
+              <ObraSelector
+                selectedObraId={selectedObraId}
+                onSelectObra={setSelectedObraId}
               />
             </div>
-            
+
             <div className="flex flex-wrap gap-2">
               <CategoryManagementDialog trigger={
                 <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
@@ -175,11 +175,11 @@ const Financeiro = () => {
 
         {renderContent()}
       </div>
-      
+
       {selectedObraId && (
         <div className="fixed bottom-6 right-6 z-10 sm:bottom-10 sm:right-10">
-          <EntryDialog 
-            obraId={selectedObraId} 
+          <EntryDialog
+            obraId={selectedObraId}
             trigger={
               <Button size="lg" className="rounded-full shadow-2xl h-14 w-14 p-0 bg-primary hover:bg-primary/90">
                 <Plus className="w-8 h-8" />

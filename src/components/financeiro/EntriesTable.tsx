@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { formatCurrency, formatDate } from "@/utils/formatters";
 import { Checkbox } from "@/components/ui/checkbox";
 import BulkUpdateDialog from "./BulkUpdateDialog";
+import BulkCategoryUpdateDialog from "./BulkCategoryUpdateDialog";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -38,10 +39,10 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
   const deleteMutation = useDeleteFinancialEntry();
   const { data: categories } = useExpenseCategories();
   const isMobile = useIsMobile();
-  
-  const [dateRange, setDateRange] = useState<{ from: Date | undefined, to: Date | undefined }>({ 
-    from: currentFilters.startDate ? new Date(currentFilters.startDate) : undefined, 
-    to: currentFilters.endDate ? new Date(currentFilters.endDate) : undefined 
+
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined, to: Date | undefined }>({
+    from: currentFilters.startDate ? new Date(currentFilters.startDate) : undefined,
+    to: currentFilters.endDate ? new Date(currentFilters.endDate) : undefined
   });
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(currentFilters.categoryId);
   const [searchText, setSearchText] = useState<string>('');
@@ -58,7 +59,7 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
       setSelectedEntryIds([]);
     }
   };
-  
+
   const handleBulkUpdateSuccess = () => {
     setSelectedEntryIds([]);
     refetch();
@@ -76,8 +77,8 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
   const handleDateSelect = (range: { from: Date | undefined, to: Date | undefined } | undefined) => {
     const newRange = range || { from: undefined, to: undefined };
     setDateRange(newRange);
-    setFilters(prev => ({ 
-      ...prev, 
+    setFilters(prev => ({
+      ...prev,
       startDate: newRange.from ? format(newRange.from, 'yyyy-MM-dd') : undefined,
       endDate: newRange.to ? format(newRange.to, 'yyyy-MM-dd') : undefined
     }));
@@ -92,7 +93,7 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
     if (!entries) return [];
     if (!searchText) return entries;
     const lowerSearch = searchText.toLowerCase();
-    return entries.filter(entry => 
+    return entries.filter(entry =>
       entry.descricao.toLowerCase().includes(lowerSearch) ||
       entry.categorias_despesa?.nome.toLowerCase().includes(lowerSearch) ||
       entry.valor.toString().includes(searchText)
@@ -112,7 +113,7 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
           <Input placeholder="Buscar..." value={searchText} onChange={(e) => setSearchText(e.target.value)} className="pl-9 bg-background" />
           {searchText && <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setSearchText('')}><X className="h-4 w-4" /></Button>}
         </div>
-        
+
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" className="w-full lg:w-[260px] justify-start text-left font-normal bg-background">
@@ -131,11 +132,11 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
-            <Calendar 
-              mode="range" 
-              selected={dateRange} 
-              onSelect={handleDateSelect} 
-              numberOfMonths={isMobile ? 1 : 2} 
+            <Calendar
+              mode="range"
+              selected={dateRange}
+              onSelect={handleDateSelect}
+              numberOfMonths={isMobile ? 1 : 2}
               locale={ptBR}
             />
           </PopoverContent>
@@ -153,11 +154,21 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
 
         <div className="flex gap-2 w-full lg:w-auto lg:ml-auto">
           {selectedEntryIds.length > 0 && (
-            <BulkUpdateDialog selectedEntryIds={selectedEntryIds} onSuccess={handleBulkUpdateSuccess} />
+            <>
+              <BulkCategoryUpdateDialog
+                selectedEntryIds={selectedEntryIds}
+                obraId={obraId}
+                onSuccess={handleBulkUpdateSuccess}
+              />
+              <BulkUpdateDialog
+                selectedEntryIds={selectedEntryIds}
+                onSuccess={handleBulkUpdateSuccess}
+              />
+            </>
           )}
         </div>
       </div>
-      
+
       {/* Visualização Mobile: Cards */}
       {isMobile ? (
         <div className="space-y-3">
