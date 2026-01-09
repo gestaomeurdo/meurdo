@@ -1,16 +1,19 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useObras } from "@/hooks/use-obras";
 import { useState, useEffect } from "react";
-import { Loader2, ClipboardList, Plus } from "lucide-react";
+import { Loader2, ClipboardList, Plus, FileDown } from "lucide-react";
 import ObraSelector from "@/components/financeiro/ObraSelector";
 import { useAtividades } from "@/hooks/use-atividades";
 import AtividadesTable from "@/components/atividades/AtividadesTable";
 import AtividadeDialog from "@/components/atividades/AtividadeDialog";
 import { Button } from "@/components/ui/button";
+import { useExportActivitiesCsv } from "@/hooks/use-export-activities-csv";
+import { format } from "date-fns";
 
 const Atividades = () => {
   const { data: obras, isLoading: isLoadingObras } = useObras();
   const [selectedObraId, setSelectedObraId] = useState<string | undefined>(undefined);
+  const { exportCsv, isExporting } = useExportActivitiesCsv();
 
   useEffect(() => {
     if (obras && obras.length > 0 && !selectedObraId) {
@@ -19,6 +22,20 @@ const Atividades = () => {
   }, [obras, selectedObraId]);
 
   const { data: atividades, isLoading: isLoadingAtividades } = useAtividades(selectedObraId || '');
+  
+  const handleExport = () => {
+    if (!selectedObraId) return;
+    
+    // Exporta todas as atividades da obra (usando um período amplo)
+    const today = new Date();
+    const farPast = new Date(2000, 0, 1); // Jan 1, 2000
+    
+    exportCsv({
+      obraId: selectedObraId,
+      startDate: format(farPast, 'yyyy-MM-dd'),
+      endDate: format(today, 'yyyy-MM-dd'),
+    });
+  };
 
   const renderContent = () => {
     if (isLoadingObras) {
@@ -73,7 +90,19 @@ const Atividades = () => {
               selectedObraId={selectedObraId} 
               onSelectObra={setSelectedObraId} 
             />
-            {/* RDO functionality moved to /gestao-rdo */}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleExport}
+              disabled={isExporting || !selectedObraId || (atividades?.length === 0 && !isLoadingAtividades)}
+            >
+              {isExporting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <FileDown className="w-4 h-4 mr-2" />
+              )}
+              Exportar Atividades CSV
+            </Button>
           </div>
         </div>
         {renderContent()}
