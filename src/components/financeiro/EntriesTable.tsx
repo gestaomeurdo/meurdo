@@ -316,7 +316,7 @@ const EntriesTable = ({ entriesResult, obraId, isLoading, refetch, setFilters, c
           </>
         )}
         
-        {/* Export Button */}
+        {/* Export Button - Moved to the end of the flex container */}
         <Button 
           variant="outline" 
           size="sm" 
