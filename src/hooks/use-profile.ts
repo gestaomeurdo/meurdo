@@ -8,25 +8,26 @@ export interface Profile {
   last_name: string | null;
   avatar_url: string | null;
   role: 'administrator' | 'obra_user' | 'view_only';
+  subscription_status: string | null;
+  stripe_customer_id: string | null;
+  plan_type: string | null;
 }
 
 export const fetchProfile = async (userId: string): Promise<Profile | null> => {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, first_name, last_name, avatar_url, role')
+    .select('id, first_name, last_name, avatar_url, role, subscription_status, stripe_customer_id, plan_type')
     .eq('id', userId)
     .single();
 
   if (error) {
     console.error("Error fetching profile:", error.message);
-    // Return null instead of throwing, so the app doesn't crash if profile is missing
     return null;
   }
   
   if (!data) return null;
 
-  const role = data.role as Profile['role'];
-  return { ...data, role };
+  return data as Profile;
 };
 
 export const useProfile = () => {
@@ -55,7 +56,6 @@ export const useUpdateProfile = () => {
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
-      // Invalidate the profile query to refetch the updated data
       queryClient.invalidateQueries({ queryKey: ['profile'] });
     },
   });
