@@ -26,7 +26,7 @@ const fetchRdoMetrics = async (userId: string): Promise<RdoMetrics> => {
       status_dia,
       impedimentos_comentarios,
       rdo_mao_de_obra (quantidade),
-      obras (nome)
+      obras!inner (nome)
     `)
     .eq('user_id', userId)
     .gte('data_rdo', sevenDaysAgo)
@@ -37,6 +37,7 @@ const fetchRdoMetrics = async (userId: string): Promise<RdoMetrics> => {
     throw new Error(error.message);
   }
 
+  // We cast the result to include the joined 'obras' data
   const rdos = rdosData as (DiarioObra & { obras: { nome: string } })[];
 
   // 1. RDOs Today
