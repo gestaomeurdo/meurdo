@@ -31,23 +31,20 @@ const RdoSignaturePad = ({ diarioId, obraId, signatureType, currentSignatureUrl,
       return;
     }
 
-    // We need a valid RDO ID to save the signature
-    if (diarioId === 'new') {
-        showError("Salve o RDO primeiro para anexar a assinatura.");
-        return;
-    }
-
     setIsUploading(true);
-    const base64Data = sigPad.current.toDataURL('image/png');
-    const blob = await (await fetch(base64Data)).blob();
     
-    const fileName = `${signatureType}-${diarioId}-${Date.now()}.png`;
-    const filePath = `signatures/${obraId}/${fileName}`;
-
     try {
-      // 1. Upload to Supabase Storage
+      const base64Data = sigPad.current.toDataURL('image/png');
+      const blob = await (await fetch(base64Data)).blob();
+      
+      // Use a timestamp if the RDO doesn't have an ID yet
+      const idPart = diarioId === 'new' ? `temp-${Date.now()}` : diarioId;
+      const fileName = `${signatureType}-${idPart}-${Math.random().toString(36).substring(7)}.png`;
+      const filePath = `signatures/${obraId}/${fileName}`;
+
+      // 1. Upload to Supabase Storage (using the bucket we know works)
       const { error: uploadError } = await supabase.storage
-        .from('signatures')
+        .from('documentos_financeiros')
         .upload(filePath, blob, {
           cacheControl: '3600',
           upsert: false,
@@ -58,14 +55,14 @@ const RdoSignaturePad = ({ diarioId, obraId, signatureType, currentSignatureUrl,
 
       // 2. Get Public URL
       const { data: publicUrlData } = supabase.storage
-        .from('signatures')
+        .from('documentos_financeiros')
         .getPublicUrl(filePath);
       
       onSignatureSave(publicUrlData.publicUrl);
-      showSuccess("Assinatura salva com sucesso!");
+      showSuccess("Assinatura capturada!");
 
     } catch (error) {
-      showError("Erro ao salvar assinatura.");
+      showError("Erro ao salvar assinatura. Verifique se o bucket 'documentos_financeiros' existe.");
       console.error("Signature upload error:", error);
     } finally {
       setIsUploading(false);
@@ -76,45 +73,47 @@ const RdoSignaturePad = ({ diarioId, obraId, signatureType, currentSignatureUrl,
 
   if (currentSignatureUrl) {
     return (
-      <Card className="border-green-500/50">
+      <Card className="border-green-500/50 bg-green-50/5">
         <CardHeader className="p-3 flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-semibold text-green-600 flex items-center">
             <CheckCircle className="w-4 h-4 mr-2" /> {title}
           </CardTitle>
+          <Button variant="ghost" size="sm" onClick={() => onSignatureSave('')} className="h-7 text-xs">Trocar</Button>
         </CardHeader>
         <CardContent className="p-3 pt-0">
-          <img src={currentSignatureUrl} alt={`${title} saved`} className="w-full h-auto border rounded-md bg-white" />
-          <p className="text-xs text-muted-foreground mt-2">Assinatura registrada.</p>
+          <img src={currentSignatureUrl} alt={`${title} saved`} className="w-full h-auto border rounded-md bg-white max-h-[100px] object-contain" />
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className={cn("transition-all", isDrawing && "ring-2 ring-primary")}>
+    <Card className={cn("transition-all border-dashed", isDrawing && "ring-2 ring-primary border-primary")}>
       <CardHeader className="p-3">
         <CardTitle className="text-sm font-semibold">{title}</CardTitle>
       </CardHeader>
       <CardContent className="p-3 pt-0 space-y-2">
-        <div className="border border-dashed rounded-md bg-white">
+        <div className="border rounded-md bg-white overflow-hidden">
           <SignatureCanvas
             ref={sigPad}
             penColor='black'
-            canvasProps={{ width: 300, height: 150, className: 'sigCanvas w-full h-full' }}
+            canvasProps={{ 
+                width: 350, 
+                height: 120, 
+                className: 'sigCanvas w-full cursor-crosshair' 
+            }}
             onBegin={() => setIsDrawing(true)}
-            onEnd={() => setIsDrawing(false)}
           />
         </div>
         <div className="flex gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={clearSignature} disabled={isUploading}>
+          <Button type="button" variant="outline" size="sm" onClick={clearSignature} disabled={isUploading} className="flex-1">
             <X className="w-4 h-4 mr-2" /> Limpar
           </Button>
-          <Button type="button" size="sm" onClick={handleSave} disabled={isUploading || diarioId === 'new'}>
+          <Button type="button" size="sm" onClick={handleSave} disabled={isUploading} className="flex-1">
             {isUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-            {isUploading ? "Enviando..." : "Salvar Assinatura"}
+            Confirmar
           </Button>
         </div>
-        {diarioId === 'new' && <p className="text-xs text-destructive mt-1">Salve o RDO primeiro para anexar a assinatura.</p>}
       </CardContent>
     </Card>
   );
