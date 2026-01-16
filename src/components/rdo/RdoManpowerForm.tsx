@@ -3,11 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Trash2, Calculator } from "lucide-react";
-import { RdoInput } from "@/hooks/use-rdo";
+import { RdoInput, WorkforceType } from "@/hooks/use-rdo";
 import { useCargos } from "@/hooks/use-cargos";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCurrency } from "@/utils/formatters";
 import { useEffect } from "react";
+
+const workforceTypes: WorkforceType[] = ['Própria', 'Terceirizada'];
 
 const RdoManpowerForm = () => {
   const { control, setValue, watch } = useFormContext<any>();
@@ -24,6 +26,7 @@ const RdoManpowerForm = () => {
     if (cargo) {
       setValue(`mao_de_obra.${index}.funcao`, cargo.nome);
       setValue(`mao_de_obra.${index}.custo_unitario`, cargo.custo_diario);
+      setValue(`mao_de_obra.${index}.tipo`, cargo.tipo); // Set type from cargo
     }
   };
 
@@ -77,6 +80,18 @@ const RdoManpowerForm = () => {
                   className="bg-background"
                 />
               </div>
+              
+              <div className="md:col-span-2">
+                <Label className="text-xs uppercase text-muted-foreground">Tipo</Label>
+                <Select onValueChange={(val) => setValue(`mao_de_obra.${index}.tipo`, val as WorkforceType)} defaultValue={maoDeObra?.[index]?.tipo}>
+                    <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="Tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {workforceTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+              </div>
 
               <div className="md:col-span-1">
                 <Label className="text-xs uppercase text-muted-foreground">Qtd</Label>
@@ -110,7 +125,7 @@ const RdoManpowerForm = () => {
         );
       })}
 
-      <Button type="button" variant="outline" className="w-full border-dashed py-6 hover:bg-primary/5 hover:text-primary transition-all" onClick={() => append({ funcao: "", quantidade: 1, custo_unitario: 0 })}>
+      <Button type="button" variant="outline" className="w-full border-dashed py-6 hover:bg-primary/5 hover:text-primary transition-all" onClick={() => append({ funcao: "", quantidade: 1, custo_unitario: 0, tipo: 'Própria' })}>
         <Plus className="w-4 h-4 mr-2" /> Adicionar Outra Função
       </Button>
     </div>

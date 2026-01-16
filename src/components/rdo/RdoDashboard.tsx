@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, Users, CloudRain, TrendingUp, AlertTriangle } from "lucide-react";
+import { DollarSign, Users, CloudRain, TrendingUp, AlertTriangle, Briefcase, Handshake } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useMemo } from "react";
 import { format, parseISO, isSameMonth, isSameYear } from "date-fns";
@@ -20,11 +20,24 @@ const RdoDashboard = ({ rdoList, currentDate, isLoading }: RdoDashboardProps) =>
     });
   }, [rdoList, currentDate]);
 
-  const totalCost = useMemo(() => {
-    return currentMonthRdos.reduce((sum, rdo) => {
-      const manpowerCost = rdo.rdo_mao_de_obra?.reduce((mSum, m) => mSum + (m.quantidade * (m.custo_unitario || 0)), 0) || 0;
-      return sum + manpowerCost;
-    }, 0);
+  const { totalCost, ownTeamCost, outsourcedCost } = useMemo(() => {
+    let total = 0;
+    let own = 0;
+    let outsourced = 0;
+    
+    currentMonthRdos.forEach(rdo => {
+      rdo.rdo_mao_de_obra?.forEach(m => {
+        const cost = m.quantidade * (m.custo_unitario || 0);
+        total += cost;
+        if (m.tipo === 'Própria') {
+          own += cost;
+        } else if (m.tipo === 'Terceirizada') {
+          outsourced += cost;
+        }
+      });
+    });
+    
+    return { totalCost: total, ownTeamCost: own, outsourcedCost: outsourced };
   }, [currentMonthRdos]);
 
   const averageWorkforce = useMemo(() => {
@@ -85,10 +98,10 @@ const RdoDashboard = ({ rdoList, currentDate, isLoading }: RdoDashboardProps) =>
   return (
     <div className="space-y-6">
       {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Custo Total Acumulado (Mês)</CardTitle>
+            <CardTitle className="text-sm font-medium">Custo Total Mão de Obra (Mês)</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -97,6 +110,32 @@ const RdoDashboard = ({ rdoList, currentDate, isLoading }: RdoDashboardProps) =>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               {currentMonthRdos.length} dias registrados
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Custo Equipe Própria</CardTitle>
+            <Briefcase className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold">{formatCurrency(ownTeamCost)}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {((ownTeamCost / totalCost) * 100).toFixed(0)}% do total
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Custo Terceirizada</CardTitle>
+            <Handshake className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold">{formatCurrency(outsourcedCost)}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {((outsourcedCost / totalCost) * 100).toFixed(0)}% do total
             </p>
           </CardContent>
         </Card>
@@ -109,20 +148,7 @@ const RdoDashboard = ({ rdoList, currentDate, isLoading }: RdoDashboardProps) =>
           <CardContent>
             <div className="text-2xl font-bold">{averageWorkforce} funcionários</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Média diária no mês
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Dias de Chuva/Impraticáveis</CardTitle>
-            <CloudRain className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-500">{rainDays} dias</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {Math.round((rainDays / currentMonthRdos.length) * 100) || 0}% dos dias registrados
+              Dias de chuva: {rainDays}
             </p>
           </CardContent>
         </Card>

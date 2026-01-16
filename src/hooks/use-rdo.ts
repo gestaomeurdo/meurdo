@@ -13,6 +13,8 @@ export interface RdoAtividadeDetalhe {
   foto_anexo_url: string | null;
 }
 
+export type WorkforceType = 'Própria' | 'Terceirizada';
+
 export interface RdoMaoDeObra {
   id: string;
   diario_id: string;
@@ -20,6 +22,7 @@ export interface RdoMaoDeObra {
   quantidade: number;
   custo_unitario: number; 
   cargo_id: string | null;
+  tipo: WorkforceType; // NEW
 }
 
 export interface RdoEquipamento {
@@ -28,6 +31,17 @@ export interface RdoEquipamento {
   equipamento: string;
   horas_trabalhadas: number;
   horas_paradas: number;
+}
+
+// NEW Material Type
+export interface RdoMaterial {
+  id: string;
+  diario_id: string;
+  nome_material: string;
+  unidade: string;
+  quantidade_entrada: number;
+  quantidade_consumida: number;
+  observacao: string | null;
 }
 
 // --- Main RDO Type ---
@@ -46,9 +60,16 @@ export interface DiarioObra {
   created_at: string;
   responsavel?: string;
   
+  // New fields
+  responsible_signature_url: string | null; // NEW
+  client_signature_url: string | null; // NEW
+  work_stopped: boolean; // NEW
+  hours_lost: number; // NEW
+  
   rdo_atividades_detalhe?: RdoAtividadeDetalhe[];
   rdo_mao_de_obra?: RdoMaoDeObra[];
   rdo_equipamentos?: RdoEquipamento[];
+  rdo_materiais?: RdoMaterial[]; // NEW
 }
 
 // --- Fetching Single RDO ---
@@ -59,7 +80,8 @@ const fetchRdoByDate = async (obraId: string, date: string): Promise<DiarioObra 
       *,
       rdo_atividades_detalhe (*),
       rdo_mao_de_obra (*),
-      rdo_equipamentos (*)
+      rdo_equipamentos (*),
+      rdo_materiais (*)
     `)
     .eq('obra_id', obraId)
     .eq('data_rdo', date)
@@ -121,7 +143,8 @@ export const fetchPreviousRdo = async (obraId: string, currentDate: Date): Promi
       obra_id,
       data_rdo,
       rdo_mao_de_obra (*),
-      rdo_equipamentos (*)
+      rdo_equipamentos (*),
+      rdo_materiais (*)
     `)
     .eq('obra_id', obraId)
     .eq('data_rdo', yesterdayString)
@@ -139,9 +162,17 @@ export interface RdoInput {
   status_dia: RdoStatusDia;
   observacoes_gerais: string | null;
   impedimentos_comentarios: string | null;
+  
+  // New fields for main RDO
+  responsible_signature_url: string | null;
+  client_signature_url: string | null;
+  work_stopped: boolean;
+  hours_lost: number;
+
   atividades: Omit<RdoAtividadeDetalhe, 'id' | 'diario_id'>[];
   mao_de_obra: Omit<RdoMaoDeObra, 'id' | 'diario_id' | 'cargo_id'>[]; 
   equipamentos: Omit<RdoEquipamento, 'id' | 'diario_id'>[];
+  materiais: Omit<RdoMaterial, 'id' | 'diario_id' | 'created_at'>[]; // NEW
 }
 
 const insertRdoDetails = async (diarioId: string, details: RdoInput) => {
@@ -157,6 +188,10 @@ const insertRdoDetails = async (diarioId: string, details: RdoInput) => {
         const { error } = await supabase.from('rdo_equipamentos').insert(details.equipamentos.map(e => ({ ...e, diario_id: diarioId })));
         if (error) throw error;
     }
+    if (details.materiais.length > 0) { // NEW
+        const { error } = await supabase.from('rdo_materiais').insert(details.materiais.map(m => ({ ...m, diario_id: diarioId })));
+        if (error) throw error;
+    }
 };
 
 export const useCreateRdo = () => {
@@ -166,7 +201,7 @@ export const useCreateRdo = () => {
   return useMutation<DiarioObra, Error, RdoInput>({
     mutationFn: async (newRdo) => {
       if (!user) throw new Error("Usuário não autenticado.");
-      const { atividades, mao_de_obra, equipamentos, ...mainRdo } = newRdo;
+      const { atividades, mao_de_obra, equipamentos, materiais, ...mainRdo } = newRdo;
       
       const { data, error } = await supabase
         .from('diarios_obra')
@@ -195,7 +230,7 @@ export const useUpdateRdo = () => {
   return useMutation<DiarioObra, Error, RdoInput & { id: string }>({
     mutationFn: async (updatedRdo) => {
       if (!user) throw new Error("Usuário não autenticado.");
-      const { id, atividades, mao_de_obra, equipamentos, ...mainRdo } = updatedRdo;
+      const { id, atividades, mao_de_obra, equipamentos, materiais, ...mainRdo } = updatedRdo;
       
       const { error: updateError } = await supabase
         .from('diarios_obra')
@@ -204,10 +239,13 @@ export const useUpdateRdo = () => {
 
       if (updateError) throw new Error(updateError.message);
       
+      // Delete old details
       await supabase.from('rdo_atividades_detalhe').delete().eq('diario_id', id);
       await supabase.from('rdo_mao_de_obra').delete().eq('diario_id', id);
       await supabase.from('rdo_equipamentos').delete().eq('diario_id', id);
+      await supabase.from('rdo_materiais').delete().eq('diario_id', id); // NEW
       
+      // Insert new details
       await insertRdoDetails(id, updatedRdo);
       
       const completeRdo = await fetchRdoByDate(updatedRdo.obra_id, updatedRdo.data_rdo);

@@ -7,15 +7,17 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { showSuccess, showError } from "@/utils/toast";
-import { CalendarIcon, Loader2, Save, FileDown, DollarSign, CheckCircle, Trash2 } from "lucide-react";
+import { CalendarIcon, Loader2, Save, FileDown, DollarSign, CheckCircle, Trash2, CloudRain, Clock } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { DiarioObra, RdoClima, RdoStatusDia, useCreateRdo, useUpdateRdo, usePayRdo, useDeleteRdo } from "@/hooks/use-rdo";
+import { DiarioObra, RdoClima, RdoStatusDia, useCreateRdo, useUpdateRdo, usePayRdo, useDeleteRdo, WorkforceType } from "@/hooks/use-rdo";
 import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
 import RdoEquipmentForm from "./RdoEquipmentForm";
+import RdoMaterialsForm from "./RdoMaterialsForm"; // NEW
+import RdoSignaturePad from "./RdoSignaturePad"; // NEW
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMemo, useEffect, useState } from "react";
 import { formatCurrency } from "@/utils/formatters";
@@ -24,9 +26,11 @@ import { useObras } from "@/hooks/use-obras";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const statusOptions: RdoStatusDia[] = ['Operacional', 'Parcialmente Paralisado', 'Totalmente Paralisado - Não Praticável'];
 const climaOptions: RdoClima[] = ['Sol', 'Nublado', 'Chuva Leve', 'Chuva Forte'];
+const workforceTypes: WorkforceType[] = ['Própria', 'Terceirizada'];
 
 const RdoDetailSchema = z.object({
   descricao_servico: z.string().min(5, "Descrição é obrigatória."),
@@ -38,12 +42,21 @@ const ManpowerSchema = z.object({
   funcao: z.string().min(3, "Função é obrigatória."),
   quantidade: z.number().min(0),
   custo_unitario: z.number().min(0).optional(),
+  tipo: z.enum(workforceTypes), // NEW
 });
 
 const EquipmentSchema = z.object({
   equipamento: z.string().min(3, "Equipamento é obrigatório."),
   horas_trabalhadas: z.number().min(0),
   horas_paradas: z.number().min(0),
+});
+
+const MaterialSchema = z.object({ // NEW
+  nome_material: z.string().min(3, "Nome é obrigatório."),
+  unidade: z.string().min(1, "Unidade é obrigatória."),
+  quantidade_entrada: z.number().min(0).optional(),
+  quantidade_consumida: z.number().min(0).optional(),
+  observacao: z.string().nullable().optional(),
 });
 
 const RdoSchema = z.object({
@@ -53,9 +66,17 @@ const RdoSchema = z.object({
   status_dia: z.enum(statusOptions, { required_error: "O status do dia é obrigatório." }),
   observacoes_gerais: z.string().nullable().optional(),
   impedimentos_comentarios: z.string().nullable().optional(),
+  
+  // New fields
+  responsible_signature_url: z.string().nullable().optional(),
+  client_signature_url: z.string().nullable().optional(),
+  work_stopped: z.boolean().default(false),
+  hours_lost: z.number().min(0).max(24).default(0),
+
   atividades: z.array(RdoDetailSchema).min(1, "Pelo menos uma atividade deve ser registrada."),
   mao_de_obra: z.array(ManpowerSchema).optional(),
   equipamentos: z.array(EquipmentSchema).optional(),
+  materiais: z.array(MaterialSchema).optional(), // NEW
 });
 
 type RdoFormValues = z.infer<typeof RdoSchema>;
@@ -71,7 +92,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
   const isEditing = !!initialData;
   const createMutation = useCreateRdo();
   const updateMutation = useUpdateRdo();
-  const deleteMutation = useDeleteRdo(); // New hook
+  const deleteMutation = useDeleteRdo();
   const payRdoMutation = usePayRdo();
   const queryClient = useQueryClient();
   const { data: obras } = useObras();
@@ -87,20 +108,38 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
       status_dia: initialData?.status_dia || 'Operacional',
       observacoes_gerais: initialData?.observacoes_gerais || "",
       impedimentos_comentarios: initialData?.impedimentos_comentarios || "",
+      
+      // New fields defaults
+      responsible_signature_url: initialData?.responsible_signature_url || null,
+      client_signature_url: initialData?.client_signature_url || null,
+      work_stopped: initialData?.work_stopped || false,
+      hours_lost: initialData?.hours_lost || 0,
+
       atividades: initialData?.rdo_atividades_detalhe?.map(a => ({
         descricao_servico: a.descricao_servico,
         avanco_percentual: a.avanco_percentual,
         foto_anexo_url: a.foto_anexo_url,
       })) || [{ descricao_servico: "", avanco_percentual: 0, foto_anexo_url: null }],
+      
       mao_de_obra: initialData?.rdo_mao_de_obra?.map(m => ({
         funcao: m.funcao,
         quantidade: m.quantidade,
         custo_unitario: m.custo_unitario,
+        tipo: m.tipo || 'Própria', // Ensure default type if missing
       })) || [],
+      
       equipamentos: initialData?.rdo_equipamentos?.map(e => ({
         equipamento: e.equipamento,
         horas_trabalhadas: e.horas_trabalhadas,
         horas_paradas: e.horas_paradas,
+      })) || [],
+      
+      materiais: initialData?.rdo_materiais?.map(m => ({ // NEW
+        nome_material: m.nome_material,
+        unidade: m.unidade,
+        quantidade_entrada: m.quantidade_entrada,
+        quantidade_consumida: m.quantidade_consumida,
+        observacao: m.observacao,
       })) || [],
     },
   });
@@ -135,6 +174,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
           funcao: m.funcao,
           quantidade: m.quantidade,
           custo_unitario: m.custo_unitario || 0,
+          tipo: m.tipo || 'Própria', // Ensure type is carried over
         })));
         showSuccess("Equipe copiada do dia anterior para facilitar o preenchimento.");
       }
@@ -146,17 +186,43 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
           horas_paradas: e.horas_paradas,
         })));
       }
+      
+      if (previousRdoData.rdo_materiais && previousRdoData.rdo_materiais.length > 0) {
+        methods.setValue("materiais", previousRdoData.rdo_materiais.map(m => ({
+          nome_material: m.nome_material,
+          unidade: m.unidade,
+          quantidade_entrada: 0, // Reset entry quantity
+          quantidade_consumida: 0, // Reset consumed quantity
+          observacao: m.observacao,
+        })));
+      }
     }
   }, [previousRdoData, isEditing, methods]);
 
   const watchManpower = methods.watch("mao_de_obra");
+  const watchClima = methods.watch("clima_condicoes");
+  const watchWorkStopped = methods.watch("work_stopped");
+  const watchHoursLost = methods.watch("hours_lost");
+  const watchResponsibleSig = methods.watch("responsible_signature_url");
+  const watchClientSig = methods.watch("client_signature_url");
+  
   const estimatedDailyCost = useMemo(() => {
     return watchManpower?.reduce((sum, item) => sum + (item.quantidade * (item.custo_unitario || 0)), 0) || 0;
   }, [watchManpower]);
 
   const handleExportPdf = () => {
     if (initialData) {
-      generateRdoPdf(initialData, obraNome);
+      // Ensure we pass the latest data including signatures
+      const currentData: DiarioObra = {
+        ...initialData,
+        responsible_signature_url: watchResponsibleSig,
+        client_signature_url: watchClientSig,
+        work_stopped: watchWorkStopped,
+        hours_lost: watchHoursLost,
+        rdo_mao_de_obra: methods.getValues('mao_de_obra') as any,
+        rdo_materiais: methods.getValues('materiais') as any,
+      };
+      generateRdoPdf(currentData, obraNome);
     } else {
       showError("Salve o RDO antes de exportar.");
     }
@@ -201,6 +267,14 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
       showError(`Erro ao excluir RDO: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
     }
   };
+  
+  const handleSignatureSave = (url: string, type: 'responsible' | 'client') => {
+    if (type === 'responsible') {
+        methods.setValue('responsible_signature_url', url, { shouldDirty: true });
+    } else {
+        methods.setValue('client_signature_url', url, { shouldDirty: true });
+    }
+  };
 
   const onSubmit = async (values: RdoFormValues) => {
     try {
@@ -208,6 +282,8 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
         ...values,
         data_rdo: format(values.data_rdo, 'yyyy-MM-dd'),
         mao_de_obra: values.mao_de_obra?.map(m => ({ ...m, custo_unitario: m.custo_unitario || 0 })) || [],
+        // Ensure hours_lost is 0 if work_stopped is false
+        hours_lost: values.work_stopped ? values.hours_lost : 0,
       };
 
       if (isEditing && initialData) {
@@ -228,6 +304,9 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
   const isPaying = payRdoMutation.isPending;
   const isPaymentRegistered = !!existingPayment;
   const canPay = isEditing && !isPaymentRegistered && estimatedDailyCost > 0;
+  
+  // Conditional rendering for weather fields
+  const isRainy = watchClima?.includes('Chuva');
 
   return (
     <FormProvider {...methods}>
@@ -329,17 +408,51 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
                 />
             </div>
         </div>
+        
+        {/* Conditional Weather Fields */}
+        {isRainy && (
+            <div className="p-4 border border-yellow-500/50 rounded-xl bg-yellow-50/10 space-y-4">
+                <div className="flex items-center text-sm font-semibold text-yellow-700">
+                    <CloudRain className="w-4 h-4 mr-2" /> Condições Climáticas
+                </div>
+                <FormField control={methods.control} name="work_stopped" render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-lg border p-3">
+                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                        <div className="space-y-1 leading-none">
+                            <FormLabel>Houve paralisação total ou parcial devido ao clima?</FormLabel>
+                        </div>
+                    </FormItem>
+                )}
+                />
+                {watchWorkStopped && (
+                    <FormField control={methods.control} name="hours_lost" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="flex items-center">
+                                <Clock className="w-4 h-4 mr-2" /> Horas Perdidas (0.0 a 24.0)
+                            </FormLabel>
+                            <FormControl>
+                                <Input type="number" step="0.5" placeholder="Ex: 4.5" {...field} value={field.value || 0} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                )}
+            </div>
+        )}
 
         <Tabs defaultValue="atividades" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="atividades">Atividades</TabsTrigger>
             <TabsTrigger value="mao_de_obra">Mão de Obra</TabsTrigger>
             <TabsTrigger value="equipamentos">Equipamentos</TabsTrigger>
+            <TabsTrigger value="materiais">Materiais</TabsTrigger> {/* NEW TAB */}
             <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger>
           </TabsList>
           <TabsContent value="atividades" className="pt-4"><RdoActivitiesForm obraId={obraId} /></TabsContent>
           <TabsContent value="mao_de_obra" className="pt-4"><RdoManpowerForm /></TabsContent>
           <TabsContent value="equipamentos" className="pt-4"><RdoEquipmentForm /></TabsContent>
+          <TabsContent value="materiais" className="pt-4"><RdoMaterialsForm /></TabsContent> {/* NEW CONTENT */}
           <TabsContent value="ocorrencias" className="pt-4 space-y-4">
             <FormField control={methods.control} name="impedimentos_comentarios" render={({ field }) => (
                 <FormItem><FormLabel>Impedimentos</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} /></FormControl></FormItem>
@@ -351,6 +464,34 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
             />
           </TabsContent>
         </Tabs>
+        
+        {/* Signatures Section */}
+        <div className="pt-6 border-t">
+            <h2 className="text-xl font-bold mb-4">Assinaturas de Validação</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <RdoSignaturePad 
+                    diarioId={initialData?.id || 'new'}
+                    obraId={obraId}
+                    signatureType="responsible"
+                    currentSignatureUrl={watchResponsibleSig}
+                    onSignatureSave={(url) => handleSignatureSave(url, 'responsible')}
+                />
+                <RdoSignaturePad 
+                    diarioId={initialData?.id || 'new'}
+                    obraId={obraId}
+                    signatureType="client"
+                    currentSignatureUrl={watchClientSig}
+                    onSignatureSave={(url) => handleSignatureSave(url, 'client')}
+                />
+            </div>
+        </div>
+        
+        <div className="flex justify-end pt-4">
+            <Button type="submit" disabled={isSaving} className="min-w-[150px]">
+              {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+              Salvar RDO
+            </Button>
+        </div>
       </form>
     </FormProvider>
   );

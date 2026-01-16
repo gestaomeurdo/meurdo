@@ -16,6 +16,17 @@ export const generateRdoPdf = async (rdo: DiarioObra, obraNome: string) => {
   const doc = new jsPDF();
   const margin = 15;
   let y = 20;
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const footerY = pageHeight - 30;
+
+  // Helper to check for new page
+  const checkPage = (requiredSpace: number) => {
+    if (y + requiredSpace > pageHeight - 40) {
+      doc.addPage();
+      y = 20;
+    }
+  };
 
   // --- Header ---
   try {
@@ -43,7 +54,13 @@ export const generateRdoPdf = async (rdo: DiarioObra, obraNome: string) => {
 
   y += 6;
   doc.text(`Clima: ${rdo.clima_condicoes || 'N/A'}`, margin, y);
-  doc.text(`Status: ${rdo.status_dia}`, 140, y);
+  doc.text(`Status do Dia: ${rdo.status_dia}`, 140, y);
+  
+  y += 6;
+  doc.text(`Paralisação Climática: ${rdo.work_stopped ? 'Sim' : 'Não'}`, margin, y);
+  if (rdo.work_stopped) {
+    doc.text(`Horas Perdidas: ${rdo.hours_lost.toFixed(1)}h`, 140, y);
+  }
 
   y += 10;
   doc.setDrawColor(200);
@@ -51,6 +68,7 @@ export const generateRdoPdf = async (rdo: DiarioObra, obraNome: string) => {
   y += 10;
 
   // --- Manpower Table ---
+  checkPage(50);
   doc.setFontSize(14);
   doc.setTextColor(0);
   doc.text("Efetivo (Mão de Obra)", margin, y);
@@ -58,6 +76,7 @@ export const generateRdoPdf = async (rdo: DiarioObra, obraNome: string) => {
 
   const manpowerData = rdo.rdo_mao_de_obra?.map(m => [
     m.funcao,
+    m.tipo || 'N/A',
     m.quantidade,
     formatCurrency(m.custo_unitario || 0),
     formatCurrency((m.quantidade || 0) * (m.custo_unitario || 0))
@@ -65,7 +84,7 @@ export const generateRdoPdf = async (rdo: DiarioObra, obraNome: string) => {
 
   doc.autoTable({
     startY: y,
-    head: [['Função', 'Qtd', 'Custo Unit.', 'Total Est.']],
+    head: [['Função', 'Tipo', 'Qtd', 'Custo Unit.', 'Total Est.']],
     body: manpowerData,
     margin: { left: margin },
     theme: 'striped',
@@ -73,8 +92,35 @@ export const generateRdoPdf = async (rdo: DiarioObra, obraNome: string) => {
   });
 
   y = (doc as any).lastAutoTable.finalY + 15;
+  
+  // --- Materials Table ---
+  if (rdo.rdo_materiais && rdo.rdo_materiais.length > 0) {
+    checkPage(50);
+    doc.text("Controle de Materiais", margin, y);
+    y += 5;
+
+    const materialsData = rdo.rdo_materiais?.map(m => [
+      m.nome_material,
+      m.unidade,
+      m.quantidade_entrada || 0,
+      m.quantidade_consumida || 0,
+      m.observacao || ''
+    ]) || [];
+
+    doc.autoTable({
+      startY: y,
+      head: [['Material', 'Unidade', 'Qtd. Entrada', 'Qtd. Consumida', 'Observação']],
+      body: materialsData,
+      margin: { left: margin },
+      theme: 'grid',
+      headStyles: { fillColor: [50, 50, 50] }
+    });
+
+    y = (doc as any).lastAutoTable.finalY + 15;
+  }
 
   // --- Activities Table ---
+  checkPage(50);
   doc.text("Atividades Realizadas", margin, y);
   y += 5;
 
@@ -89,26 +135,71 @@ export const generateRdoPdf = async (rdo: DiarioObra, obraNome: string) => {
     body: activitiesData,
     margin: { left: margin },
     theme: 'grid',
-    headStyles: { fillStyle: [50, 50, 50] }
+    headStyles: { fillColor: [50, 50, 50] }
   });
 
   y = (doc as any).lastAutoTable.finalY + 15;
 
   // --- Observations ---
   if (rdo.observacoes_gerais || rdo.impedimentos_comentarios) {
+    checkPage(40);
     doc.text("Ocorrências e Observações", margin, y);
     y += 7;
     doc.setFontSize(10);
-    const obs = [rdo.impedimentos_comentarios, rdo.observacoes_gerais].filter(Boolean).join('\n\n');
+    const obs = [
+      `Impedimentos: ${rdo.impedimentos_comentarios || 'Nenhum'}`,
+      `Observações Gerais: ${rdo.observacoes_gerais || 'Nenhuma'}`
+    ].join('\n\n');
     const splitObs = doc.splitTextToSize(obs, 180);
     doc.text(splitObs, margin, y);
     y += (splitObs.length * 5) + 15;
   }
 
+  // --- Signatures (Fixed Footer Position) ---
+  const drawSignatures = async () => {
+    doc.setDrawColor(0);
+    doc.setFontSize(10);
+    
+    // Responsible Signature
+    doc.text("___________________________________", margin, footerY);
+    doc.text("Assinatura do Responsável", margin, footerY + 5);
+    
+    if (rdo.responsible_signature_url) {
+      try {
+        const img = await fetch(rdo.responsible_signature_url).then(res => res.blob());
+        const reader = new FileReader();
+        reader.readAsDataURL(img);
+        await new Promise(resolve => reader.onloadend = resolve);
+        const base64Img = reader.result as string;
+        doc.addImage(base64Img, 'PNG', margin + 5, footerY - 25, 50, 20);
+      } catch (e) {
+        doc.text("[Erro ao carregar assinatura]", margin + 5, footerY - 10);
+      }
+    }
+
+    // Client Signature
+    const clientX = pageWidth / 2 + 10;
+    doc.text("___________________________________", clientX, footerY);
+    doc.text("Assinatura do Cliente/Fiscal", clientX, footerY + 5);
+    
+    if (rdo.client_signature_url) {
+      try {
+        const img = await fetch(rdo.client_signature_url).then(res => res.blob());
+        const reader = new FileReader();
+        reader.readAsDataURL(img);
+        await new Promise(resolve => reader.onloadend = resolve);
+        const base64Img = reader.result as string;
+        doc.addImage(base64Img, 'PNG', clientX + 5, footerY - 25, 50, 20);
+      } catch (e) {
+        doc.text("[Erro ao carregar assinatura]", clientX + 5, footerY - 10);
+      }
+    }
+  };
+  
   // --- Photo Gallery ---
   const photos = rdo.rdo_atividades_detalhe?.filter(a => a.foto_anexo_url) || [];
   if (photos.length > 0) {
-    if (y > 240) { doc.addPage(); y = 20; }
+    checkPage(40);
     doc.setFontSize(14);
     doc.text("Galeria de Fotos", margin, y);
     y += 10;
@@ -118,7 +209,7 @@ export const generateRdoPdf = async (rdo: DiarioObra, obraNome: string) => {
     let currentX = margin;
 
     for (let i = 0; i < photos.length; i++) {
-      if (y > 220) { doc.addPage(); y = 20; currentX = margin; }
+      if (y > pageHeight - 80) { doc.addPage(); y = 20; currentX = margin; }
 
       try {
         const photoUrl = photos[i].foto_anexo_url!;
@@ -138,6 +229,12 @@ export const generateRdoPdf = async (rdo: DiarioObra, obraNome: string) => {
       }
     }
   }
+  
+  // Ensure signatures are on the last page or a new page if needed
+  if (y > footerY - 40) {
+      doc.addPage();
+  }
+  await drawSignatures();
 
   doc.save(`RDO_${formatDate(rdo.data_rdo).replace(/\//g, '-')}_${obraNome.replace(/\s/g, '_')}.pdf`);
 };
