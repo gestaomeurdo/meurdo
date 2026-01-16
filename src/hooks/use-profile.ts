@@ -1,39 +1,57 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/integrations/supabase/auth-provider";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import * as z from "zod";
 
-// Mantendo apenas a interface para o TS não reclamar
-export interface Profile {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-  avatar_url: string | null;
-  role: 'administrator' | 'obra_user' | 'view_only';
-  subscription_status: string | null;
-  stripe_customer_id: string | null;
-  plan_type: string | null;
-}
+// Schema definitivo e resiliente para o Perfil
+export const ProfileSchema = z.object({
+  id: z.string(),
+  first_name: z.string().nullish(),
+  last_name: z.string().nullish(),
+  avatar_url: z.string().nullish(),
+  role: z.enum(['administrator', 'obra_user', 'view_only']).default('obra_user'),
+  subscription_status: z.enum([
+    'active', 
+    'trialing', 
+    'past_due', 
+    'canceled', 
+    'incomplete', 
+    'incomplete_expired', 
+    'free'
+  ]).nullable().default('free'),
+  plan_type: z.string().nullable().default('free'),
+  stripe_customer_id: z.string().nullish(),
+});
+
+export type Profile = z.infer<typeof ProfileSchema>;
 
 export const fetchProfile = async (userId: string): Promise<Profile | null> => {
-  console.log("[DEBUG] Iniciando fetchProfile para:", userId);
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*') // Buscando tudo para debug
+      .select('id, first_name, last_name, avatar_url, role, subscription_status, stripe_customer_id, plan_type')
       .eq('id', userId)
       .maybeSingle();
 
     if (error) {
-      console.error("[DEBUG] Erro Supabase no fetchProfile:", error);
+      console.error("[fetchProfile] Erro ao buscar perfil:", error.message);
       return null;
     }
 
-    console.log("[DEBUG] Dados brutos recebidos do Supabase:", data);
+    if (!data) return null;
+
+    // Aplica a validação Zod corrigida
+    const result = ProfileSchema.safeParse(data);
     
-    // RETORNANDO DADOS BRUTOS SEM VALIDAÇÃO ZOD
-    return data as any;
+    if (!result.success) {
+      console.error("[fetchProfile] Falha na validação de dados:", result.error.format());
+      // Fallback para garantir que o app não quebre se houver um campo inesperado
+      return data as Profile;
+    }
+
+    return result.data;
   } catch (err) {
-    console.error("[DEBUG] Falha catastrófica no fetchProfile:", err);
+    console.error("[fetchProfile] Erro inesperado:", err);
     return null;
   }
 };
