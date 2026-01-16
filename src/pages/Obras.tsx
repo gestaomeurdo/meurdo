@@ -1,6 +1,6 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2, Loader2, MapPin, Calendar, Construction } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2, MapPin, Calendar, Construction, Zap } from "lucide-react";
 import ObraDialog from "@/components/obras/ObraDialog";
 import { useDeleteObra, useObras, Obra } from "@/hooks/use-obras";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { showSuccess, showError } from "@/utils/toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { formatCurrency, formatDate } from "@/utils/formatters";
+import { useCanCreateObra } from "@/hooks/use-subscription-limits";
+import { useState } from "react";
+import LimitReachedModal from "@/components/subscription/LimitReachedModal";
 
 const statusMap: Record<Obra['status'], string> = {
   ativa: "Ativa",
@@ -24,17 +27,19 @@ const statusColorMap: Record<Obra['status'], "default" | "secondary" | "destruct
 const Obras = () => {
   const { data: obras, isLoading, error } = useObras();
   const deleteMutation = useDeleteObra();
+  const { canCreate, isPro, isLoading: isLoadingLimits } = useCanCreateObra();
+  const [limitModalOpen, setLimitModalOpen] = useState(false);
 
   const handleDelete = async (id: string, nome: string) => {
     try {
       await deleteMutation.mutateAsync(id);
-      showSuccess(`Obra "${nome}" excluída com sucesso.`);
+      showSuccess(`Obra "\${nome}" excluída com sucesso.`);
     } catch (err) {
-      showError(`Erro ao excluir obra: ${err instanceof Error ? error.message : "Erro desconhecido"}`);
+      showError(`Erro ao excluir obra: \${err instanceof Error ? err.message : "Erro desconhecido"}`);
     }
   };
 
-  if (isLoading) {
+  if (isLoading || isLoadingLimits) {
     return (
       <DashboardLayout>
         <div className="p-6 flex justify-center items-center h-full">
@@ -45,26 +50,31 @@ const Obras = () => {
     );
   }
 
-  if (error) {
-    // Display the error message clearly if the query failed
-    return (
-      <DashboardLayout>
-        <div className="p-6 text-red-500 bg-card border border-destructive rounded-lg">
-          <h1 className="text-xl font-bold mb-2">Erro ao carregar obras</h1>
-          <p>Ocorreu um erro ao buscar os dados. Verifique a conexão ou as permissões (RLS).</p>
-          <p className="mt-2 text-sm italic">Detalhe: {error.message}</p>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
   return (
     <DashboardLayout>
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Gestão de Obras ({obras?.length || 0})</h1>
-          <ObraDialog />
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold">Gestão de Obras ({obras?.length || 0})</h1>
+            {!isPro && (
+              <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50">
+                Plano Free
+              </Badge>
+            )}
+          </div>
+          
+          {canCreate ? (
+            <ObraDialog />
+          ) : (
+            <Button onClick={() => setLimitModalOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Nova Obra
+            </Button>
+          )}
         </div>
+
+        {/* Modal de Limite */}
+        <LimitReachedModal open={limitModalOpen} onOpenChange={setLimitModalOpen} />
 
         {obras && obras.length === 0 ? (
           <div className="text-center py-12 border border-dashed rounded-lg bg-muted/50">
@@ -106,12 +116,6 @@ const Obras = () => {
                   <p className="flex items-center">
                     <Calendar className="w-4 h-4 mr-1 text-muted-foreground" />
                     <span className="font-medium">Início:</span> {formatDate(obra.data_inicio)}
-                    {obra.previsao_entrega && (
-                      <>
-                        <span className="mx-2 text-muted-foreground">|</span>
-                        <span className="font-medium">Entrega:</span> {formatDate(obra.previsao_entrega)}
-                      </>
-                    )}
                   </p>
                 </CardContent>
                 <div className="p-4 border-t flex justify-end space-x-2">
@@ -133,7 +137,7 @@ const Obras = () => {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Esta ação não pode ser desfeita. Isso excluirá permanentemente a obra <span className="font-bold">"{obra.nome}"</span> e todos os dados associados (despesas, documentos, etc.).
+                          Esta ação excluirá permanentemente a obra <span className="font-bold">"{obra.nome}"</span>.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -143,7 +147,7 @@ const Obras = () => {
                           disabled={deleteMutation.isPending}
                           className="bg-destructive hover:bg-destructive/90"
                         >
-                          {deleteMutation.isPending ? "Excluindo..." : "Excluir"}
+                          Excluir
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
