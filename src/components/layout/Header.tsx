@@ -1,9 +1,10 @@
-import { Menu, LogOut, Bell, UserCircle } from "lucide-react";
+import { Menu, LogOut, Bell, UserCircle, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/integrations/supabase/auth-provider";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useProfile } from "@/hooks/use-profile";
+import { Link } from "react-router-dom";
 
 interface HeaderProps {
   setSidebarOpen: (isOpen: boolean) => void;
@@ -49,8 +50,11 @@ const Header = ({ setSidebarOpen }: HeaderProps) => {
             <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => console.log("View Profile")}>
-                    Ver Perfil
+                <DropdownMenuItem asChild>
+                    <Link to="/profile" className="flex items-center">
+                        <User className="h-4 w-4 mr-2" />
+                        Ver Perfil
+                    </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => signOut()} className="text-destructive">
                     <LogOut className="h-4 w-4 mr-2" />

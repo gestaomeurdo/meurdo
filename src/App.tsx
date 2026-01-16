@@ -17,6 +17,7 @@ import Documentacao from "./pages/Documentacao";
 import Settings from "./pages/Settings";
 import Relatorios from "./pages/Relatorios";
 import GestaoRdo from "./pages/GestaoRdo";
+import Profile from "./pages/Profile";
 import { ThemeProvider } from "./components/layout/ThemeProvider";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ const App = () => (
               <Route path="/mao-de-obra" element={<MaoDeObra />} />
               <Route path="/documentacao" element={<Documentacao />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </SessionContextProvider>
