@@ -3,7 +3,7 @@ import { showError, showSuccess } from "@/utils/toast";
 import { useState } from "react";
 
 // NOTE: Replace with your actual Supabase Project ID
-const SUPABASE_PROJECT_ID = "edguowimanbdjyubspas";
+const SUPABASE_PROJECT_ID = "cferbwjdggkvbllrtyxb";
 const FUNCTION_URL = `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/export-activities-csv`;
 
 interface ExportActivitiesParams {
@@ -47,7 +47,7 @@ export const useExportActivitiesCsv = () => {
       const blob = await response.blob();
       const contentDisposition = response.headers.get('Content-Disposition');
       const filenameMatch = contentDisposition && contentDisposition.match(/filename="(.+)"/);
-      const filename = filenameMatch ? filenameMatch[1] : 'relatorio_atividades.csv';
+      const filename = filenameMatch ? filename[1] : 'relatorio_atividades.csv';
 
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');

@@ -17,34 +17,37 @@ import Documentacao from "./pages/Documentacao";
 import Settings from "./pages/Settings";
 import Relatorios from "./pages/Relatorios";
 import GestaoRdo from "./pages/GestaoRdo";
+import { ThemeProvider } from "./components/layout/ThemeProvider";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <SessionContextProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/obras" element={<Obras />} />
-            <Route path="/financeiro" element={<Financeiro />} />
-            <Route path="/relatorios" element={<Relatorios />} />
-            <Route path="/atividades" element={<Atividades />} />
-            <Route path="/gestao-rdo" element={<GestaoRdo />} />
-            <Route path="/materiais" element={<Materiais />} />
-            <Route path="/mao-de-obra" element={<MaoDeObra />} />
-            <Route path="/documentacao" element={<Documentacao />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </SessionContextProvider>
-      </BrowserRouter>
-    </TooltipProvider>
+    <ThemeProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <SessionContextProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/obras" element={<Obras />} />
+              <Route path="/financeiro" element={<Financeiro />} />
+              <Route path="/relatorios" element={<Relatorios />} />
+              <Route path="/atividades" element={<Atividades />} />
+              <Route path="/gestao-rdo" element={<GestaoRdo />} />
+              <Route path="/materiais" element={<Materiais />} />
+              <Route path="/mao-de-obra" element={<MaoDeObra />} />
+              <Route path="/documentacao" element={<Documentacao />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </SessionContextProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

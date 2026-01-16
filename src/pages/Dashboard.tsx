@@ -2,20 +2,24 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/integrations/supabase/auth-provider";
 import { useProfile } from "@/hooks/use-profile";
-import { useDashboardData } from "@/hooks/use-dashboard-data";
-import { Loader2, Construction, DollarSign, AlertTriangle, Clock } from "lucide-react";
-import BudgetChart from "@/components/dashboard/BudgetChart";
+import { Loader2, Construction, DollarSign, AlertTriangle, Clock, FileText, Users, Plus } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
+import { useRdoDashboardMetrics } from "@/hooks/use-rdo-dashboard-metrics";
+import RecentRdoList from "@/components/dashboard/RecentRdoList";
+import RdoDialog from "@/components/rdo/RdoDialog";
+import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Dashboard = () => {
   const { user } = useAuth();
   const { data: profile } = useProfile();
-  const { data, isLoading } = useDashboardData();
+  const { data: rdoMetrics, isLoading: isLoadingRdoMetrics } = useRdoDashboardMetrics();
+  const isMobile = useIsMobile();
   
   const firstName = profile?.first_name || user?.email?.split('@')[0] || "Usuário";
 
-  const MetricCard = ({ title, value, description, icon: Icon, loading }) => (
-    <Card className="shadow-sm">
+  const MetricCard = ({ title, value, description, icon: Icon, loading, className = "" }) => (
+    <Card className={`shadow-sm border-l-4 border-l-primary ${className}`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium truncate pr-2">{title}</CardTitle>
         <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -33,50 +37,82 @@ const Dashboard = () => {
     </Card>
   );
 
+  // Placeholder ID to trigger the Obra selection logic inside RdoDialog
+  const dummyObraId = '00000000-0000-0000-0000-000000000000';
+
   return (
     <DashboardLayout>
       <div className="p-4 sm:p-6 space-y-6">
         <div className="space-y-1">
-          <h1 className="text-2xl sm:text-3xl font-bold truncate">Olá, {firstName}!</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">Bem-vindo(a), {firstName}!</h1>
           <p className="text-sm sm:text-lg text-muted-foreground">
-            Resumo do Diário de Obra.
+            Visão geral dos Relatórios Diários de Obra (RDOs).
           </p>
         </div>
         
-        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Main CTA Button */}
+        <RdoDialog
+          obraId={dummyObraId}
+          date={new Date()}
+          trigger={
+            <Button 
+              size="lg" 
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg font-semibold text-lg py-6"
+            >
+              <Plus className="w-6 h-6 mr-3" /> NOVO RDO
+            </Button>
+          }
+        />
+
+        {/* KPI Cards */}
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
           <MetricCard
-            title="Obras Ativas"
-            value={data?.activeObrasCount ?? 0}
-            description="Progresso das suas construções."
-            icon={Construction}
-            loading={isLoading}
+            title="RDOs Hoje"
+            value={rdoMetrics?.rdosTodayCount ?? 0}
+            description="Registros criados hoje."
+            icon={FileText}
+            loading={isLoadingRdoMetrics}
+            className="border-l-primary"
           />
           <MetricCard
-            title="Orçamento Total"
-            value={formatCurrency(data?.totalInitialBudget ?? 0)}
-            description="Soma dos orçamentos iniciais."
-            icon={DollarSign}
-            loading={isLoading}
+            title="Mão de Obra Total"
+            value={rdoMetrics?.totalManpowerToday ?? 0}
+            description="Efetivo total registrado hoje."
+            icon={Users}
+            loading={isLoadingRdoMetrics}
+            className="border-l-green-500"
           />
           <MetricCard
-            title="Alertas"
-            value={0}
-            description="Itens pendentes detectados."
-            icon={AlertTriangle}
-            loading={false}
-          />
-          <MetricCard
-            title="Agenda"
-            value={"N/A"}
-            description="Próximas atividades planejadas."
+            title="Pendentes"
+            value={rdoMetrics?.pendingRdosCount ?? 0}
+            description="RDOs não operacionais (últimos 7 dias)."
             icon={Clock}
-            loading={false}
+            loading={isLoadingRdoMetrics}
+            className="border-l-yellow-500"
+          />
+          <MetricCard
+            title="Ocorrências Abertas"
+            value={rdoMetrics?.openOccurrencesCount ?? 0}
+            description="Impedimentos ou observações (últimos 7 dias)."
+            icon={AlertTriangle}
+            loading={isLoadingRdoMetrics}
+            className="border-l-destructive"
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-6">
-          <BudgetChart data={data?.chartData} isLoading={isLoading} />
-        </div>
+        {/* Recent RDOs */}
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-xl">Diários Recentes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <RecentRdoList 
+              recentRdos={rdoMetrics?.recentRdos || []} 
+              obraId={dummyObraId}
+              isLoading={isLoadingRdoMetrics} 
+            />
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );

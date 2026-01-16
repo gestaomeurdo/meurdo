@@ -4,7 +4,7 @@ import { useState } from "react";
 import { FetchEntriesParams } from "./use-financial-entries";
 
 // NOTE: Replace with your actual Supabase Project ID
-const SUPABASE_PROJECT_ID = "edguowimanbdjyubspas";
+const SUPABASE_PROJECT_ID = "cferbwjdggkvbllrtyxb";
 const FUNCTION_URL = `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/export-financial-csv`;
 
 export const useExportFinancialCsv = () => {

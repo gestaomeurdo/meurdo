@@ -5,6 +5,10 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/integrations/supabase/auth-provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProfile } from "@/hooks/use-profile";
+import { useTheme } from "next-themes";
+import { Sun, Moon } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface SidebarProps {
   isMobile: boolean;
@@ -16,9 +20,14 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: SidebarProps) => {
   const location = useLocation();
   const { user, isLoading: isAuthLoading } = useAuth();
   const { data: profile, isLoading: isProfileLoading } = useProfile();
+  const { theme, setTheme } = useTheme();
   
   const userRole = profile?.role || "view_only";
   const isLoading = isAuthLoading || isProfileLoading;
+
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
 
   if (isLoading) {
     return (
@@ -51,7 +60,7 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: SidebarProps) => {
     >
       <div className="p-4 h-full flex flex-col">
         <div className="mb-6">
-          <img src="https://i.ibb.co/7dmMx016/Gemini-Generated-Image-qkvwxnqkvwxnqkvw-upscayl-2x-upscayl-standard-4x.png" alt="Diário de Obra Logo" className="h-12 mx-auto" />
+          <h1 className="text-2xl font-bold text-primary">MEU RDO</h1>
         </div>
         <nav className="flex-grow">
           {filteredNavItems.map((item) => (
@@ -77,7 +86,18 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: SidebarProps) => {
             </React.Fragment>
           ))}
         </nav>
-        <div className="mt-auto pt-4 border-t border-sidebar-border">
+        <div className="mt-auto pt-4 border-t border-sidebar-border space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              {theme === 'dark' ? <Moon className="w-5 h-5 text-sidebar-foreground" /> : <Sun className="w-5 h-5 text-sidebar-foreground" />}
+              <Label htmlFor="dark-mode-toggle" className="text-sm text-sidebar-foreground">Modo Escuro</Label>
+            </div>
+            <Switch
+              id="dark-mode-toggle"
+              checked={theme === 'dark'}
+              onCheckedChange={toggleTheme}
+            />
+          </div>
           <p className="text-sm text-sidebar-foreground/70 truncate">
             Usuário: {user?.email}
           </p>

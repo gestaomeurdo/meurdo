@@ -6,11 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="items-center">
-          <img src="https://i.ibb.co/7dmMx016/Gemini-Generated-Image-qkvwxnqkvwxnqkvw-upscayl-2x-upscayl-standard-4x.png" alt="Diário de Obra Logo" className="h-16" />
-          <CardTitle className="text-2xl text-center pt-4">
-            Diário de Obra
+          <h1 className="text-3xl font-bold text-primary">MEU RDO</h1>
+          <CardTitle className="text-xl text-center pt-2 text-foreground">
+            Acesse sua conta
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -22,13 +22,20 @@ const Login = () => {
               variables: {
                 default: {
                   colors: {
-                    brand: 'hsl(var(--primary))',
+                    brand: 'hsl(var(--primary))', // Blue
                     brandAccent: 'hsl(var(--primary-foreground))',
+                    defaultButtonBackground: 'hsl(var(--secondary))',
+                    defaultButtonBackgroundHover: 'hsl(var(--secondary-foreground))',
+                    inputBackground: 'hsl(var(--background))',
+                    inputBorder: 'hsl(var(--border))',
+                    inputBorderHover: 'hsl(var(--primary))',
+                    inputBorderFocus: 'hsl(var(--primary))',
+                    inputText: 'hsl(var(--foreground))',
                   },
                 },
               },
             }}
-            theme="dark"
+            theme="light" // Set theme explicitly to light
             view="sign_in"
             onlyAllowIf={['sign_in', 'forgotten_password']}
             localization={{
