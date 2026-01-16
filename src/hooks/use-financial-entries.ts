@@ -42,7 +42,7 @@ const fetchFinancialEntries = async ({ obraId, startDate, endDate, categoryId, p
     .select(`
       *,
       categorias_despesa (id, nome),
-      profiles!user_id (first_name, last_name, email)
+      profiles (first_name, last_name, avatar_url)
     `)
     .eq('obra_id', obraId)
     .order('data_gasto', { ascending: false });
@@ -62,7 +62,8 @@ const fetchFinancialEntries = async ({ obraId, startDate, endDate, categoryId, p
       profiles: {
         first_name: profileData.first_name,
         last_name: profileData.last_name,
-        email: profileData.email,
+        // Email is not selected in the query for security/simplicity, setting to null
+        email: null, 
       }
     }
   }) as FinancialEntry[];
