@@ -29,10 +29,8 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Função para carregar a sessão inicial e configurar o listener
     const initializeAuth = async () => {
       try {
-        // Busca a sessão atual imediatamente
         const { data: { session: initialSession } } = await supabase.auth.getSession();
         
         setSession(initialSession);
@@ -49,28 +47,31 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
         setIsLoading(false);
       }
 
-      // Configura o listener para mudanças futuras (login/logout)
       const { data: authListener } = supabase.auth.onAuthStateChange(
         async (event, currentSession) => {
-          setSession(currentSession);
-          const currentUser = currentSession?.user ?? null;
-          setUser(currentUser);
+          try {
+            setSession(currentSession);
+            const currentUser = currentSession?.user ?? null;
+            setUser(currentUser);
 
-          if (currentUser) {
-            const userProfile = await fetchProfile(currentUser.id);
-            setProfile(userProfile);
-          } else {
-            setProfile(null);
-          }
-          
-          setIsLoading(false);
+            if (currentUser) {
+              const userProfile = await fetchProfile(currentUser.id);
+              setProfile(userProfile);
+            } else {
+              setProfile(null);
+            }
 
-          if (event === 'SIGNED_IN') {
-            showSuccess("Login realizado com sucesso!");
-            navigate("/dashboard", { replace: true });
-          } else if (event === 'SIGNED_OUT') {
-            showSuccess("Sessão encerrada.");
-            navigate("/login", { replace: true });
+            if (event === 'SIGNED_IN') {
+              showSuccess("Login realizado com sucesso!");
+              navigate("/dashboard", { replace: true });
+            } else if (event === 'SIGNED_OUT') {
+              showSuccess("Sessão encerrada.");
+              navigate("/login", { replace: true });
+            }
+          } catch (err) {
+            console.error("Erro no AuthStateChange:", err);
+          } finally {
+            setIsLoading(false);
           }
         }
       );

@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/integrations/supabase/auth-provider";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+// Interface resiliente para o Perfil
 export interface Profile {
   id: string;
   first_name: string | null;
@@ -14,20 +15,29 @@ export interface Profile {
 }
 
 export const fetchProfile = async (userId: string): Promise<Profile | null> => {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, first_name, last_name, avatar_url, role, subscription_status, stripe_customer_id, plan_type')
-    .eq('id', userId)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, avatar_url, role, subscription_status, stripe_customer_id, plan_type')
+      .eq('id', userId)
+      .maybeSingle(); // Usar maybeSingle para evitar erro se não encontrar
 
-  if (error) {
-    console.error("Error fetching profile:", error.message);
+    if (error) {
+      console.error("[fetchProfile] Erro na busca:", error.message);
+      return null;
+    }
+    
+    // Fallback para valores padrão caso venham nulos do banco
+    return {
+      ...data,
+      subscription_status: data?.subscription_status || 'free',
+      plan_type: data?.plan_type || 'free',
+      role: data?.role || 'obra_user'
+    } as Profile;
+  } catch (err) {
+    console.error("[fetchProfile] Falha crítica:", err);
     return null;
   }
-  
-  if (!data) return null;
-
-  return data as Profile;
 };
 
 export const useProfile = () => {
