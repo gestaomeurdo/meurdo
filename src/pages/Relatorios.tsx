@@ -1,7 +1,7 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useObras } from "@/hooks/use-obras";
 import { useState, useEffect, useMemo } from "react";
-import { Loader2, DollarSign, ClipboardCheck, Route, AlertTriangle, Clock, TrendingUp } from "lucide-react";
+import { Loader2, DollarSign, ClipboardCheck, Route, AlertTriangle, Clock, TrendingUp, Zap } from "lucide-react";
 import ObraSelector from "@/components/financeiro/ObraSelector";
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarIcon } from "lucide-react";
@@ -20,8 +20,13 @@ import { useKmCost } from "@/hooks/use-km-cost";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ptBR } from "date-fns/locale";
+import { useAuth } from "@/integrations/supabase/auth-provider";
+import UpgradeButton from "@/components/subscription/UpgradeButton";
 
 const Relatorios = () => {
+  const { profile } = useAuth();
+  const isPro = profile?.subscription_status === 'active';
+  
   const { data: obras, isLoading: isLoadingObras } = useObras();
   const { data: kmCost, isLoading: isLoadingKmCost } = useKmCost();
   const [selectedObraId, setSelectedObraId] = useState<string | undefined>(undefined);
@@ -120,8 +125,8 @@ const Relatorios = () => {
         <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard
             title="Status"
-            value={selectedObra.status.charAt(0).toUpperCase() + selectedObra.status.slice(1)}
-            description={`Início: ${format(new Date(selectedObra.data_inicio), 'dd/MM/yy')}`}
+            value={selectedObra!.status.charAt(0).toUpperCase() + selectedObra!.status.slice(1)}
+            description={`Início: ${format(new Date(selectedObra!.data_inicio), 'dd/MM/yy')}`}
             icon={Clock}
             isLoading={false}
           />
@@ -142,7 +147,7 @@ const Relatorios = () => {
           <KpiCard
             title="Uso Orçamento"
             value={`${(reportData?.budgetUsedPercent || 0).toFixed(1)}%`}
-            description={`Saldo: ${formatCurrency(reportData?.initialBudget - reportData?.totalSpentObra)}`}
+            description={`Saldo: ${formatCurrency(reportData!.initialBudget - reportData!.totalSpentObra)}`}
             icon={DollarSign}
             isLoading={isLoadingReport}
           />
@@ -185,15 +190,26 @@ const Relatorios = () => {
         <ActivityCostChart activities={activities} isLoading={isLoadingActivities} />
 
         <div className="flex justify-end pt-4">
-          <ExportDialog 
-            obraNome={selectedObra.nome} 
-            periodo={periodoString} 
-            reportData={reportData}
-            activities={activities}
-            kmCost={kmCost}
-            isLoading={isLoadingReport || isLoadingActivities}
-            selectedObra={selectedObra}
-          />
+          {isPro ? (
+            <ExportDialog 
+              obraNome={selectedObra!.nome} 
+              periodo={periodoString} 
+              reportData={reportData}
+              activities={activities}
+              kmCost={kmCost}
+              isLoading={isLoadingReport || isLoadingActivities}
+              selectedObra={selectedObra}
+            />
+          ) : (
+            <Alert variant="default" className="bg-yellow-500/10 border-yellow-500/30 text-yellow-800 w-full lg:w-auto">
+              <Zap className="h-4 w-4 text-yellow-600" />
+              <AlertTitle className="text-yellow-700 font-bold">Recurso PRO</AlertTitle>
+              <AlertDescription className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <span>A exportação de relatórios em PDF é exclusiva para assinantes PRO.</span>
+                <UpgradeButton />
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
       </div>
     );
@@ -217,7 +233,7 @@ const Relatorios = () => {
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant={"outline"} className="w-full sm:w-[300px] justify-start text-left font-normal bg-background">
-                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
                   <span className="truncate">
                       {date?.from ? (
                         date.to ? (

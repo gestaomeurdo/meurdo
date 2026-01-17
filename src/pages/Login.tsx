@@ -37,7 +37,8 @@ const Login = () => {
             }}
             theme="light" // Set theme explicitly to light
             view="sign_in"
-            onlyAllowIf={['sign_in', 'forgotten_password']}
+            // Permitir sign_in, sign_up e forgotten_password
+            onlyAllowIf={['sign_in', 'sign_up', 'forgotten_password']} 
             localization={{
               variables: {
                 sign_in: {
@@ -47,10 +48,15 @@ const Login = () => {
                   password_input_placeholder: 'Sua senha',
                   button_label: 'Entrar',
                   social_provider_text: 'Ou entre com',
-                  link_text: '', // Remove o link para a tela de cadastro
+                  link_text: 'Não tem uma conta? Cadastre-se', // Adiciona o link de cadastro
                 },
                 sign_up: {
-                  link_text: '', // Garante que o link de navegação para o cadastro seja removido
+                  email_label: 'Email',
+                  password_label: 'Criar Senha',
+                  email_input_placeholder: 'Seu email',
+                  password_input_placeholder: 'Sua senha segura',
+                  button_label: 'Cadastrar',
+                  link_text: 'Já tem uma conta? Faça login',
                 },
                 forgotten_password: {
                   link_text: 'Esqueceu sua senha?',
