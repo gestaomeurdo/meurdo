@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/integrations/supabase/auth-provider";
-import { Loader2, Upload, Trash2, CheckCircle2, ShieldCheck } from "lucide-react";
+import { Loader2, Upload, Trash2, CheckCircle2, ShieldCheck } from "lucide-center";
 import { showError, showSuccess } from "@/utils/toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
@@ -15,7 +15,7 @@ const UserLogoUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
   const queryClient = useQueryClient();
 
-  const isPro = profile?.subscription_status === 'active';
+  const isPro = profile?.subscription_status === 'active' || profile?.plan_type === 'pro';
   const currentLogo = profile?.avatar_url;
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,7 +50,7 @@ const UserLogoUpload = () => {
 
       if (updateError) throw updateError;
 
-      showSuccess("Logo personalizada salva com sucesso!");
+      showSuccess("Logo da empresa salva com sucesso!");
       queryClient.invalidateQueries({ queryKey: ['profile'] });
     } catch (error: any) {
       showError(`Erro no upload: ${error.message}`);
@@ -79,12 +79,12 @@ const UserLogoUpload = () => {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-lg flex items-center gap-2">
-              Logo para Relatórios
+              Identidade Visual nos Relatórios
               {isPro && <ShieldCheck className="h-5 w-5 text-primary" />}
             </CardTitle>
             <CardDescription>
               {isPro 
-                ? "Esta logo substituirá a nossa nos seus relatórios PDF." 
+                ? "Substitua a nossa logo pela da sua empresa nos PDFs gerados." 
                 : "Recurso exclusivo do Plano PRO."}
             </CardDescription>
           </div>
@@ -93,14 +93,14 @@ const UserLogoUpload = () => {
       <CardContent>
         {!isPro ? (
           <div className="py-4 text-center">
-            <p className="text-sm text-muted-foreground mb-2">Assine o PRO para usar sua própria marca.</p>
+            <p className="text-sm text-muted-foreground mb-4">Assine o PRO para remover nossa marca d'água e usar a sua própria.</p>
           </div>
         ) : (
           <div className="flex flex-col sm:flex-row items-center gap-6">
             <div className="w-32 h-32 border-2 border-dashed border-primary/30 rounded-xl bg-white flex items-center justify-center overflow-hidden group relative">
               {currentLogo ? (
                 <>
-                  <img src={currentLogo} alt="Sua Logo" className="w-full h-full object-contain p-2" />
+                  <img src={currentLogo} alt="Logo Empresa" className="w-full h-full object-contain p-2" />
                   <button 
                     onClick={removeLogo}
                     className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
@@ -115,21 +115,16 @@ const UserLogoUpload = () => {
             
             <div className="flex-1 space-y-3">
               <p className="text-xs text-muted-foreground">
-                Recomendado: Fundo transparente (PNG), formato quadrado ou horizontal (máx 2MB).
+                Formatos aceitos: PNG ou JPG (máx 2MB). Recomendamos fundo transparente.
               </p>
               <div className="flex gap-2">
                 <Button asChild variant="outline" size="sm" disabled={isUploading}>
                   <label className="cursor-pointer">
                     {isUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-                    {currentLogo ? "Trocar Logo" : "Fazer Upload"}
+                    {currentLogo ? "Alterar Logo" : "Fazer Upload"}
                     <input type="file" className="hidden" accept="image/*" onChange={handleUpload} disabled={isUploading} />
                   </label>
                 </Button>
-                {currentLogo && (
-                  <div className="flex items-center text-[10px] text-green-600 font-bold uppercase tracking-wider">
-                    <CheckCircle2 className="w-3 h-3 mr-1" /> Ativa no PDF
-                  </div>
-                )}
               </div>
             </div>
           </div>

@@ -4,37 +4,37 @@
 
 @layer base {
   :root {
-    /* Verde Cítrico MEU RDO */
+    /* Azul Corporativo #066abc */
     --background: 0 0% 100%;
     --foreground: 210 40% 10%;
     --card: 0 0% 100%;
     --card-foreground: 210 40% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 210 40% 10%;
-    --primary: 84 65% 49%; /* Verde Cítrico #82C139 */
+    --primary: 207 94% 38%; /* #066abc */
     --primary-foreground: 0 0% 100%;
     --secondary: 210 20% 96%;
     --secondary-foreground: 210 40% 10%;
     --muted: 210 20% 96%;
     --muted-foreground: 215 16% 47%;
-    --accent: 84 65% 95%;
-    --accent-foreground: 84 65% 20%;
+    --accent: 207 94% 96%;
+    --accent-foreground: 207 94% 20%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
     --border: 210 10% 90%;
     --input: 210 10% 90%;
-    --ring: 84 65% 49%;
-    --radius: 0.75rem; /* Bordas mais arredondadas */
+    --ring: 207 94% 38%;
+    --radius: 0.75rem;
     
     /* Sidebar */
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 210 40% 10%;
-    --sidebar-primary: 84 65% 49%;
+    --sidebar-primary: 207 94% 38%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 84 65% 96%;
-    --sidebar-accent-foreground: 84 65% 25%;
+    --sidebar-accent: 207 94% 96%;
+    --sidebar-accent-foreground: 207 94% 25%;
     --sidebar-border: 210 10% 92%;
-    --sidebar-ring: 84 65% 49%;
+    --sidebar-ring: 207 94% 38%;
   }
 
   .dark {
@@ -44,7 +44,7 @@
     --card-foreground: 210 40% 98%;
     --popover: 222 47% 6%;
     --popover-foreground: 210 40% 98%;
-    --primary: 84 65% 49%;
+    --primary: 207 94% 45%;
     --primary-foreground: 0 0% 100%;
     --secondary: 222 47% 12%;
     --secondary-foreground: 210 40% 98%;
@@ -56,29 +56,24 @@
     --destructive-foreground: 210 40% 98%;
     --border: 222 47% 12%;
     --input: 222 47% 12%;
-    --ring: 84 65% 49%;
+    --ring: 207 94% 45%;
     
     --sidebar-background: 222 47% 6%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 84 65% 49%;
+    --sidebar-primary: 207 94% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 222 47% 12%;
-    --sidebar-accent-foreground: 84 65% 60%;
+    --sidebar-accent-foreground: 207 94% 60%;
     --sidebar-border: 222 47% 12%;
-    --sidebar-ring: 84 65% 49%;
+    --sidebar-ring: 207 94% 45%;
   }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground antialiased;
-  }
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground antialiased; }
 }
 
-/* Utilitários de sombra clean */
 .shadow-clean {
   box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 10px -2px rgba(0, 0, 0, 0.03);
 }

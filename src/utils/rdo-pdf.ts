@@ -20,7 +20,7 @@ export const generateRdoPdf = async (rdo: DiarioObra, obraNome: string, profile:
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
 
-  const isPro = profile?.subscription_status === 'active';
+  const isPro = profile?.subscription_status === 'active' || profile?.plan_type === 'pro';
   const userLogo = profile?.avatar_url;
 
   // 1. Carregar Logos
@@ -31,7 +31,7 @@ export const generateRdoPdf = async (rdo: DiarioObra, obraNome: string, profile:
       img.src = url;
       img.onload = () => resolve(img);
       img.onerror = () => resolve(null);
-      setTimeout(() => resolve(null), 2000);
+      setTimeout(() => resolve(null), 2500);
     });
   };
 
@@ -47,12 +47,12 @@ export const generateRdoPdf = async (rdo: DiarioObra, obraNome: string, profile:
   }
 
   doc.setFontSize(18);
-  doc.setTextColor(130, 193, 57); // Verde Cítrico #82C139
+  doc.setTextColor(6, 106, 188); // Azul Corporativo #066abc
   doc.setFont("helvetica", "bold");
   doc.text("RELATÓRIO DIÁRIO DE OBRA", pageWidth - margin, y - 5, { align: 'right' });
 
   y += 10;
-  doc.setDrawColor(130, 193, 57);
+  doc.setDrawColor(6, 106, 188);
   doc.setLineWidth(1);
   doc.line(margin, y, pageWidth - margin, y);
   
@@ -96,24 +96,11 @@ export const generateRdoPdf = async (rdo: DiarioObra, obraNome: string, profile:
       formatCurrency(m.quantidade * (m.custo_unitario || 0))
     ]) || [],
     theme: 'grid',
-    headStyles: { fillColor: [130, 193, 57], textColor: 255 },
+    headStyles: { fillColor: [6, 106, 188], textColor: 255 },
     styles: { fontSize: 8 }
   });
 
   y = (doc as any).lastAutoTable.finalY + 10;
-
-  // Materiais
-  if (rdo.rdo_materiais && rdo.rdo_materiais.length > 0) {
-    doc.autoTable({
-      startY: y,
-      head: [['CONTROLE DE MATERIAIS', 'UN', 'ENTRADA', 'CONSUMO', 'OBSERVAÇÃO']],
-      body: rdo.rdo_materiais.map(m => [m.nome_material, m.unidade, m.quantidade_entrada, m.quantidade_consumida, m.observacao || '']),
-      theme: 'grid',
-      headStyles: { fillColor: [60, 60, 60] },
-      styles: { fontSize: 8 }
-    });
-    y = (doc as any).lastAutoTable.finalY + 10;
-  }
 
   // Atividades
   doc.autoTable({
@@ -127,23 +114,13 @@ export const generateRdoPdf = async (rdo: DiarioObra, obraNome: string, profile:
 
   y = (doc as any).lastAutoTable.finalY + 15;
 
-  // --- OBSERVAÇÕES ---
-  if (rdo.observacoes_gerais || rdo.impedimentos_comentarios) {
-    if (y > pageHeight - 60) { doc.addPage(); y = 20; }
-    doc.setFont("helvetica", "bold");
-    doc.text("OCORRÊNCIAS / OBSERVAÇÕES:", margin, y);
-    y += 6;
-    doc.setFont("helvetica", "normal");
-    const obs = `Impedimentos: ${rdo.impedimentos_comentarios || 'Nenhum'}\nObservações: ${rdo.observacoes_gerais || 'Nenhuma'}`;
-    doc.text(doc.splitTextToSize(obs, pageWidth - (margin * 2)), margin, y);
-  }
-
   // --- ASSINATURAS ---
   const footerY = pageHeight - 40;
   doc.setDrawColor(200);
   doc.setLineWidth(0.5);
   
   doc.line(margin, footerY, margin + 70, footerY);
+  doc.setFontSize(8);
   doc.text("Assinatura do Responsável", margin + 35, footerY + 5, { align: 'center' });
   if (rdo.responsible_signature_url) {
     try { doc.addImage(rdo.responsible_signature_url, 'PNG', margin + 10, footerY - 22, 50, 20); } catch(e){}
@@ -165,11 +142,6 @@ export const generateRdoPdf = async (rdo: DiarioObra, obraNome: string, profile:
     doc.setFontSize(8);
     doc.setTextColor(180);
     doc.text("Documento gerado pela plataforma MEU RDO (Versão Gratuita)", pageWidth / 2, pageHeight - 10, { align: 'center' });
-  } else {
-    // Branding sutil para PRO
-    doc.setFontSize(7);
-    doc.setTextColor(200);
-    doc.text("Processado por meurdo.com.br", pageWidth - margin, pageHeight - 5, { align: 'right' });
   }
 
   doc.save(`RDO_${formatDate(rdo.data_rdo).replace(/\//g, '-')}_${obraNome.replace(/\s/g, '_')}.pdf`);
