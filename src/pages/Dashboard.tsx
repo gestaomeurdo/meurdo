@@ -25,11 +25,15 @@ const Dashboard = () => {
   const [limitModalOpen, setLimitModalOpen] = useState(false);
 
   useEffect(() => {
+    // Force profile revalidation every time the Dashboard component mounts
+    queryClient.invalidateQueries({ queryKey: ['profile'] });
+
     const params = new URLSearchParams(location.search);
     const sessionId = params.get('session_id');
     if (sessionId) {
       window.history.replaceState({}, document.title, location.pathname);
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      // The profile invalidation above should handle the status update
+      // We can still show a welcome message for PRO users if needed
       setShowWelcomePro(true);
       const timer = setTimeout(() => setShowWelcomePro(false), 8000);
       return () => clearTimeout(timer);
