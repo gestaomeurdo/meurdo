@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { FileText, Loader2, Construction } from "lucide-react";
+import { FileText, Loader2, Construction, Zap } from "lucide-react";
 import RdoForm from "./RdoForm";
 import { useState, useEffect, useMemo } from "react";
 import { useRdoByDate, fetchPreviousRdo } from "@/hooks/use-rdo";
@@ -10,6 +10,9 @@ import { useObras } from "@/hooks/use-obras";
 import ObraSelector from "../financeiro/ObraSelector";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
+import { useRdoLimits } from "@/hooks/use-rdo-limits";
+import UpgradeButton from "../subscription/UpgradeButton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface RdoDialogProps {
   obraId: string;
@@ -23,6 +26,7 @@ const RdoDialog = ({ obraId: initialObraId, date, trigger }: RdoDialogProps) => 
   const dateString = format(date, 'yyyy-MM-dd');
   
   const { data: obras, isLoading: isLoadingObras } = useObras();
+  const { canCreateRdo, rdoCount, limit, isPro, isLoading: isLoadingLimits } = useRdoLimits();
   
   // Determine if we need to force selection
   const needsObraSelection = useMemo(() => {
@@ -57,6 +61,12 @@ const RdoDialog = ({ obraId: initialObraId, date, trigger }: RdoDialogProps) => 
   };
 
   const handleOpenChange = (newOpen: boolean) => {
+    // Block opening if creating a new RDO and limit is reached
+    if (newOpen && !isEditing && !canCreateRdo) {
+        // We don't open the dialog, but we let the trigger handle the visual feedback
+        return;
+    }
+    
     setOpen(newOpen);
     if (newOpen) {
         if (validObraId) {
@@ -76,7 +86,7 @@ const RdoDialog = ({ obraId: initialObraId, date, trigger }: RdoDialogProps) => 
   const title = isEditing ? `Editar RDO de ${format(date, 'dd/MM/yyyy')}` : `Criar RDO para ${format(date, 'dd/MM/yyyy')}`;
   const description = isEditing ? "Atualize o Relatório Diário de Obra." : "Preencha o Relatório Diário de Obra para esta data.";
 
-  const isLoading = isLoadingRdo || (!isEditing && isLoadingPreviousRdo) || isLoadingObras;
+  const isLoading = isLoadingRdo || (!isEditing && isLoadingPreviousRdo) || isLoadingObras || isLoadingLimits;
 
   const renderContent = () => {
     if (isLoading) {
@@ -134,6 +144,43 @@ const RdoDialog = ({ obraId: initialObraId, date, trigger }: RdoDialogProps) => 
         />
     );
   };
+  
+  // If creating a new RDO and limit is reached, show a warning dialog instead of the form
+  if (!isEditing && !canCreateRdo && !isPro) {
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                {trigger || (
+                    <Button variant="outline" size="sm" disabled={!canCreateRdo}>
+                        <FileText className="w-4 h-4 mr-2" />
+                        Criar RDO
+                    </Button>
+                )}
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[450px]">
+                <DialogHeader>
+                    <div className="mx-auto w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mb-4">
+                        <Zap className="h-6 w-6 text-orange-600" />
+                    </div>
+                    <DialogTitle className="text-center text-xl">Limite de RDOs Atingido</DialogTitle>
+                    <DialogDescription className="text-center pt-2">
+                        Você atingiu o limite de {limit} RDOs no plano gratuito.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <Alert variant="default" className="bg-primary/10 border-primary/20">
+                        <Zap className="h-4 w-4 text-primary" />
+                        <AlertTitle className="text-primary font-bold">Plano PRO</AlertTitle>
+                        <AlertDescription>
+                            Assine o plano PRO para ter registros de RDO ilimitados e todos os recursos premium.
+                        </AlertDescription>
+                    </Alert>
+                    <UpgradeButton />
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>

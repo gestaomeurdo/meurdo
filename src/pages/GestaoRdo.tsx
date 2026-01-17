@@ -21,6 +21,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import RdoDialog from "@/components/rdo/RdoDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { showSuccess, showError } from "@/utils/toast";
+import RdoLimitWarning from "@/components/rdo/RdoLimitWarning"; // Import NEW component
 
 const GestaoRdo = () => {
   const { data: obras, isLoading: isLoadingObras, error: obrasError } = useObras();
@@ -200,54 +201,10 @@ const GestaoRdo = () => {
           </div>
         )}
 
+        <RdoLimitWarning /> {/* NEW: RDO Limit Warning */}
+
         {contentView}
       </div>
-    );
-  };
-
-  return (
-    <DashboardLayout>
-      <div className="p-6 space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Gestão de RDO</h1>
-            <p className="text-muted-foreground">Relatórios Diários e Acompanhamento Visual.</p>
-          </div>
-          <div className="flex flex-wrap gap-3 items-center">
-            <ObraSelector
-              selectedObraId={selectedObraId}
-              onSelectObra={setSelectedObraId}
-            />
-            {selectedObraId && (
-              <RdoDialog
-                obraId={selectedObraId}
-                date={new Date()}
-                trigger={
-                  <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg font-semibold">
-                    <Plus className="w-5 h-5 mr-2" /> Novo RDO (Hoje)
-                  </Button>
-                }
-              />
-            )}
-          </div>
-        </div>
-
-        {renderContent()}
-      </div>
-
-      {isMobile && selectedObraId && (
-        <div className="fixed bottom-6 right-6 z-10">
-          <RdoDialog
-            obraId={selectedObraId}
-            date={new Date()}
-            trigger={
-              <Button size="lg" className="rounded-full shadow-lg w-14 h-14">
-                <Plus className="w-6 h-6" />
-              </Button>
-            }
-          />
-        </div>
-      )}
     </DashboardLayout>
   );
 };
