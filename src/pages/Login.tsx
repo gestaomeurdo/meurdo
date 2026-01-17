@@ -27,13 +27,18 @@ const Login = () => {
                     brand: 'hsl(var(--primary))',
                     brandAccent: 'hsl(var(--primary))',
                     inputBorderFocus: 'hsl(var(--primary))',
-                    defaultButtonBackground: 'white',
-                    defaultButtonBackgroundHover: 'hsl(var(--accent))',
+                    // Ensure buttons use primary color
+                    defaultButtonBackground: 'hsl(var(--primary))',
+                    defaultButtonBackgroundHover: 'hsl(var(--primary-foreground))', // Use white for hover background
+                    defaultButtonBorder: 'hsl(var(--primary))',
+                    defaultButtonText: 'hsl(var(--primary-foreground))',
+                    anchorTextColor: 'hsl(var(--primary))',
+                    anchorTextHoverColor: 'hsl(var(--primary))',
                   },
                   radii: {
-                    buttonRadius: '12px',
-                    inputRadius: '12px',
-                    containerRadius: '16px',
+                    buttonRadius: '0.75rem', // Rounded-xl
+                    inputRadius: '0.75rem', // Rounded-xl
+                    containerRadius: '1rem', // Rounded-2xl
                   },
                 },
               },
@@ -43,17 +48,37 @@ const Login = () => {
             onlyAllowIf={['sign_in', 'sign_up', 'forgotten_password']} 
             localization={{
               variables: {
+                common: {
+                  errors: {
+                    'Invalid login credentials': 'E-mail ou senha inválidos',
+                  },
+                },
                 sign_in: {
-                  email_label: 'Seu E-mail',
-                  password_label: 'Sua Senha',
-                  button_label: 'Entrar agora',
-                  link_text: 'Não tem conta? Cadastre-se grátis',
+                  email_label: 'E-mail',
+                  password_label: 'Senha',
+                  button_label: 'Entrar',
+                  link_text: 'Não tem uma conta? Cadastre-se',
+                  forgotten_password_link_text: 'Esqueceu sua senha?',
                 },
                 sign_up: {
-                  email_label: 'E-mail profissional',
-                  password_label: 'Criar Senha',
-                  button_label: 'Criar Minha Conta',
+                  email_label: 'E-mail',
+                  password_label: 'Senha',
+                  button_label: 'Criar Conta',
                   link_text: 'Já tem uma conta? Entrar',
+                },
+                forgotten_password: {
+                  email_label: 'E-mail',
+                  button_label: 'Enviar instruções de recuperação',
+                  link_text: 'Esqueceu sua senha?',
+                },
+                update_password: {
+                  password_label: 'Nova Senha',
+                  button_label: 'Atualizar Senha',
+                },
+                magic_link: {
+                  email_label: 'E-mail',
+                  button_label: 'Enviar Link Mágico',
+                  link_text: 'Entrar com Link Mágico',
                 },
               },
             }}

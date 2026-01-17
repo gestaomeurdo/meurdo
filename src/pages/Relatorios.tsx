@@ -78,6 +78,15 @@ const Relatorios = () => {
       );
     }
     
+    if (isLoadingRdoMetrics) {
+        return (
+            <div className="flex justify-center items-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2">Carregando dados do RDO...</span>
+            </div>
+        );
+    }
+
     if (rdoError) {
         return (
             <Alert variant="destructive" className="mt-6">
@@ -85,6 +94,16 @@ const Relatorios = () => {
                 <AlertTitle>Erro ao carregar relatório</AlertTitle>
                 <AlertDescription>Falha ao buscar dados dos RDOs.</AlertDescription>
             </Alert>
+        );
+    }
+    
+    if (rdoMetrics && rdoMetrics.allRdos.length === 0) {
+        return (
+            <div className="text-center py-12 border border-dashed rounded-lg bg-muted/50">
+                <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <h2 className="text-xl font-semibold mb-2">Ainda não há dados de RDO</h2>
+                <p className="text-muted-foreground">Nenhum Relatório Diário de Obra encontrado para o período selecionado.</p>
+            </div>
         );
     }
     
