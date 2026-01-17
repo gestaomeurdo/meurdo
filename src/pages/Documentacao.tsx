@@ -1,7 +1,7 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useObras } from "@/hooks/use-obras";
 import { useState, useEffect, useMemo } from "react";
-import { Loader2, Folder, Upload, AlertTriangle, FileText, HardDrive, Share2 } from "lucide-react";
+import { Loader2, Folder, Upload, AlertTriangle, FileText, HardDrive, Share2, Zap } from "lucide-react";
 import ObraSelector from "@/components/financeiro/ObraSelector";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -56,78 +56,82 @@ const Documentacao = () => {
         </Card>
       );
     }
-    
+
     if (documentsError) {
-        return (
-            <Alert variant="destructive" className="mt-6">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Erro ao carregar documentos</AlertTitle>
-                <AlertDescription>
-                    Não foi possível acessar o armazenamento. Detalhe: {documentsError.message}
-                </AlertDescription>
-            </Alert>
-        );
+      return (
+        <Alert variant="destructive" className="mt-6">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Erro ao carregar documentos</AlertTitle>
+          <AlertDescription>
+            Não foi possível acessar o armazenamento. Detalhe: {documentsError.message}
+          </AlertDescription>
+        </Alert>
+      );
     }
 
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-                <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-5 h-12 bg-muted/50 p-1 rounded-xl mb-4">
-                        {FOLDERS.map(f => (
-                            <TabsTrigger key={f.value} value={f.value} className="rounded-lg data-[state=active]:shadow-sm text-xs sm:text-sm">
-                                <Folder className="w-4 h-4 mr-1 hidden sm:inline" /> {f.label}
-                            </TabsTrigger>
-                        ))}
-                    </TabsList>
-                    
-                    {FOLDERS.map(f => (
-                        <TabsContent key={f.value} value={f.value} className="pt-2">
-                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                                <Folder className="w-5 h-5 text-primary" /> {f.label}
-                            </h3>
-                            <DocumentList 
-                                documents={documents || []} 
-                                obraId={selectedObraId!} 
-                                folder={f.value} 
-                                isLoading={isLoadingDocuments} 
-                            />
-                        </TabsContent>
-                    ))}
-                </Tabs>
-            </div>
-            
-            <div className="lg:col-span-1 space-y-6">
-                <StorageMetricsCard metrics={metrics} isLoading={isLoadingMetrics} />
-                
-                {metrics?.isPro && (
-                    <Card className="border-l-4 border-l-green-500 shadow-clean">
-                        <CardContent className="p-4 flex items-center gap-3">
-                            <Share2 className="h-6 w-6 text-green-600" />
-                            <div className="space-y-1">
-                                <h4 className="font-bold text-sm">Compartilhamento PRO</h4>
-                                <p className="text-xs text-muted-foreground">Compartilhe pastas inteiras com clientes e parceiros via link.</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
-                
-                {!metrics?.isPro && (
-                    <Card className="border-dashed border-orange-500/50 bg-orange-50/10">
-                        <CardContent className="p-4 space-y-3">
-                            <div className="flex items-center gap-2">
-                                <Zap className="h-5 w-5 text-orange-600 fill-current" />
-                                <h4 className="font-bold text-sm">Recurso PRO</h4>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                O compartilhamento de documentos e o armazenamento de 1GB são exclusivos do Plano PRO.
-                            </p>
-                            <UpgradeButton />
-                        </CardContent>
-                    </Card>
-                )}
-            </div>
+          <div className="lg:col-span-2">
+            <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-5 h-12 bg-muted/50 p-1 rounded-xl mb-4">
+                {FOLDERS.map(f => (
+                  <TabsTrigger
+                    key={f.value}
+                    value={f.value}
+                    className="rounded-lg data-[state=active]:shadow-sm text-xs sm:text-sm"
+                  >
+                    <Folder className="w-4 h-4 mr-1 hidden sm:inline" />
+                    {f.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              {FOLDERS.map(f => (
+                <TabsContent key={f.value} value={f.value} className="pt-2">
+                  <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                    <Folder className="w-5 h-5 text-primary" />
+                    {f.label}
+                  </h3>
+                  <DocumentList
+                    documents={documents || []}
+                    obraId={selectedObraId!}
+                    folder={f.value}
+                    isLoading={isLoadingDocuments}
+                  />
+                </TabsContent>
+              ))}
+            </Tabs>
+          </div>
+          <div className="lg:col-span-1 space-y-6">
+            <StorageMetricsCard metrics={metrics} isLoading={isLoadingMetrics} />
+            {metrics?.isPro && (
+              <Card className="border-l-4 border-l-green-500 shadow-clean">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <Share2 className="h-6 w-6 text-green-600" />
+                  <div className="space-y-1">
+                    <h4 className="font-bold text-sm">Compartilhamento PRO</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Compartilhe pastas inteiras com clientes e parceiros via link.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {!metrics?.isPro && (
+              <Card className="border-dashed border-orange-500/50 bg-orange-50/10">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-5 w-5 text-orange-600 fill-current" />
+                    <h4 className="font-bold text-sm">Recurso PRO</h4>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    O compartilhamento de documentos e o armazenamento de 1GB são exclusivos do Plano PRO.
+                  </p>
+                  <UpgradeButton />
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -139,29 +143,27 @@ const Documentacao = () => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-6">
           <div className="space-y-1">
             <h1 className="text-3xl font-black tracking-tighter uppercase">Documentação da Obra</h1>
-            <p className="text-sm text-muted-foreground font-medium">Organização e upload de contratos, projetos e comprovantes.</p>
+            <p className="text-sm text-muted-foreground font-medium">
+              Organização e upload de contratos, projetos e comprovantes.
+            </p>
           </div>
-          
           <div className="flex flex-wrap gap-3 items-center">
             <div className="w-full sm:w-auto">
-                <ObraSelector
-                    selectedObraId={selectedObraId}
-                    onSelectObra={setSelectedObraId}
-                />
+              <ObraSelector selectedObraId={selectedObraId} onSelectObra={setSelectedObraId} />
             </div>
             {isObraValid && (
-                <DocumentUploadDialog 
-                    obraId={selectedObraId!} 
-                    trigger={
-                        <Button 
-                            className="bg-[#066abc] hover:bg-[#066abc]/90 rounded-xl shadow-lg w-full sm:w-auto"
-                            disabled={!metrics?.canUpload}
-                        >
-                            <Upload className="w-4 h-4 mr-2" />
-                            Upload de Documento
-                        </Button>
-                    } 
-                />
+              <DocumentUploadDialog
+                obraId={selectedObraId!}
+                trigger={
+                  <Button
+                    className="bg-[#066abc] hover:bg-[#066abc]/90 rounded-xl shadow-lg w-full sm:w-auto"
+                    disabled={!metrics?.canUpload}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload de Documento
+                  </Button>
+                }
+              />
             )}
           </div>
         </div>

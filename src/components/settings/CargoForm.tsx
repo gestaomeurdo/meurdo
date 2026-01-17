@@ -42,13 +42,16 @@ const CargoForm = ({ initialData, onSuccess }: CargoFormProps) => {
 
   const onSubmit = async (values: CargoFormValues) => {
     if (!isEditing && !canCreateCargo) {
-        showError(`Limite de ${limit} cargos atingido no plano gratuito.`);
-        return;
+      showError(`Limite de ${limit} cargos atingido no plano gratuito.`);
+      return;
     }
-    
+
     try {
       if (isEditing && initialData) {
-        await updateMutation.mutateAsync({ ...values, id: initialData.id });
+        await updateMutation.mutateAsync({
+          ...values,
+          id: initialData.id
+        });
         showSuccess("Cargo atualizado!");
       } else {
         await createMutation.mutateAsync(values);
@@ -66,42 +69,108 @@ const CargoForm = ({ initialData, onSuccess }: CargoFormProps) => {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField control={form.control} name="nome" render={({ field }) => (
-            <FormItem><FormLabel>Nome da Função</FormLabel><FormControl><Input placeholder="Ex: Pedreiro Especialista" {...field} disabled={isLoading || isCreationDisabledByLimit} /></FormControl><FormMessage /></FormItem>
-          )}
-        />
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField control={form.control} name="tipo" render={({ field }) => (
-              <FormItem><FormLabel>Tipo de Contratação</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading || isCreationDisabledByLimit}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Próprio">Próprio (CLT/Direto)</SelectItem><SelectItem value="Empreiteiro">Empreiteiro (Terceiro)</SelectItem></SelectContent></Select><FormMessage /></FormItem>
-            )}
-          />
-          <FormField control={form.control} name="unidade" render={({ field }) => (
-              <FormItem><FormLabel>Unidade de Cálculo</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading || isCreationDisabledByLimit}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Diário">Custo por Dia</SelectItem><SelectItem value="Hora">Custo por Hora</SelectItem></SelectContent></Select><FormMessage /></FormItem>
-            )}
-          />
-        </div>
-
-        <FormField control={form.control} name="custo_diario" render={({ field }) => (
+        <FormField
+          control={form.control}
+          name="nome"
+          render={({ field }) => (
             <FormItem>
-              <FormLabel>Valor do Custo Unitário (R$)</FormLabel>
-              <FormControl><Input type="number" step="0.01" {...field} disabled={isLoading || isCreationDisabledByLimit} /></FormControl>
+              <FormLabel>Nome da Função</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="Ex: Pedreiro Especialista"
+                  {...field}
+                  disabled={isLoading || isCreationDisabledByLimit}
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-
-        <Button type="submit" className="w-full bg-[#066abc] hover:bg-[#066abc]/90" disabled={isLoading || isCreationDisabledByLimit}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="tipo"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Tipo de Contratação</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  disabled={isLoading || isCreationDisabledByLimit}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="Próprio">Próprio (CLT/Direto)</SelectItem>
+                    <SelectItem value="Empreiteiro">Empreiteiro (Terceiro)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="unidade"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Unidade de Cálculo</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  disabled={isLoading || isCreationDisabledByLimit}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="Diário">Custo por Dia</SelectItem>
+                    <SelectItem value="Hora">Custo por Hora</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        <FormField
+          control={form.control}
+          name="custo_diario"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Valor do Custo Unitário (R$)</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  step="0.01"
+                  {...field}
+                  disabled={isLoading || isCreationDisabledByLimit}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button
+          type="submit"
+          className="w-full bg-[#066abc] hover:bg-[#066abc]/90"
+          disabled={isLoading || isCreationDisabledByLimit}
+        >
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
           {isEditing ? "Salvar Alterações" : "Cadastrar Função"}
         </Button>
-        
         {isCreationDisabledByLimit && (
-            <div className="text-center pt-2">
-                <p className="text-xs text-destructive flex items-center justify-center gap-1">
-                    <Zap className="w-3 h-3" /> Limite de {limit} cargos atingido.
-                </p>
-            </div>
+          <div className="text-center pt-2">
+            <p className="text-xs text-destructive flex items-center justify-center gap-1">
+              <Zap className="w-3 h-3" />
+              Limite de {limit} cargos atingido.
+            </p>
+          </div>
         )}
       </form>
     </Form>

@@ -27,17 +27,13 @@ const Dashboard = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const sessionId = params.get('session_id');
-
     if (sessionId) {
       // Limpa o parâmetro da URL
       window.history.replaceState({}, document.title, location.pathname);
-      
       // Invalida a query do perfil para forçar o SessionContextProvider a buscar os dados atualizados
       queryClient.invalidateQueries({ queryKey: ['profile'] });
-      
       // Exibe a mensagem de boas-vindas
       setShowWelcomePro(true);
-      
       // Opcional: Esconde a mensagem após alguns segundos
       const timer = setTimeout(() => setShowWelcomePro(false), 8000);
       return () => clearTimeout(timer);
@@ -54,7 +50,7 @@ const Dashboard = () => {
 
   const firstName = profile?.first_name || user?.email?.split('@')[0] || "Usuário";
   const dummyObraId = '00000000-0000-0000-0000-000000000000';
-  
+
   const handleNewRdoClick = () => {
     if (!canCreate && obraCount >= 1) {
       setLimitModalOpen(true);
@@ -65,10 +61,11 @@ const Dashboard = () => {
     <DashboardLayout>
       <div className="p-4 sm:p-6 space-y-6">
         <div className="space-y-1">
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">Bem-vindo(a), {firstName}!</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">
+            Bem-vindo(a), {firstName}!
+          </h1>
           <p className="text-muted-foreground">Aqui está o resumo da sua operação hoje.</p>
         </div>
-        
         {showWelcomePro && (
           <Alert className="bg-green-500/10 border-green-500/30 text-green-800">
             <CheckCircle className="h-4 w-4 text-green-600" />
@@ -78,7 +75,6 @@ const Dashboard = () => {
             </AlertDescription>
           </Alert>
         )}
-        
         {!canCreate && obraCount >= 1 && (
           <Alert variant="default" className="bg-yellow-500/10 border-yellow-500/30 text-yellow-800">
             <AlertTriangle className="h-4 w-4 text-yellow-600" />
@@ -88,57 +84,67 @@ const Dashboard = () => {
             </AlertDescription>
           </Alert>
         )}
-
         {canCreate ? (
           <RdoDialog
             obraId={dummyObraId}
             date={new Date()}
             trigger={
-              <Button size="lg" className="w-full bg-primary hover:bg-primary/90 py-6 text-lg font-bold shadow-md">
-                <Plus className="mr-3 h-6 w-6" /> NOVO RDO
+              <Button
+                size="lg"
+                className="w-full bg-primary hover:bg-primary/90 py-6 text-lg font-bold shadow-md"
+              >
+                <Plus className="mr-3 h-6 w-6" />
+                NOVO RDO
               </Button>
             }
           />
         ) : (
-          <Button 
-            size="lg" 
+          <Button
+            size="lg"
             className="w-full bg-primary/50 cursor-not-allowed py-6 text-lg font-bold shadow-md"
             onClick={handleNewRdoClick}
           >
-            <Plus className="mr-3 h-6 w-6" /> NOVO RDO (Limite Atingido)
+            <Plus className="mr-3 h-6 w-6" />
+            NOVO RDO (Limite Atingido)
           </Button>
         )}
-
         <LimitReachedModal open={limitModalOpen} onOpenChange={setLimitModalOpen} />
 
         <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-           <Card className="p-4 border-l-4 border-l-blue-500 shadow-sm">
-             <CardTitle className="text-xs text-muted-foreground uppercase font-semibold">RDOs Hoje</CardTitle>
-             <div className="text-2xl font-bold mt-1">{rdoMetrics?.rdosTodayCount ?? 0}</div>
-           </Card>
-           <Card className="p-4 border-l-4 border-l-green-500 shadow-sm">
-             <CardTitle className="text-xs text-muted-foreground uppercase font-semibold">Mão de Obra</CardTitle>
-             <div className="text-2xl font-bold mt-1">{rdoMetrics?.totalManpowerToday ?? 0}</div>
-           </Card>
-           <Card className="p-4 border-l-4 border-l-yellow-500 shadow-sm">
-             <CardTitle className="text-xs text-muted-foreground uppercase font-semibold">Pendentes</CardTitle>
-             <div className="text-2xl font-bold mt-1">{rdoMetrics?.pendingRdosCount ?? 0}</div>
-           </Card>
-           <Card className="p-4 border-l-4 border-l-red-500 shadow-sm">
-             <CardTitle className="text-xs text-muted-foreground uppercase font-semibold">Ocorrências</CardTitle>
-             <div className="text-2xl font-bold mt-1">{rdoMetrics?.openOccurrencesCount ?? 0}</div>
-           </Card>
+          <Card className="p-4 border-l-4 border-l-blue-500 shadow-sm">
+            <CardTitle className="text-xs text-muted-foreground uppercase font-semibold">
+              RDOs Hoje
+            </CardTitle>
+            <div className="text-2xl font-bold mt-1">{rdoMetrics?.rdosTodayCount ?? 0}</div>
+          </Card>
+          <Card className="p-4 border-l-4 border-l-green-500 shadow-sm">
+            <CardTitle className="text-xs text-muted-foreground uppercase font-semibold">
+              Mão de Obra
+            </CardTitle>
+            <div className="text-2xl font-bold mt-1">{rdoMetrics?.totalManpowerToday ?? 0}</div>
+          </Card>
+          <Card className="p-4 border-l-4 border-l-yellow-500 shadow-sm">
+            <CardTitle className="text-xs text-muted-foreground uppercase font-semibold">
+              Pendentes
+            </CardTitle>
+            <div className="text-2xl font-bold mt-1">{rdoMetrics?.pendingRdosCount ?? 0}</div>
+          </Card>
+          <Card className="p-4 border-l-4 border-l-red-500 shadow-sm">
+            <CardTitle className="text-xs text-muted-foreground uppercase font-semibold">
+              Ocorrências
+            </CardTitle>
+            <div className="text-2xl font-bold mt-1">{rdoMetrics?.openOccurrencesCount ?? 0}</div>
+          </Card>
         </div>
-
         <Card className="shadow-sm">
           <CardHeader className="border-b bg-muted/20">
             <CardTitle className="text-xl">Diários Recentes</CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
-            <RecentRdoList 
-              recentRdos={rdoMetrics?.recentRdos || []} 
+            <RecentRdoList
+              recentRdos={rdoMetrics?.recentRdos || []}
               obraId={dummyObraId}
-              isLoading={isLoadingRdoMetrics} 
+              isLoading={isLoadingRdoMetrics}
             />
           </CardContent>
         </Card>

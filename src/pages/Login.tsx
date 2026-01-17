@@ -45,7 +45,7 @@ const Login = () => {
             }}
             theme="light"
             view="sign_in"
-            onlyAllowIf={['sign_in', 'sign_up', 'forgotten_password']} 
+            onlyAllowIf={['sign_in', 'sign_up', 'forgotten_password']}
             localization={{
               variables: {
                 common: {

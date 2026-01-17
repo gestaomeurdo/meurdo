@@ -10,7 +10,6 @@ export const useCargoLimits = () => {
 
   const isPro = profile?.subscription_status === 'active' || profile?.plan_type === 'pro';
   const cargoCount = cargos?.length || 0;
-  
   const canCreateCargo = isPro || cargoCount < FREE_CARGO_LIMIT;
 
   return {

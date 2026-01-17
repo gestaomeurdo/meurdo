@@ -74,7 +74,10 @@ const AtividadeForm = ({ obraId, initialData, onSuccess }: AtividadeFormProps) =
       };
 
       if (isEditing && initialData) {
-        await updateMutation.mutateAsync({ ...dataToSubmit, id: initialData.id } as any);
+        await updateMutation.mutateAsync({
+          ...dataToSubmit,
+          id: initialData.id
+        } as any);
         showSuccess("Atividade técnica atualizada!");
       } else {
         await createMutation.mutateAsync(dataToSubmit as any);
@@ -91,34 +94,58 @@ const AtividadeForm = ({ obraId, initialData, onSuccess }: AtividadeFormProps) =
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField control={form.control} name="descricao" render={({ field }) => (
+        <FormField
+          control={form.control}
+          name="descricao"
+          render={({ field }) => (
             <FormItem>
               <FormLabel>Nome da Atividade / Serviço</FormLabel>
-              <FormControl><Input placeholder="Ex: Assentamento de porcelanato piso térreo" {...field} /></FormControl>
+              <FormControl>
+                <Input
+                  placeholder="Ex: Assentamento de porcelanato piso térreo"
+                  {...field}
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField control={form.control} name="etapa" render={({ field }) => (
+          <FormField
+            control={form.control}
+            name="etapa"
+            render={({ field }) => (
               <FormItem>
                 <FormLabel>Etapa da Obra</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
-                  <FormControl><SelectTrigger><SelectValue placeholder="Selecione a etapa" /></SelectTrigger></FormControl>
-                  <SelectContent>{etapasObra.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a etapa" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {etapasObra.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                  </SelectContent>
                 </Select>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <FormField control={form.control} name="responsavel_nome" render={({ field }) => (
+          <FormField
+            control={form.control}
+            name="responsavel_nome"
+            render={({ field }) => (
               <FormItem>
                 <FormLabel>Responsável Técnico / Encarregado</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input className="pl-9" placeholder="Nome do profissional" {...field} value={field.value || ""} />
+                    <Input
+                      className="pl-9"
+                      placeholder="Nome do profissional"
+                      {...field}
+                      value={field.value || ""}
+                    />
                   </div>
                 </FormControl>
                 <FormMessage />
@@ -126,60 +153,96 @@ const AtividadeForm = ({ obraId, initialData, onSuccess }: AtividadeFormProps) =
             )}
           />
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField control={form.control} name="data_atividade" render={({ field }) => (
+          <FormField
+            control={form.control}
+            name="data_atividade"
+            render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel>Início Planejado</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
-                      <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                      <Button
+                        variant="outline"
+                        className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                      >
                         {field.value ? format(field.value, "dd/MM/yyyy") : "Selecionar"}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      initialFocus
+                    />
+                  </PopoverContent>
                 </Popover>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <FormField control={form.control} name="data_prevista" render={({ field }) => (
+          <FormField
+            control={form.control}
+            name="data_prevista"
+            render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel>Previsão de Conclusão</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
-                      <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                      <Button
+                        variant="outline"
+                        className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                      >
                         {field.value ? format(field.value, "dd/MM/yyyy") : "Opcional"}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value || undefined} onSelect={field.onChange} initialFocus /></PopoverContent>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={field.value || undefined}
+                      onSelect={field.onChange}
+                      initialFocus
+                    />
+                  </PopoverContent>
                 </Popover>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField control={form.control} name="progresso_atual" render={({ field }) => (
+          <FormField
+            control={form.control}
+            name="progresso_atual"
+            render={({ field }) => (
               <FormItem>
                 <FormLabel>Avanço Físico (%)</FormLabel>
-                <FormControl><Input type="number" {...field} /></FormControl>
+                <FormControl>
+                  <Input type="number" {...field} />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <FormField control={form.control} name="status" render={({ field }) => (
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }) => (
               <FormItem>
                 <FormLabel>Status Operacional</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl><SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger></FormControl>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                  </FormControl>
                   <SelectContent>
                     <SelectItem value="Em andamento">Em andamento</SelectItem>
                     <SelectItem value="Concluída">Concluída</SelectItem>
@@ -192,7 +255,6 @@ const AtividadeForm = ({ obraId, initialData, onSuccess }: AtividadeFormProps) =
             )}
           />
         </div>
-
         <Button type="submit" disabled={isLoading} className="w-full">
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
           {isEditing ? "Atualizar Atividade" : "Cadastrar Atividade no Cronograma"}

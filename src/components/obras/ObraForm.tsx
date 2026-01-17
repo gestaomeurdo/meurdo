@@ -1,5 +1,3 @@
-"use client";
-
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -30,11 +28,11 @@ const ObraSchema = z.object({
   status: z.enum(['ativa', 'concluida', 'pausada']),
   modelo_id: z.string().optional(),
 }).refine((data) => {
-    const parsedValue = parseCurrencyInput(data.orcamento_inicial);
-    return parsedValue >= 0;
+  const parsedValue = parseCurrencyInput(data.orcamento_inicial);
+  return parsedValue >= 0;
 }, {
-    message: "O orçamento não pode ser negativo.",
-    path: ["orcamento_inicial"],
+  message: "O orçamento não pode ser negativo.",
+  path: ["orcamento_inicial"],
 });
 
 type ObraFormValues = z.infer<typeof ObraSchema>;
@@ -59,9 +57,7 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
       responsavel_tecnico: initialData?.responsavel_tecnico || "",
       data_inicio: initialData?.data_inicio ? new Date(initialData.data_inicio) : new Date(),
       previsao_entrega: initialData?.previsao_entrega ? new Date(initialData.previsao_entrega) : null,
-      orcamento_inicial: initialData?.orcamento_inicial !== undefined 
-        ? formatCurrencyForInput(initialData.orcamento_inicial) 
-        : "0,00",
+      orcamento_inicial: initialData?.orcamento_inicial !== undefined ? formatCurrencyForInput(initialData.orcamento_inicial) : "0,00",
       status: initialData?.status || 'ativa',
       modelo_id: "",
     },
@@ -72,7 +68,6 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
   const onSubmit = async (values: ObraFormValues) => {
     try {
       const parsedOrcamento = parseCurrencyInput(values.orcamento_inicial);
-
       const payload = {
         nome: values.nome.trim(),
         endereco: values.endereco?.trim() || null,
@@ -86,13 +81,16 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
       };
 
       if (isEditing && initialData) {
-        await updateMutation.mutateAsync({ ...payload, id: initialData.id });
+        await updateMutation.mutateAsync({
+          ...payload,
+          id: initialData.id
+        });
         showSuccess("Obra atualizada com sucesso!");
       } else {
         await createMutation.mutateAsync(payload);
         showSuccess("Obra criada com sucesso!");
       }
-      
+
       // Chamamos onSuccess para fechar o diálogo apenas após o sucesso da mutação
       onSuccess();
     } catch (error) {
@@ -107,51 +105,61 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
     return (
       <div className="space-y-6 py-4">
         <div className="text-center space-y-2">
-            <h3 className="text-lg font-bold text-foreground">Qual o tipo desta construção?</h3>
-            <p className="text-sm text-muted-foreground">Isso configurará as etapas iniciais do seu cronograma.</p>
+          <h3 className="text-lg font-bold text-foreground">Qual o tipo desta construção?</h3>
+          <p className="text-sm text-muted-foreground">Isso configurará as etapas iniciais do seu cronograma.</p>
         </div>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <button
             type="button"
-            onClick={() => { form.setValue('modelo_id', 'residencial-padrao'); setStep(2); }}
+            onClick={() => {
+              form.setValue('modelo_id', 'residencial-padrao');
+              setStep(2);
+            }}
             className={cn(
-                "flex flex-col items-center gap-4 p-6 rounded-2xl border-2 transition-all text-left hover:border-[#066abc] hover:bg-accent/50 group",
-                form.watch('modelo_id') === 'residencial-padrao' ? "border-[#066abc] bg-[#066abc]/5" : "border-muted"
+              "flex flex-col items-center gap-4 p-6 rounded-2xl border-2 transition-all text-left hover:border-[#066abc] hover:bg-accent/50 group",
+              form.watch('modelo_id') === 'residencial-padrao' ? "border-[#066abc] bg-[#066abc]/5" : "border-muted"
             )}
           >
             <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center text-[#066abc] group-hover:scale-110 transition-transform">
-                <Home className="w-7 h-7" />
+              <Home className="w-7 h-7" />
             </div>
             <div className="text-center">
-                <h4 className="font-bold text-foreground">Residencial</h4>
-                <p className="text-xs text-muted-foreground mt-1">Casas, sobrados e reformas com foco em alvenaria e acabamento.</p>
+              <h4 className="font-bold text-foreground">Residencial</h4>
+              <p className="text-xs text-muted-foreground mt-1">Casas, sobrados e reformas com foco em alvenaria e acabamento.</p>
             </div>
           </button>
-
           <button
             type="button"
-            onClick={() => { form.setValue('modelo_id', 'empresarial-galpao'); setStep(2); }}
+            onClick={() => {
+              form.setValue('modelo_id', 'empresarial-galpao');
+              setStep(2);
+            }}
             className={cn(
-                "flex flex-col items-center gap-4 p-6 rounded-2xl border-2 transition-all text-left hover:border-[#066abc] hover:bg-accent/50 group",
-                form.watch('modelo_id') === 'empresarial-galpao' ? "border-[#066abc] bg-[#066abc]/5" : "border-muted"
+              "flex flex-col items-center gap-4 p-6 rounded-2xl border-2 transition-all text-left hover:border-[#066abc] hover:bg-accent/50 group",
+              form.watch('modelo_id') === 'empresarial-galpao' ? "border-[#066abc] bg-[#066abc]/5" : "border-muted"
             )}
           >
             <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center text-[#066abc] group-hover:scale-110 transition-transform">
-                <Building2 className="w-7 h-7" />
+              <Building2 className="w-7 h-7" />
             </div>
             <div className="text-center">
-                <h4 className="font-bold text-foreground">Empresarial / Galpão</h4>
-                <p className="text-xs text-muted-foreground mt-1">Estruturas pesadas, pré-moldados e instalações industriais.</p>
+              <h4 className="font-bold text-foreground">Empresarial / Galpão</h4>
+              <p className="text-xs text-muted-foreground mt-1">Estruturas pesadas, pré-moldados e instalações industriais.</p>
             </div>
           </button>
         </div>
-
         <div className="pt-4 flex justify-center">
-            <Button variant="ghost" className="text-muted-foreground" onClick={() => { form.setValue('modelo_id', ''); setStep(2); }}>
-                Criar sem modelo de cronograma
-                <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+          <Button
+            variant="ghost"
+            className="text-muted-foreground"
+            onClick={() => {
+              form.setValue('modelo_id', '');
+              setStep(2);
+            }}
+            disabled={isLoading}
+          >
+            Criar sem modelo de cronograma <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
         </div>
       </div>
     );
@@ -161,13 +169,19 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         {!isEditing && (
-            <div className="flex items-center gap-2 text-xs font-bold text-[#066abc] uppercase tracking-widest mb-2">
-                <CheckCircle2 className="w-4 h-4" />
-                Modelo: {form.watch('modelo_id') === 'residencial-padrao' ? 'Residencial' : form.watch('modelo_id') === 'empresarial-galpao' ? 'Empresarial' : 'Personalizado'}
-                <button type="button" onClick={() => setStep(1)} className="ml-auto underline hover:text-primary" disabled={isLoading}>Alterar</button>
-            </div>
+          <div className="flex items-center gap-2 text-xs font-bold text-[#066abc] uppercase tracking-widest mb-2">
+            <CheckCircle2 className="w-4 h-4" />
+            Modelo: {form.watch('modelo_id') === 'residencial-padrao' ? 'Residencial' : form.watch('modelo_id') === 'empresarial-galpao' ? 'Empresarial' : 'Personalizado'}
+            <button
+              type="button"
+              onClick={() => setStep(1)}
+              className="ml-auto underline hover:text-primary"
+              disabled={isLoading}
+            >
+              Alterar
+            </button>
+          </div>
         )}
-
         <FormField
           control={form.control}
           name="nome"
@@ -175,13 +189,17 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
             <FormItem>
               <FormLabel>Nome da Obra</FormLabel>
               <FormControl>
-                <Input placeholder="Ex: Galpão Logístico Alpha" {...field} value={field.value || ""} disabled={isLoading} />
+                <Input
+                  placeholder="Ex: Galpão Logístico Alpha"
+                  {...field}
+                  value={field.value || ""}
+                  disabled={isLoading}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-
         <FormField
           control={form.control}
           name="endereco"
@@ -189,10 +207,10 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
             <FormItem>
               <FormLabel>Endereço Completo</FormLabel>
               <FormControl>
-                <Textarea 
-                  placeholder="Rua, número, bairro, cidade, estado..." 
-                  {...field} 
-                  value={field.value || ""} 
+                <Textarea
+                  placeholder="Rua, número, bairro, cidade, estado..."
+                  {...field}
+                  value={field.value || ""}
                   disabled={isLoading}
                   rows={2}
                 />
@@ -201,7 +219,6 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
             </FormItem>
           )}
         />
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -210,7 +227,12 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
               <FormItem>
                 <FormLabel>Dono / Cliente</FormLabel>
                 <FormControl>
-                  <Input placeholder="Nome do proprietário" {...field} value={field.value || ""} disabled={isLoading} />
+                  <Input
+                    placeholder="Nome do proprietário"
+                    {...field}
+                    value={field.value || ""}
+                    disabled={isLoading}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -223,14 +245,18 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
               <FormItem>
                 <FormLabel>Responsável Técnico</FormLabel>
                 <FormControl>
-                  <Input placeholder="Engenheiro ou Arquiteto" {...field} value={field.value || ""} disabled={isLoading} />
+                  <Input
+                    placeholder="Engenheiro ou Arquiteto"
+                    {...field}
+                    value={field.value || ""}
+                    disabled={isLoading}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <FormField
             control={form.control}
@@ -267,7 +293,6 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="previsao_entrega"
@@ -303,7 +328,6 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="status"
@@ -327,7 +351,6 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
             )}
           />
         </div>
-
         <FormField
           control={form.control}
           name="orcamento_inicial"
@@ -335,40 +358,49 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
             <FormItem>
               <FormLabel>Orçamento Inicial (R$)</FormLabel>
               <FormControl>
-                <Input 
-                  type="text" 
-                  placeholder="0,00" 
-                  {...field} 
+                <Input
+                  type="text"
+                  placeholder="0,00"
+                  {...field}
                   onChange={(e) => {
                     field.onChange(e);
                     handleCurrencyChange(e);
                   }}
-                  disabled={isLoading} 
+                  disabled={isLoading}
                 />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-
         <div className="flex gap-3">
-            {!isEditing && (
-                <Button type="button" variant="outline" onClick={() => setStep(1)} disabled={isLoading}>
-                    <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
-                </Button>
-            )}
-            <Button type="submit" disabled={isLoading} className="flex-1 bg-[#066abc] hover:bg-[#066abc]/90">
-                {isLoading ? (
-                    <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Salvando Dados...
-                    </>
-                ) : isEditing ? (
-                    "Salvar Alterações"
-                ) : (
-                    "Concluir e Criar Obra"
-                )}
+          {!isEditing && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setStep(1)}
+              disabled={isLoading}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar
             </Button>
+          )}
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="flex-1 bg-[#066abc] hover:bg-[#066abc]/90"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Salvando Dados...
+              </>
+            ) : isEditing ? (
+              "Salvar Alterações"
+            ) : (
+              "Concluir e Criar Obra"
+            )}
+          </Button>
         </div>
       </form>
     </Form>

@@ -65,7 +65,7 @@ const UserLogoUpload = () => {
         .from('profiles')
         .update({ avatar_url: null })
         .eq('id', user?.id);
-      
+
       showSuccess("Logo removida.");
       queryClient.invalidateQueries({ queryKey: ['profile'] });
     } catch (error) {
@@ -79,12 +79,12 @@ const UserLogoUpload = () => {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-lg flex items-center gap-2">
-              Identidade Visual nos Relatórios
+              Identidade Visual nos Relatórios{" "}
               {isPro && <ShieldCheck className="h-5 w-5 text-primary" />}
             </CardTitle>
             <CardDescription>
-              {isPro 
-                ? "Substitua a nossa logo pela da sua empresa nos PDFs gerados." 
+              {isPro
+                ? "Substitua a nossa logo pela da sua empresa nos PDFs gerados."
                 : "Recurso exclusivo do Plano PRO."}
             </CardDescription>
           </div>
@@ -93,15 +93,21 @@ const UserLogoUpload = () => {
       <CardContent>
         {!isPro ? (
           <div className="py-4 text-center">
-            <p className="text-sm text-muted-foreground mb-4">Assine o PRO para remover nossa marca d'água e usar a sua própria.</p>
+            <p className="text-sm text-muted-foreground mb-4">
+              Assine o PRO para remover nossa marca d'água e usar a sua própria.
+            </p>
           </div>
         ) : (
           <div className="flex flex-col sm:flex-row items-center gap-6">
             <div className="w-32 h-32 border-2 border-dashed border-primary/30 rounded-xl bg-white flex items-center justify-center overflow-hidden group relative">
               {currentLogo ? (
                 <>
-                  <img src={currentLogo} alt="Logo Empresa" className="w-full h-full object-contain p-2" />
-                  <button 
+                  <img
+                    src={currentLogo}
+                    alt="Logo Empresa"
+                    className="w-full h-full object-contain p-2"
+                  />
+                  <button
                     onClick={removeLogo}
                     className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
                   >
@@ -112,7 +118,6 @@ const UserLogoUpload = () => {
                 <Upload className="w-8 h-8 text-primary/40" />
               )}
             </div>
-            
             <div className="flex-1 space-y-3">
               <p className="text-xs text-muted-foreground">
                 Formatos aceitos: PNG ou JPG (máx 2MB). Recomendamos fundo transparente.
@@ -120,9 +125,19 @@ const UserLogoUpload = () => {
               <div className="flex gap-2">
                 <Button asChild variant="outline" size="sm" disabled={isUploading}>
                   <label className="cursor-pointer">
-                    {isUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                    {isUploading ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4 mr-2" />
+                    )}
                     {currentLogo ? "Alterar Logo" : "Fazer Upload"}
-                    <input type="file" className="hidden" accept="image/*" onChange={handleUpload} disabled={isUploading} />
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleUpload}
+                      disabled={isUploading}
+                    />
                   </label>
                 </Button>
               </div>

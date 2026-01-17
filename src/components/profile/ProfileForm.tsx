@@ -59,7 +59,12 @@ const ProfileForm = ({ initialData }: ProfileFormProps) => {
               <FormItem>
                 <FormLabel>Nome</FormLabel>
                 <FormControl>
-                  <Input placeholder="Seu nome" {...field} value={field.value || ""} disabled={isLoading} />
+                  <Input
+                    placeholder="Seu nome"
+                    {...field}
+                    value={field.value || ""}
+                    disabled={isLoading}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -72,26 +77,37 @@ const ProfileForm = ({ initialData }: ProfileFormProps) => {
               <FormItem>
                 <FormLabel>Sobrenome</FormLabel>
                 <FormControl>
-                  <Input placeholder="Seu sobrenome" {...field} value={field.value || ""} disabled={isLoading} />
+                  <Input
+                    placeholder="Seu sobrenome"
+                    {...field}
+                    value={field.value || ""}
+                    disabled={isLoading}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
-        
         <div className="space-y-4">
-            <FormItem>
-                <FormLabel>Email</FormLabel>
-                <FormControl>
-                    <Input value={user?.email || "N/A"} disabled className="bg-muted/50" />
-                </FormControl>
-                <p className="text-xs text-muted-foreground">O email não pode ser alterado aqui.</p>
-            </FormItem>
+          <FormItem>
+            <FormLabel>Email</FormLabel>
+            <FormControl>
+              <Input
+                value={user?.email || "N/A"}
+                disabled
+                className="bg-muted/50"
+              />
+            </FormControl>
+            <p className="text-xs text-muted-foreground">O email não pode ser alterado aqui.</p>
+          </FormItem>
         </div>
-
         <Button type="submit" disabled={isLoading}>
-          {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+          {isLoading ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="mr-2 h-4 w-4" />
+          )}
           Salvar Alterações
         </Button>
       </form>

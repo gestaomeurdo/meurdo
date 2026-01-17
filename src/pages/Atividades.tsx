@@ -32,13 +32,7 @@ const Atividades = () => {
   }, [obras, selectedObraId]);
 
   // Hook de Atividades
-  const { 
-    data: atividades, 
-    isLoading: isLoadingAtividades,
-    status: atividadesStatus,
-    refetch: refetchAtividades
-  } = useAtividades(selectedObraId || '');
-  
+  const { data: atividades, isLoading: isLoadingAtividades, status: atividadesStatus, refetch: refetchAtividades } = useAtividades(selectedObraId || '');
   const deleteMutation = useDeleteAtividade();
   const bulkDeleteMutation = useBulkDeleteAtividades();
 
@@ -87,62 +81,66 @@ const Atividades = () => {
 
   const renderContent = () => {
     if (isLoadingObras) {
-        return (
-            <div className="flex justify-center items-center py-20">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            </div>
-        );
+      return (
+        <div className="flex justify-center items-center py-20">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        </div>
+      );
     }
 
     if (obras && obras.length === 0) {
-        return (
-            <div className="text-center py-20 border border-dashed rounded-2xl bg-muted/20">
-                <Construction className="w-16 h-16 mx-auto text-primary/30 mb-4" />
-                <h2 className="text-2xl font-bold mb-2">Nenhuma obra cadastrada</h2>
-                <p className="text-muted-foreground mb-6">Cadastre uma obra para gerenciar o cronograma.</p>
-                <Button asChild><a href="/obras">Ir para Minhas Obras</a></Button>
-            </div>
-        );
+      return (
+        <div className="text-center py-20 border border-dashed rounded-2xl bg-muted/20">
+          <Construction className="w-16 h-16 mx-auto text-primary/30 mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Nenhuma obra cadastrada</h2>
+          <p className="text-muted-foreground mb-6">Cadastre uma obra para gerenciar o cronograma.</p>
+          <Button asChild><a href="/obras">Ir para Minhas Obras</a></Button>
+        </div>
+      );
     }
 
     if (!selectedObraId) {
-        return (
-            <div className="text-center py-20 border border-dashed rounded-2xl bg-muted/10">
-                <ClipboardList className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">Selecione uma obra no menu acima.</p>
-            </div>
-        );
+      return (
+        <div className="text-center py-20 border border-dashed rounded-2xl bg-muted/10">
+          <ClipboardList className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+          <p className="text-muted-foreground">Selecione uma obra no menu acima.</p>
+        </div>
+      );
     }
 
     if (isLoadingAtividades && isObraValid) {
-        return (
-            <div className="flex flex-col justify-center items-center py-20 gap-4">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                <p className="text-sm font-medium animate-pulse">Sincronizando cronograma...</p>
-            </div>
-        );
+      return (
+        <div className="flex flex-col justify-center items-center py-20 gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-sm font-medium animate-pulse">Sincronizando cronograma...</p>
+        </div>
+      );
     }
 
     if (atividadesStatus === 'success' && (!atividades || atividades.length === 0)) {
-        return (
-            <div className="text-center py-20 border border-dashed rounded-3xl bg-accent/5">
-                <div className="bg-primary/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <ClipboardList className="w-10 h-10 text-primary" />
-                </div>
-                <h2 className="text-2xl font-black mb-2 uppercase tracking-tight">Cronograma Vazio</h2>
-                <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
-                    Inicie seu planejamento em segundos usando nossos modelos ou crie manualmente.
-                </p>
-                <div className="flex flex-col sm:flex-row justify-center gap-4">
-                    <AtividadeModelSelector obraId={selectedObraId} />
-                    <AtividadeDialog obraId={selectedObraId} trigger={
-                        <Button size="lg" variant="outline" className="rounded-2xl px-8 border-primary text-primary h-14 font-bold">
-                            <Plus className="w-5 h-5 mr-2" /> Criar Manualmente
-                        </Button>
-                    } />
-                </div>
-            </div>
-        );
+      return (
+        <div className="text-center py-20 border border-dashed rounded-3xl bg-accent/5">
+          <div className="bg-primary/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <ClipboardList className="w-10 h-10 text-primary" />
+          </div>
+          <h2 className="text-2xl font-black mb-2 uppercase tracking-tight">Cronograma Vazio</h2>
+          <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
+            Inicie seu planejamento em segundos usando nossos modelos ou crie manualmente.
+          </p>
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <AtividadeModelSelector obraId={selectedObraId} />
+            <AtividadeDialog 
+              obraId={selectedObraId} 
+              trigger={
+                <Button size="lg" variant="outline" className="rounded-2xl px-8 border-primary text-primary h-14 font-bold">
+                  <Plus className="w-5 h-5 mr-2" />
+                  Criar Manualmente
+                </Button>
+              } 
+            />
+          </div>
+        </div>
+      );
     }
 
     return (
@@ -150,7 +148,12 @@ const Atividades = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-card p-4 border rounded-2xl shadow-clean sticky top-20 z-10">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar atividade..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 bg-background" />
+            <Input 
+              placeholder="Buscar atividade..." 
+              value={searchQuery} 
+              onChange={(e) => setSearchQuery(e.target.value)} 
+              className="pl-9 bg-background" 
+            />
           </div>
           <Select value={filterEtapa} onValueChange={setFilterEtapa}>
             <SelectTrigger className="bg-background">
@@ -164,57 +167,75 @@ const Atividades = () => {
               {uniqueEtapas.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
             </SelectContent>
           </Select>
-          
           <div className="flex items-center justify-end gap-3">
             {selectedIds.length > 0 ? (
-                <div className="flex items-center gap-2 animate-in slide-in-from-right-2">
-                    <span className="text-xs font-bold text-primary">{selectedIds.length} selecionados</span>
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button size="sm" variant="destructive" className="rounded-xl h-9 px-4">
-                                <Trash2 className="w-4 h-4 mr-2" /> Excluir
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent className="rounded-2xl">
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Excluir {selectedIds.length} atividades?</AlertDialogTitle>
-                                <AlertDialogDescription>Esta ação é irreversível e removerá as atividades selecionadas do cronograma.</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive rounded-xl">Confirmar Exclusão</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                    <Button size="icon" variant="ghost" onClick={() => setSelectedIds([])} className="h-9 w-9 rounded-xl"><X className="h-4 w-4" /></Button>
-                </div>
+              <div className="flex items-center gap-2 animate-in slide-in-from-right-2">
+                <span className="text-xs font-bold text-primary">{selectedIds.length} selecionados</span>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="destructive" className="rounded-xl h-9 px-4">
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Excluir
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="rounded-2xl">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir {selectedIds.length} atividades?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta ação é irreversível e removerá as atividades selecionadas do cronograma.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={handleBulkDelete} 
+                        className="bg-destructive rounded-xl"
+                      >
+                        Confirmar Exclusão
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  onClick={() => setSelectedIds([])} 
+                  className="h-9 w-9 rounded-xl"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             ) : (
-                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{filteredAtividades.length} serviços</span>
+              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                {filteredAtividades.length} serviços
+              </span>
             )}
           </div>
         </div>
 
         <div className="space-y-10">
-            {groupedAtividades.map(([etapa, items]) => (
-                <div key={etapa} className="space-y-4">
-                    <div className="flex items-center gap-3 pb-2 border-b">
-                        <Layers className="w-5 h-5 text-primary" />
-                        <h2 className="text-lg font-black uppercase tracking-tight text-primary">{etapa}</h2>
-                        <span className="text-xs font-bold px-2 py-0.5 bg-accent text-primary rounded-full">{items.length}</span>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {items.map((atividade) => (
-                            <AtividadeCard 
-                                key={atividade.id} 
-                                atividade={atividade} 
-                                isSelected={selectedIds.includes(atividade.id)}
-                                onSelect={handleSelect}
-                                onDelete={(id) => deleteMutation.mutateAsync({ id, obraId: selectedObraId! })} 
-                            />
-                        ))}
-                    </div>
-                </div>
-            ))}
+          {groupedAtividades.map(([etapa, items]) => (
+            <div key={etapa} className="space-y-4">
+              <div className="flex items-center gap-3 pb-2 border-b">
+                <Layers className="w-5 h-5 text-primary" />
+                <h2 className="text-lg font-black uppercase tracking-tight text-primary">{etapa}</h2>
+                <span className="text-xs font-bold px-2 py-0.5 bg-accent text-primary rounded-full">
+                  {items.length}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {items.map((atividade) => (
+                  <AtividadeCard 
+                    key={atividade.id} 
+                    atividade={atividade}
+                    isSelected={selectedIds.includes(atividade.id)}
+                    onSelect={handleSelect}
+                    onDelete={(id) => deleteMutation.mutateAsync({ id, obraId: selectedObraId! })}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -231,26 +252,30 @@ const Atividades = () => {
           <div className="flex flex-wrap gap-3 items-center">
             <ObraSelector selectedObraId={selectedObraId} onSelectObra={setSelectedObraId} />
             <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={() => {
-                    queryClient.invalidateQueries({ queryKey: ['atividades'] });
-                    refetchAtividades();
-                }} 
-                className="rounded-xl"
-                title="Recarregar Cronograma"
+              variant="outline" 
+              size="icon" 
+              onClick={() => {
+                queryClient.invalidateQueries({ queryKey: ['atividades'] });
+                refetchAtividades();
+              }}
+              className="rounded-xl"
+              title="Recarregar Cronograma"
             >
-                <RefreshCcw className="h-4 w-4" />
+              <RefreshCcw className="h-4 w-4" />
             </Button>
             {isObraValid && (
-                <div className="flex items-center gap-2">
-                    <AtividadeModelSelector obraId={selectedObraId!} />
-                    <AtividadeDialog obraId={selectedObraId!} trigger={
-                         <Button className="rounded-xl shadow-lg shadow-primary/20 font-bold bg-[#066abc] hover:bg-[#066abc]/90">
-                            <Plus className="w-4 h-4 mr-2" /> Nova Atividade
-                        </Button>
-                    } />
-                </div>
+              <div className="flex items-center gap-2">
+                <AtividadeModelSelector obraId={selectedObraId!} />
+                <AtividadeDialog 
+                  obraId={selectedObraId!} 
+                  trigger={
+                    <Button className="rounded-xl shadow-lg shadow-primary/20 font-bold bg-[#066abc] hover:bg-[#066abc]/90">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Nova Atividade
+                    </Button>
+                  } 
+                />
+              </div>
             )}
           </div>
         </div>

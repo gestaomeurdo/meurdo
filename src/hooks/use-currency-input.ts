@@ -11,13 +11,12 @@ export const useCurrencyInput = (
   setValue: UseFormSetValue<any>,
   getValues: UseFormGetValues<any>
 ) => {
-
   const handleCurrencyChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     let rawValue = event.target.value;
-    
+
     // Remove tudo que não for dígito
     const digitsOnly = rawValue.replace(/\D/g, '');
-    
+
     if (!digitsOnly) {
       setValue(name, "0,00", { shouldValidate: true });
       return;
@@ -25,7 +24,7 @@ export const useCurrencyInput = (
 
     // Converte para número (ex: 1000 -> 10.00)
     const numericValue = parseInt(digitsOnly, 10) / 100;
-    
+
     // Formata para a string de exibição (ex: 10.00 -> 10,00)
     const formattedValue = formatCurrencyForInput(numericValue);
 

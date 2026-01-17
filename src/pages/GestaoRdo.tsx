@@ -25,6 +25,7 @@ const GestaoRdo = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<'kanban' | 'lista' | 'calendario'>('calendario');
   const isMobile = useIsMobile();
+
   const deleteAllMutation = useDeleteAllRdo();
 
   useEffect(() => {
@@ -78,20 +79,20 @@ const GestaoRdo = () => {
         </Alert>
       );
     }
-    
+
     const commonProps = {
-        rdoList: rdoList || [],
-        obraId: selectedObraId,
-        isLoading: isLoadingRdoList,
+      rdoList: rdoList || [],
+      obraId: selectedObraId,
+      isLoading: isLoadingRdoList,
     };
 
     let contentView;
     if (view === "calendario") {
-        contentView = <RdoCalendar obraId={selectedObraId} rdoList={rdoList || []} currentDate={currentDate} />;
+      contentView = <RdoCalendar obraId={selectedObraId} rdoList={rdoList || []} currentDate={currentDate} />;
     } else if (view === "kanban") {
-        contentView = <RdoKanbanBoard {...commonProps} />;
+      contentView = <RdoKanbanBoard {...commonProps} />;
     } else {
-        contentView = isMobile ? <RdoMobileList {...commonProps} /> : <RdoListTable {...commonProps} />;
+      contentView = isMobile ? <RdoMobileList {...commonProps} /> : <RdoListTable {...commonProps} />;
     }
 
     return (
@@ -101,7 +102,6 @@ const GestaoRdo = () => {
           currentDate={currentDate}
           isLoading={isLoadingRdoList}
         />
-
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="bg-card border rounded-xl p-1 inline-flex w-full sm:w-auto">
             <Button
@@ -110,7 +110,8 @@ const GestaoRdo = () => {
               size="sm"
               className="flex-1 sm:flex-none flex items-center"
             >
-              <CalendarIcon className="w-4 h-4 mr-2" /> Calendário
+              <CalendarIcon className="w-4 h-4 mr-2" />
+              Calendário
             </Button>
             <Button
               variant={view === "kanban" ? "secondary" : "ghost"}
@@ -118,7 +119,8 @@ const GestaoRdo = () => {
               size="sm"
               className="flex-1 sm:flex-none flex items-center"
             >
-              <LayoutGrid className="w-4 h-4 mr-2" /> Kanban
+              <LayoutGrid className="w-4 h-4 mr-2" />
+              Kanban
             </Button>
             <Button
               variant={view === "lista" ? "secondary" : "ghost"}
@@ -126,10 +128,10 @@ const GestaoRdo = () => {
               size="sm"
               className="flex-1 sm:flex-none flex items-center"
             >
-              <List className="w-4 h-4 mr-2" /> Lista
+              <List className="w-4 h-4 mr-2" />
+              Lista
             </Button>
           </div>
-
           <div className="flex gap-2 items-center bg-card p-1 border rounded-lg w-full sm:w-auto justify-between">
             <Button
               variant="ghost"
@@ -150,13 +152,13 @@ const GestaoRdo = () => {
             </Button>
           </div>
         </div>
-
         {rdoList && rdoList.length > 0 && (
           <div className="flex justify-end">
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10">
-                  <Trash2 className="w-4 h-4 mr-2" /> Limpar Todos RDOs
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Limpar Todos RDOs
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -168,7 +170,10 @@ const GestaoRdo = () => {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleClearAll} className="bg-destructive hover:bg-destructive/90">
+                  <AlertDialogAction
+                    onClick={handleClearAll}
+                    className="bg-destructive hover:bg-destructive/90"
+                  >
                     Sim, Apagar Tudo
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -176,9 +181,7 @@ const GestaoRdo = () => {
             </AlertDialog>
           </div>
         )}
-
         <RdoLimitWarning />
-
         {contentView}
       </div>
     );
@@ -193,10 +196,7 @@ const GestaoRdo = () => {
             <p className="text-sm text-muted-foreground">Controle diário de atividades e equipe.</p>
           </div>
           <div className="w-full sm:max-w-sm">
-            <ObraSelector 
-              selectedObraId={selectedObraId} 
-              onSelectObra={setSelectedObraId} 
-            />
+            <ObraSelector selectedObraId={selectedObraId} onSelectObra={setSelectedObraId} />
           </div>
         </div>
         {renderContent()}

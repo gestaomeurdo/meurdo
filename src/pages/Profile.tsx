@@ -27,7 +27,7 @@ const Profile = () => {
   }
 
   if (!profile) return null;
-  
+
   const isProActive = profile.subscription_status === 'active';
   const planType = profile.plan_type || 'free';
   const firstName = profile.first_name || "Usuário";
@@ -44,7 +44,6 @@ const Profile = () => {
           </div>
           <p className="text-sm text-muted-foreground">Gerencie sua conta e identidade visual.</p>
         </div>
-        
         {!isProActive && (
           <Alert className="bg-primary/5 border-primary/20">
             <ShieldCheck className="h-5 w-5 text-primary" />
@@ -55,11 +54,9 @@ const Profile = () => {
             </AlertDescription>
           </Alert>
         )}
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <UserLogoUpload />
-            
             <Card className="shadow-clean">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -73,12 +70,13 @@ const Profile = () => {
               </CardContent>
             </Card>
           </div>
-
           <div className="lg:col-span-1 space-y-6">
             <Card className="shadow-clean overflow-hidden">
-               <div className="h-2 bg-primary w-full"></div>
+              <div className="h-2 bg-primary w-full"></div>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Atividade</CardTitle>
+                <CardTitle className="text-xs font-bold uppercase text-muted-foreground tracking-widest">
+                  Atividade
+                </CardTitle>
                 <Construction className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent className="pt-2">
@@ -86,9 +84,7 @@ const Profile = () => {
                 <p className="text-xs text-muted-foreground mt-2 font-medium">Obras gerenciadas</p>
               </CardContent>
             </Card>
-            
             <SubscriptionInfo />
-            
             {isProActive && <ProFeaturesCard />}
           </div>
         </div>

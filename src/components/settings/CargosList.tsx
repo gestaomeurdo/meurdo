@@ -32,19 +32,17 @@ const CargosList = () => {
       showError("Erro ao limpar cargos.");
     }
   };
-  
+
   const handleLoadSuggested = async () => {
     try {
       // Filter out cargos that would exceed the limit if not PRO
-      const cargosToInsert = isPro 
-        ? DEFAULT_CARGOS 
-        : DEFAULT_CARGOS.slice(0, limit - cargoCount);
-
+      const cargosToInsert = isPro ? DEFAULT_CARGOS : DEFAULT_CARGOS.slice(0, limit - cargoCount);
+      
       if (cargosToInsert.length === 0) {
         showError("Limite de cargos atingido. Faça upgrade para adicionar mais.");
         return;
       }
-
+      
       await bulkCreateMutation.mutateAsync(cargosToInsert);
       showSuccess(`${cargosToInsert.length} cargos sugeridos adicionados.`);
     } catch (err) {
@@ -79,9 +77,11 @@ const CargosList = () => {
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-        <h3 className="text-lg font-semibold flex items-center"><Users className="w-5 h-5 mr-2" /> Cargos Cadastrados ({cargoCount})</h3>
+        <h3 className="text-lg font-semibold flex items-center">
+          <Users className="w-5 h-5 mr-2" />
+          Cargos Cadastrados ({cargoCount})
+        </h3>
         <div className="flex flex-wrap gap-2">
-          
           {/* Load Suggested Button */}
           <Button 
             variant="default" 
@@ -90,61 +90,83 @@ const CargosList = () => {
             onClick={handleLoadSuggested}
             disabled={bulkCreateMutation.isPending || (!isPro && cargoCount >= limit)}
           >
-            {bulkCreateMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Library className="w-4 h-4 mr-2" />}
+            {bulkCreateMutation.isPending ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Library className="w-4 h-4 mr-2" />
+            )}
             Carregar Sugestões
           </Button>
-
-          <CargoImportDialog trigger={
-            <Button variant="outline" size="sm" className="flex items-center">
-              <FileUp className="w-4 h-4 mr-2" /> Importar CSV
-            </Button>
-          } />
-          
-          <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) setEditingCargo(null); }}>
+          <CargoImportDialog 
+            trigger={
+              <Button variant="outline" size="sm" className="flex items-center">
+                <FileUp className="w-4 h-4 mr-2" />
+                Importar CSV
+              </Button>
+            } 
+          />
+          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) setEditingCargo(null);
+          }}>
             <DialogTrigger asChild>
               <Button size="sm" disabled={!canCreateCargo}>
-                <Plus className="w-4 h-4 mr-2" /> Novo Cargo
+                <Plus className="w-4 h-4 mr-2" />
+                Novo Cargo
               </Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>{editingCargo ? "Editar Cargo" : "Cadastrar Novo Cargo"}</DialogTitle></DialogHeader>
-              <CargoForm initialData={editingCargo || undefined} onSuccess={() => setIsDialogOpen(false)} />
+              <DialogHeader>
+                <DialogTitle>{editingCargo ? "Editar Cargo" : "Cadastrar Novo Cargo"}</DialogTitle>
+              </DialogHeader>
+              <CargoForm 
+                initialData={editingCargo || undefined} 
+                onSuccess={() => setIsDialogOpen(false)} 
+              />
             </DialogContent>
           </Dialog>
-
           {cargos && cargos.length > 0 && (
-             <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10">
-                    <Trash2 className="w-4 h-4 mr-2" /> Limpar Banco
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Apagar todos os cargos?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Isso removerá definitivamente todos os cargos cadastrados no seu banco de referência.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleClearAll} className="bg-destructive hover:bg-destructive/90">
-                      Sim, Apagar Tudo
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10">
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Limpar Banco
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Apagar todos os cargos?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Isso removerá definitivamente todos os cargos cadastrados no seu banco de referência.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleClearAll} 
+                    className="bg-destructive hover:bg-destructive/90"
+                  >
+                    Sim, Apagar Tudo
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </div>
       </div>
-      
+
       {/* Limit Warning */}
       {!isPro && (
-        <Alert variant={cargoCount >= limit ? "destructive" : "default"} className={cargoCount >= limit ? "bg-destructive/5 border-destructive/30" : "bg-orange-500/5 border-orange-500/30"}>
+        <Alert 
+          variant={cargoCount >= limit ? "destructive" : "default"} 
+          className={cargoCount >= limit ? "bg-destructive/5 border-destructive/30" : "bg-orange-500/5 border-orange-500/30"}
+        >
           <Zap className="h-4 w-4" />
           <AlertTitle>{cargoCount >= limit ? "Limite Atingido" : "Plano Gratuito"}</AlertTitle>
           <AlertDescription className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            <span>Você está usando {cargoCount} de {limit} cargos disponíveis. Assine o PRO para cadastro ilimitado.</span>
+            <span>
+              Você está usando {cargoCount} de {limit} cargos disponíveis. Assine o PRO para cadastro ilimitado.
+            </span>
             {!isPro && cargoCount >= limit && <UpgradeButton />}
           </AlertDescription>
         </Alert>
@@ -166,18 +188,44 @@ const CargosList = () => {
               cargos.map((cargo) => (
                 <TableRow key={cargo.id}>
                   <TableCell className="font-medium">{cargo.nome}</TableCell>
-                  <TableCell><Badge variant={cargo.tipo === 'Próprio' ? "default" : "secondary"}>{cargo.tipo}</Badge></TableCell>
-                  <TableCell><Badge variant="outline">{cargo.unidade}</Badge></TableCell>
-                  <TableCell className="text-right font-semibold">{formatCurrency(cargo.custo_diario)}</TableCell>
+                  <TableCell>
+                    <Badge variant={cargo.tipo === 'Próprio' ? "default" : "secondary"}>
+                      {cargo.tipo}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{cargo.unidade}</Badge>
+                  </TableCell>
+                  <TableCell className="text-right font-semibold">
+                    {formatCurrency(cargo.custo_diario)}
+                  </TableCell>
                   <TableCell className="text-right space-x-2">
-                    <Button variant="ghost" size="icon" onClick={() => { setEditingCargo(cargo); setIsDialogOpen(true); }}><Edit className="w-4 h-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(cargo.id)} className="text-destructive hover:bg-destructive/10"><Trash2 className="w-4 h-4" /></Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => {
+                        setEditingCargo(cargo);
+                        setIsDialogOpen(true);
+                      }}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => deleteMutation.mutate(cargo.id)} 
+                      className="text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhum cargo cadastrado. Use o botão acima para adicionar.</TableCell>
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  Nenhum cargo cadastrado. Use o botão acima para adicionar.
+                </TableCell>
               </TableRow>
             )}
           </TableBody>

@@ -65,22 +65,28 @@ const DocumentUploadDialog = ({ obraId, trigger }: DocumentUploadDialogProps) =>
             Selecione o arquivo e a pasta de destino na obra.
           </DialogDescription>
         </DialogHeader>
-
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="document-file">Arquivo</Label>
-            <Input 
+            <Input
               id="document-file"
-              type="file" 
+              type="file"
               onChange={handleFileChange}
               disabled={isLoading}
             />
-            {file && <p className="text-xs text-muted-foreground mt-1">Arquivo selecionado: {file.name}</p>}
+            {file && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Arquivo selecionado: {file.name}
+              </p>
+            )}
           </div>
-
           <div className="space-y-2">
             <Label htmlFor="document-folder">Pasta de Destino</Label>
-            <Select onValueChange={setFolder} defaultValue={folder} disabled={isLoading}>
+            <Select
+              onValueChange={setFolder}
+              defaultValue={folder}
+              disabled={isLoading}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Selecione a pasta" />
               </SelectTrigger>
@@ -88,8 +94,8 @@ const DocumentUploadDialog = ({ obraId, trigger }: DocumentUploadDialogProps) =>
                 {FOLDERS.map(f => (
                   <SelectItem key={f.value} value={f.value}>
                     <div className="flex items-center gap-2">
-                        <Folder className="w-4 h-4 text-muted-foreground" />
-                        {f.label}
+                      <Folder className="w-4 h-4 text-muted-foreground" />
+                      {f.label}
                     </div>
                   </SelectItem>
                 ))}
@@ -97,11 +103,23 @@ const DocumentUploadDialog = ({ obraId, trigger }: DocumentUploadDialogProps) =>
             </Select>
           </div>
         </div>
-
         <DialogFooter>
-          <Button variant="secondary" onClick={() => setOpen(false)} disabled={isLoading}>Cancelar</Button>
-          <Button onClick={handleUpload} disabled={isLoading || !file}>
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+          <Button
+            variant="secondary"
+            onClick={() => setOpen(false)}
+            disabled={isLoading}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleUpload}
+            disabled={isLoading || !file}
+          >
+            {isLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="mr-2 h-4 w-4" />
+            )}
             {isLoading ? "Enviando..." : "Upload"}
           </Button>
         </DialogFooter>

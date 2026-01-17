@@ -14,7 +14,6 @@ const UpgradeButton = () => {
     setIsLoading(true);
     try {
       console.log("[Upgrade] Iniciando checkout para o preço:", STRIPE_PRICE_ID);
-      
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
         body: {
           priceId: STRIPE_PRICE_ID,
@@ -44,8 +43,8 @@ const UpgradeButton = () => {
   };
 
   return (
-    <Button 
-      onClick={handleUpgrade} 
+    <Button
+      onClick={handleUpgrade}
       disabled={isLoading}
       className="bg-orange-500 hover:bg-orange-600 text-white font-bold w-full"
     >

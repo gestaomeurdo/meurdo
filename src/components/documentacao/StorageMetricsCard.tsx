@@ -13,7 +13,11 @@ interface StorageMetricsCardProps {
 
 const StorageMetricsCard = ({ metrics, isLoading }: StorageMetricsCardProps) => {
   if (isLoading) {
-    return <Card className="h-40 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></Card>;
+    return (
+      <Card className="h-40 flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </Card>
+    );
   }
 
   if (!metrics) return null;
@@ -42,7 +46,17 @@ const StorageMetricsCard = ({ metrics, isLoading }: StorageMetricsCardProps) => 
         </div>
         {!isPro && (
           <>
-            <Progress value={Math.min(progressValue, 100)} className="h-2" indicatorClassName={isOverLimit ? "bg-destructive" : isNearLimit ? "bg-orange-500" : "bg-primary"} />
+            <Progress
+              value={Math.min(progressValue, 100)}
+              className="h-2"
+              indicatorClassName={
+                isOverLimit
+                  ? "bg-destructive"
+                  : isNearLimit
+                  ? "bg-orange-500"
+                  : "bg-primary"
+              }
+            />
             {isOverLimit && (
               <Alert variant="destructive" className="mt-4">
                 <Zap className="h-4 w-4" />

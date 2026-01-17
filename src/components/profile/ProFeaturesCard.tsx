@@ -24,9 +24,8 @@ const ProFeaturesCard = () => {
             <span className="font-medium">Armazenamento Extra:</span> Mais espaço para documentos e assinaturas.
           </li>
         </ul>
-        
         <div className="pt-4 border-t border-primary/10">
-          <Button 
+          <Button
             className="w-full bg-green-600 hover:bg-green-700 text-white"
             onClick={() => window.open('mailto:suporte@meurdo.com.br?subject=Suporte%20Prioritário%20PRO', '_blank')}
           >

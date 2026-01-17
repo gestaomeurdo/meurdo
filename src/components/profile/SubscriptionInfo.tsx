@@ -31,20 +31,23 @@ const SubscriptionInfo = () => {
               Plano: {planType.toUpperCase()}
             </CardTitle>
             <CardDescription>
-              {isPro 
+              {isPro
                 ? "Seu plano está ativo e renova automaticamente."
                 : "Você está no plano gratuito. Faça upgrade para obras ilimitadas."}
             </CardDescription>
           </div>
-          <Badge variant={isPro ? "default" : "outline"} className="px-4 py-1 bg-green-500/10 text-green-600 border-green-500/50">
+          <Badge
+            variant={isPro ? "default" : "outline"}
+            className="px-4 py-1 bg-green-500/10 text-green-600 border-green-500/50"
+          >
             {isPro ? "PRO ATIVA" : "GRATUITO"}
           </Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {isPro ? (
-          <Button 
-            onClick={handleManageSubscription} 
+          <Button
+            onClick={handleManageSubscription}
             disabled={isRedirecting}
             className="bg-primary hover:bg-primary/90"
           >

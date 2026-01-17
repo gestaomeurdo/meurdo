@@ -24,7 +24,7 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: SidebarProps) => {
   const { user, isLoading: isAuthLoading } = useAuth();
   const { data: profile, isLoading: isProfileLoading } = useProfile();
   const { theme, setTheme } = useTheme();
-  
+
   const userRole = profile?.role || "view_only";
   const isLoading = isAuthLoading || isProfileLoading;
   const isPro = profile?.subscription_status === 'active';
@@ -35,11 +35,13 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: SidebarProps) => {
 
   if (isLoading) {
     return (
-      <aside className={cn(
-        "fixed inset-y-0 left-0 z-30 w-64 bg-sidebar transition-transform duration-300 ease-in-out border-r",
-        isMobile && !isOpen && "-translate-x-full",
-        !isMobile && "translate-x-0"
-      )}>
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-30 w-64 bg-sidebar transition-transform duration-300 ease-in-out border-r",
+          isMobile && !isOpen && "-translate-x-full",
+          !isMobile && "translate-x-0"
+        )}
+      >
         <div className="p-4 space-y-4">
           <Skeleton className="h-10 w-3/4 mb-6" />
           <Skeleton className="h-8 w-full" />
@@ -50,9 +52,7 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: SidebarProps) => {
     );
   }
 
-  const filteredNavItems = navItems.filter(item => 
-    item.roles.includes(userRole)
-  );
+  const filteredNavItems = navItems.filter(item => item.roles.includes(userRole));
 
   return (
     <aside
@@ -73,7 +73,6 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: SidebarProps) => {
             </Badge>
           )}
         </div>
-        
         <nav className="flex-grow">
           {filteredNavItems.map((item) => (
             <React.Fragment key={item.href}>
@@ -98,12 +97,13 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: SidebarProps) => {
             </React.Fragment>
           ))}
         </nav>
-
         <div className="mt-auto pt-4 border-t border-sidebar-border space-y-4">
           <div className="flex items-center justify-between px-2">
             <div className="flex items-center space-x-2">
               {theme === 'dark' ? <Moon className="w-4 h-4 text-muted-foreground" /> : <Sun className="w-4 h-4 text-muted-foreground" />}
-              <Label htmlFor="dark-mode-toggle" className="text-xs text-muted-foreground cursor-pointer">Modo Escuro</Label>
+              <Label htmlFor="dark-mode-toggle" className="text-xs text-muted-foreground cursor-pointer">
+                Modo Escuro
+              </Label>
             </div>
             <Switch
               id="dark-mode-toggle"
@@ -112,7 +112,9 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: SidebarProps) => {
             />
           </div>
           <div className="px-2 py-3 bg-accent/50 rounded-xl">
-            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Logado como</p>
+            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">
+              Logado como
+            </p>
             <p className="text-xs font-semibold truncate">{user?.email}</p>
           </div>
         </div>

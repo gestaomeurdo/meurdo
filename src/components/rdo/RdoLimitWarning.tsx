@@ -10,7 +10,11 @@ const RdoLimitWarning = () => {
   const { rdoCount, limit, canCreateRdo, isPro, isLoading } = useRdoLimits();
 
   if (isLoading) {
-    return <div className="h-20 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+    return (
+      <div className="h-20 flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
   }
 
   if (isPro) {
@@ -25,23 +29,35 @@ const RdoLimitWarning = () => {
       </Card>
     );
   }
-  
+
   const progressValue = (rdoCount / limit) * 100;
   const isReached = !canCreateRdo;
 
   return (
-    <Card className={isReached ? "border-destructive/50 bg-destructive/5" : "border-orange-500/50 bg-orange-50/10"}>
+    <Card
+      className={
+        isReached
+          ? "border-destructive/50 bg-destructive/5"
+          : "border-orange-500/50 bg-orange-50/10"
+      }
+    >
       <CardContent className="p-4 space-y-3">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-orange-600" />
             <h3 className="font-semibold text-sm">Limite de RDOs (Plano Gratuito)</h3>
           </div>
-          <span className="font-bold text-lg">{rdoCount} / {limit}</span>
+          <span className="font-bold text-lg">
+            {rdoCount} / {limit}
+          </span>
         </div>
-        
-        <Progress value={progressValue} className="h-2" indicatorClassName={isReached ? "bg-destructive" : "bg-orange-500"} />
-        
+        <Progress
+          value={progressValue}
+          className="h-2"
+          indicatorClassName={
+            isReached ? "bg-destructive" : "bg-orange-500"
+          }
+        />
         {isReached ? (
           <div className="space-y-3 pt-2">
             <p className="text-sm font-medium text-destructive">

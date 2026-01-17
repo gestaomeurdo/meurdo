@@ -40,7 +40,6 @@ const CargoImportDialog = ({ trigger }: CargoImportDialogProps) => {
     }
 
     if (!user) return;
-
     setIsLoading(true);
     setImportResult(null);
 
@@ -52,7 +51,7 @@ const CargoImportDialog = ({ trigger }: CargoImportDialogProps) => {
         try {
           const rawEntries = (results.data as any[]).map(row => ({
             Nome: row.Nome || row.nome || row.Cargo || row.cargo || '',
-            Custo: row.Custo || row.custo || row.Valor || row.valor || row.Salario || row.salario || '',
+            Custo: row.Custo || row.custo || row.Valor || row.valor || '',
             Tipo: row.Tipo || row.tipo || 'Próprio'
           })).filter(e => e.Nome && e.Custo);
 
@@ -63,12 +62,12 @@ const CargoImportDialog = ({ trigger }: CargoImportDialogProps) => {
           }
 
           const result = await importCargos(rawEntries, user.id);
-          setImportResult({ 
-            successCount: result.successCount, 
-            errorCount: result.errorCount, 
-            totalCount: rawEntries.length 
+          setImportResult({
+            successCount: result.successCount,
+            errorCount: result.errorCount,
+            totalCount: rawEntries.length
           });
-          
+
           if (result.successCount > 0) {
             showSuccess(`${result.successCount} cargos importados com sucesso.`);
             queryClient.invalidateQueries({ queryKey: ['cargos'] });
@@ -102,26 +101,29 @@ const CargoImportDialog = ({ trigger }: CargoImportDialogProps) => {
           <DialogTitle>Importar Cargos e Salários</DialogTitle>
           <DialogDescription>Selecione um arquivo CSV/Excel ou cole os dados abaixo.</DialogDescription>
         </DialogHeader>
-
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="cargo-file">Upload de Arquivo (CSV ou TXT)</Label>
             <div className="flex gap-2">
-                <Input 
-                    id="cargo-file"
-                    type="file" 
-                    accept=".csv,.txt" 
-                    onChange={handleFileChange}
-                    className="flex-1"
-                />
-                {file && (
-                    <Button variant="outline" size="icon" onClick={() => setFile(null)} title="Remover arquivo">
-                        <AlertTriangle className="h-4 w-4 text-destructive" />
-                    </Button>
-                )}
+              <Input
+                id="cargo-file"
+                type="file"
+                accept=".csv,.txt"
+                onChange={handleFileChange}
+                className="flex-1"
+              />
+              {file && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setFile(null)}
+                  title="Remover arquivo"
+                >
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                </Button>
+              )}
             </div>
           </div>
-
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t" />
@@ -130,23 +132,31 @@ const CargoImportDialog = ({ trigger }: CargoImportDialogProps) => {
               <span className="bg-background px-2 text-muted-foreground">Ou cole os dados</span>
             </div>
           </div>
-
-          <Textarea 
+          <Textarea
             placeholder="Nome;Custo;Tipo&#10;Pedreiro;150,00;Próprio"
             rows={5}
             value={content}
             onChange={(e) => {
-                setContent(e.target.value);
-                setFile(null); // Limpa o arquivo se colou texto
-                setImportResult(null);
+              setContent(e.target.value);
+              setFile(null); // Limpa o arquivo se colou texto
+              setImportResult(null);
             }}
             className="font-mono text-xs"
           />
-
           {importResult && (
-            <Alert className={importResult.successCount > 0 ? "border-green-500" : "border-destructive"}>
+            <Alert
+              className={
+                importResult.successCount > 0
+                  ? "border-green-500"
+                  : "border-destructive"
+              }
+            >
               <AlertTitle className="flex items-center text-sm font-bold">
-                {importResult.successCount > 0 ? <CheckCircle className="h-4 w-4 mr-2 text-green-500" /> : <AlertTriangle className="h-4 w-4 mr-2 text-destructive" />}
+                {importResult.successCount > 0 ? (
+                  <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+                ) : (
+                  <AlertTriangle className="h-4 w-4 mr-2 text-destructive" />
+                )}
                 Resultado
               </AlertTitle>
               <AlertDescription className="text-xs">
@@ -155,11 +165,19 @@ const CargoImportDialog = ({ trigger }: CargoImportDialogProps) => {
             </Alert>
           )}
         </div>
-
         <DialogFooter>
-          <Button variant="secondary" onClick={() => setOpen(false)}>Fechar</Button>
-          <Button onClick={processImport} disabled={isLoading || (!file && !content.trim())}>
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileUp className="mr-2 h-4 w-4" />}
+          <Button variant="secondary" onClick={() => setOpen(false)}>
+            Fechar
+          </Button>
+          <Button
+            onClick={processImport}
+            disabled={isLoading || (!file && !content.trim())}
+          >
+            {isLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <FileUp className="mr-2 h-4 w-4" />
+            )}
             {isLoading ? "Processando..." : "Importar Agora"}
           </Button>
         </DialogFooter>

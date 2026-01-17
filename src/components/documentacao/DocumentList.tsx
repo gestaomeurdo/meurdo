@@ -28,7 +28,11 @@ const DocumentList = ({ documents, obraId, folder, isLoading }: DocumentListProp
   };
 
   if (isLoading) {
-    return <div className="flex justify-center items-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+    return (
+      <div className="flex justify-center items-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
   }
 
   const folderDocuments = documents.filter(doc => doc.path.includes(`/${folder}/`));
@@ -60,33 +64,59 @@ const DocumentList = ({ documents, obraId, folder, isLoading }: DocumentListProp
                 <FileText className="w-4 h-4 text-primary" />
                 {doc.name}
               </TableCell>
-              <TableCell className="text-sm text-muted-foreground">{formatBytes(doc.size)}</TableCell>
-              <TableCell className="text-sm text-muted-foreground">{format(new Date(doc.uploaded_at), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
+              <TableCell className="text-sm text-muted-foreground">
+                {formatBytes(doc.size)}
+              </TableCell>
+              <TableCell className="text-sm text-muted-foreground">
+                {format(new Date(doc.uploaded_at), 'dd/MM/yyyy', { locale: ptBR })}
+              </TableCell>
               <TableCell className="text-right space-x-1">
-                <Button variant="ghost" size="icon" asChild title="Visualizar">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  asChild
+                  title="Visualizar"
+                >
                   <a href={doc.publicUrl} target="_blank" rel="noopener noreferrer">
                     <Eye className="w-4 h-4" />
                   </a>
                 </Button>
-                <Button variant="ghost" size="icon" asChild title="Download">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  asChild
+                  title="Download"
+                >
                   <a href={doc.publicUrl} download={doc.name}>
                     <Download className="w-4 h-4" />
                   </a>
                 </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" title="Excluir">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive hover:bg-destructive/10"
+                      title="Excluir"
+                    >
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-                      <AlertDialogDescription>Tem certeza que deseja excluir o arquivo "{doc.name}"?</AlertDialogDescription>
+                      <AlertDialogDescription>
+                        Tem certeza que deseja excluir o arquivo "{doc.name}"?
+                      </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => handleDelete(doc.path, doc.name)} className="bg-destructive hover:bg-destructive/90">Excluir</AlertDialogAction>
+                      <AlertDialogAction
+                        onClick={() => handleDelete(doc.path, doc.name)}
+                        className="bg-destructive hover:bg-destructive/90"
+                      >
+                        Excluir
+                      </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
@@ -100,4 +130,3 @@ const DocumentList = ({ documents, obraId, folder, isLoading }: DocumentListProp
 };
 
 export default DocumentList;
-export { formatBytes };

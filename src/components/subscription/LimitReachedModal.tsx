@@ -1,10 +1,4 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import UpgradeButton from "./UpgradeButton";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 
@@ -26,7 +20,6 @@ const LimitReachedModal = ({ open, onOpenChange }: LimitReachedModalProps) => {
             No plano gratuito você pode gerenciar apenas 1 obra por vez.
           </DialogDescription>
         </DialogHeader>
-
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm">
@@ -42,7 +35,6 @@ const LimitReachedModal = ({ open, onOpenChange }: LimitReachedModalProps) => {
               <span>Suporte prioritário</span>
             </div>
           </div>
-          
           <div className="pt-2">
             <UpgradeButton />
             <p className="text-center text-[10px] text-muted-foreground mt-2">

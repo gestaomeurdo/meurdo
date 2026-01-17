@@ -33,11 +33,11 @@ const EntrySchema = z.object({
   documento_file: z.any().optional(),
   documento_url: z.string().optional().nullable(),
 }).refine((data) => {
-    const parsedValue = parseCurrencyInput(data.valor);
-    return parsedValue > 0;
+  const parsedValue = parseCurrencyInput(data.valor);
+  return parsedValue > 0;
 }, {
-    message: "O valor deve ser maior que zero.",
-    path: ["valor"],
+  message: "O valor deve ser maior que zero.",
+  path: ["valor"],
 });
 
 type EntryFormValues = z.infer<typeof EntrySchema>;
@@ -63,9 +63,7 @@ const EntryForm = ({ obraId, initialData, onSuccess, onCancel }: EntryFormProps)
       data_gasto: initialData?.data_gasto ? new Date(initialData.data_gasto) : new Date(),
       categoria_id: initialData?.categoria_id || "",
       descricao: initialData?.descricao || "",
-      valor: initialData?.valor !== undefined 
-        ? formatCurrencyForInput(initialData.valor) 
-        : "",
+      valor: initialData?.valor !== undefined ? formatCurrencyForInput(initialData.valor) : "",
       forma_pagamento: initialData?.forma_pagamento || 'Pix',
       ignorar_soma: initialData?.ignorar_soma || false,
       documento_url: initialData?.documento_url || null,
@@ -80,10 +78,18 @@ const EntryForm = ({ obraId, initialData, onSuccess, onCancel }: EntryFormProps)
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}.${fileExt}`;
     const filePath = `lancamentos/${obraId}/${fileName}`;
+
     try {
-      const { error: uploadError } = await supabase.storage.from('documentos_financeiros').upload(filePath, file);
+      const { error: uploadError } = await supabase.storage
+        .from('documentos_financeiros')
+        .upload(filePath, file);
+
       if (uploadError) throw uploadError;
-      const { data: publicUrlData } = supabase.storage.from('documentos_financeiros').getPublicUrl(filePath);
+
+      const { data: publicUrlData } = supabase.storage
+        .from('documentos_financeiros')
+        .getPublicUrl(filePath);
+
       return publicUrlData.publicUrl;
     } catch (error) {
       showError("Erro ao fazer upload do documento.");
@@ -96,11 +102,13 @@ const EntryForm = ({ obraId, initialData, onSuccess, onCancel }: EntryFormProps)
   const onSubmit = async (values: EntryFormValues) => {
     const parsedValor = parseCurrencyInput(values.valor);
     let documentoUrl = values.documento_url || null;
+
     try {
       if (values.documento_file && values.documento_file.length > 0) {
         const file = values.documento_file[0];
         documentoUrl = await handleFileUpload(file);
       }
+
       const dataToSubmit = {
         obra_id: values.obra_id,
         data_gasto: format(values.data_gasto, 'yyyy-MM-dd'),
@@ -111,8 +119,12 @@ const EntryForm = ({ obraId, initialData, onSuccess, onCancel }: EntryFormProps)
         ignorar_soma: values.ignorar_soma,
         documento_url: documentoUrl,
       };
+
       if (isEditing && initialData) {
-        await updateMutation.mutateAsync({ ...dataToSubmit, id: initialData.id });
+        await updateMutation.mutateAsync({
+          ...dataToSubmit,
+          id: initialData.id
+        });
         showSuccess("Lançamento atualizado!");
       } else {
         await createMutation.mutateAsync(dataToSubmit);
@@ -139,29 +151,45 @@ const EntryForm = ({ obraId, initialData, onSuccess, onCancel }: EntryFormProps)
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
-                      <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")} disabled={isLoading}>
+                      <Button
+                        variant="outline"
+                        className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                        disabled={isLoading}
+                      >
                         {field.value ? format(field.value, "dd/MM/yyyy") : <span>Selecione a data</span>}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      initialFocus
+                    />
                   </PopoverContent>
                 </Popover>
                 <FormMessage />
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="categoria_id"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Categoria</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading || isLoadingCategories}>
-                  <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  disabled={isLoading || isLoadingCategories}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                  </FormControl>
                   <SelectContent>
                     {categories?.map((category: ExpenseCategory) => (
                       <SelectItem key={category.id} value={category.id}>{category.nome}</SelectItem>
@@ -173,19 +201,23 @@ const EntryForm = ({ obraId, initialData, onSuccess, onCancel }: EntryFormProps)
             )}
           />
         </div>
-
         <FormField
           control={form.control}
           name="descricao"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Descrição</FormLabel>
-              <FormControl><Textarea placeholder="Ex: Compra de materiais" {...field} disabled={isLoading} /></FormControl>
+              <FormControl>
+                <Textarea
+                  placeholder="Ex: Compra de materiais"
+                  {...field}
+                  disabled={isLoading}
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -194,7 +226,16 @@ const EntryForm = ({ obraId, initialData, onSuccess, onCancel }: EntryFormProps)
               <FormItem>
                 <FormLabel>Valor (R$)</FormLabel>
                 <FormControl>
-                  <Input type="text" placeholder="0,00" {...field} onChange={(e) => { field.onChange(e); handleCurrencyChange(e); }} disabled={isLoading} />
+                  <Input
+                    type="text"
+                    placeholder="0,00"
+                    {...field}
+                    onChange={(e) => {
+                      field.onChange(e);
+                      handleCurrencyChange(e);
+                    }}
+                    disabled={isLoading}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -206,8 +247,16 @@ const EntryForm = ({ obraId, initialData, onSuccess, onCancel }: EntryFormProps)
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Forma de Pagamento</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
-                  <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  disabled={isLoading}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                  </FormControl>
                   <SelectContent>
                     {paymentMethods.map(method => <SelectItem key={method} value={method}>{method}</SelectItem>)}
                   </SelectContent>
@@ -217,7 +266,6 @@ const EntryForm = ({ obraId, initialData, onSuccess, onCancel }: EntryFormProps)
             )}
           />
         </div>
-
         <FormField
           control={form.control}
           name="ignorar_soma"
@@ -236,10 +284,20 @@ const EntryForm = ({ obraId, initialData, onSuccess, onCancel }: EntryFormProps)
             </FormItem>
           )}
         />
-
         <div className="flex justify-end gap-2 pt-4">
-          <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}><X className="mr-2 h-4 w-4" /> Cancelar</Button>
-          <Button type="submit" disabled={isLoading}>{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Salvar</Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={isLoading}
+          >
+            <X className="mr-2 h-4 w-4" />
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={isLoading}>
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Salvar
+          </Button>
         </div>
       </form>
     </Form>

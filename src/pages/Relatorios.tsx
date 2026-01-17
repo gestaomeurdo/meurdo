@@ -25,11 +25,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 const Relatorios = () => {
   const { profile } = useAuth();
   const isPro = profile?.subscription_status === 'active';
-  
   const { data: obras, isLoading: isLoadingObras } = useObras();
   const [selectedObraId, setSelectedObraId] = useState<string | undefined>(undefined);
   const isMobile = useIsMobile();
-  const [date, setDate] = useState<DateRange | undefined>(undefined); 
+
+  const [date, setDate] = useState<DateRange | undefined>(undefined);
 
   useEffect(() => {
     if (obras && obras.length > 0 && !selectedObraId) {
@@ -41,10 +41,10 @@ const Relatorios = () => {
 
   useEffect(() => {
     if (selectedObra && selectedObra.data_inicio && !date) {
-        setDate({
-            from: new Date(selectedObra.data_inicio),
-            to: new Date(),
-        });
+      setDate({
+        from: new Date(selectedObra.data_inicio),
+        to: new Date(),
+      });
     }
   }, [selectedObra, date]);
 
@@ -57,10 +57,8 @@ const Relatorios = () => {
     endDateString
   );
 
-  const periodoString = date?.from && date?.to 
-    ? `${format(date.from, "dd/MM/yy")} a ${format(date.to, "dd/MM/yy")}`
-    : "N/A";
-    
+  const periodoString = date?.from && date?.to ? `${format(date.from, "dd/MM/yy")} a ${format(date.to, "dd/MM/yy")}` : "N/A";
+
   const renderContent = () => {
     if (isLoadingObras) {
       return (
@@ -77,60 +75,63 @@ const Relatorios = () => {
         </div>
       );
     }
-    
+
     if (isLoadingRdoMetrics) {
-        return (
-            <div className="flex justify-center items-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <span className="ml-2">Carregando dados do RDO...</span>
-            </div>
-        );
+      return (
+        <div className="flex justify-center items-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-2">Carregando dados do RDO...</span>
+        </div>
+      );
     }
 
     if (rdoError) {
-        return (
-            <Alert variant="destructive" className="mt-6">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Erro ao carregar relatório</AlertTitle>
-                <AlertDescription>Falha ao buscar dados dos RDOs.</AlertDescription>
-            </Alert>
-        );
+      return (
+        <Alert variant="destructive" className="mt-6">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Erro ao carregar relatório</AlertTitle>
+          <AlertDescription>Falha ao buscar dados dos RDOs.</AlertDescription>
+        </Alert>
+      );
     }
-    
+
     if (rdoMetrics && rdoMetrics.allRdos.length === 0) {
-        return (
-            <div className="text-center py-12 border border-dashed rounded-lg bg-muted/50">
-                <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <h2 className="text-xl font-semibold mb-2">Ainda não há dados de RDO</h2>
-                <p className="text-muted-foreground">Nenhum Relatório Diário de Obra encontrado para o período selecionado.</p>
-            </div>
-        );
+      return (
+        <div className="text-center py-12 border border-dashed rounded-lg bg-muted/50">
+          <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Ainda não há dados de RDO</h2>
+          <p className="text-muted-foreground">Nenhum Relatório Diário de Obra encontrado para o período selecionado.</p>
+        </div>
+      );
     }
-    
+
     return (
       <div className="space-y-6">
         {/* 1. Cards de Resumo */}
         <RdoSummaryCards metrics={rdoMetrics} isLoading={isLoadingRdoMetrics} />
-        
+
         {/* 2. Gráfico de Progresso e Linha do Tempo */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <RdoActivityProgressChart metrics={rdoMetrics} isLoading={isLoadingRdoMetrics} />
-            
-            {/* Linha do Tempo de Ocorrências (Top 5) */}
-            <Card className="col-span-full lg:col-span-1">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <AlertTriangle className="w-5 h-5 text-destructive" />
-                        Ocorrências Recentes
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="h-[350px] p-0">
-                    <RdoOccurrenceTimeline metrics={{ 
-                        ...rdoMetrics!, 
-                        occurrenceTimeline: (rdoMetrics?.occurrenceTimeline || []).slice(0, 5) 
-                    }} isLoading={isLoadingRdoMetrics} />
-                </CardContent>
-            </Card>
+          <RdoActivityProgressChart metrics={rdoMetrics} isLoading={isLoadingRdoMetrics} />
+          
+          {/* Linha do Tempo de Ocorrências (Top 5) */}
+          <Card className="col-span-full lg:col-span-1">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-destructive" />
+                Ocorrências Recentes
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="h-[350px] p-0">
+              <RdoOccurrenceTimeline 
+                metrics={{ 
+                  ...rdoMetrics!, 
+                  occurrenceTimeline: (rdoMetrics?.occurrenceTimeline || []).slice(0, 5) 
+                }} 
+                isLoading={isLoadingRdoMetrics} 
+              />
+            </CardContent>
+          </Card>
         </div>
 
         <div className="flex justify-end pt-4">
@@ -141,8 +142,8 @@ const Relatorios = () => {
               reportData={rdoMetrics} 
               activities={rdoMetrics?.allRdos} 
               kmCost={0} 
-              isLoading={isLoadingRdoMetrics}
-              selectedObra={selectedObra}
+              isLoading={isLoadingRdoMetrics} 
+              selectedObra={selectedObra} 
             />
           ) : (
             <Alert variant="default" className="bg-yellow-500/10 border-yellow-500/30 text-yellow-800 w-full lg:w-auto">
@@ -169,25 +170,25 @@ const Relatorios = () => {
           </div>
           <div className="flex flex-col gap-4">
             <div className="w-full sm:max-w-sm">
-                <ObraSelector 
-                  selectedObraId={selectedObraId} 
-                  onSelectObra={setSelectedObraId} 
-                />
+              <ObraSelector selectedObraId={selectedObraId} onSelectObra={setSelectedObraId} />
             </div>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant={"outline"} className="w-full sm:w-[300px] justify-start text-left font-normal bg-background">
+                <Button
+                  variant={"outline"}
+                  className="w-full sm:w-[300px] justify-start text-left font-normal bg-background"
+                >
                   <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
                   <span className="truncate">
-                      {date?.from ? (
-                        date.to ? (
-                          `${format(date.from, "dd/MM/yy")} - ${format(date.to, "dd/MM/yy")}`
-                        ) : (
-                          format(date.from, "dd/MM/yy")
-                        )
+                    {date?.from ? (
+                      date.to ? (
+                        `${format(date.from, "dd/MM/yy")} - ${format(date.to, "dd/MM/yy")}`
                       ) : (
-                        <span>Selecione um período</span>
-                      )}
+                        format(date.from, "dd/MM/yy")
+                      )
+                    ) : (
+                      <span>Selecione um período</span>
+                    )}
                   </span>
                 </Button>
               </PopoverTrigger>
