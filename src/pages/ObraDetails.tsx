@@ -5,7 +5,7 @@ import { Loader2, ArrowLeft, MapPin, Calendar, DollarSign, Edit, Trash2, FileTex
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency, formatDate } from "@/utils/formatters";
+import { formatCurrency, formatDate, calculateObraProgress } from "@/utils/formatters";
 import ObraDialog from "@/components/obras/ObraDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { showSuccess, showError } from "@/utils/toast";
@@ -114,8 +114,7 @@ const ObraDetails = () => {
     },
   ];
 
-  // Mock progress - In a real app, calculate this based on completed activities
-  const progress = 0; 
+  const progress = calculateObraProgress(obra.data_inicio, obra.previsao_entrega, obra.status);
 
   return (
     <DashboardLayout>
@@ -148,10 +147,10 @@ const ObraDetails = () => {
                         <MapPin className="w-4 h-4 mr-1 text-primary" />
                         {obra.endereco || "Endereço não informado"}
                     </div>
-                    {/* Barra de Progresso Placeholder */}
+                    
                     <div className="max-w-xs">
                         <div className="flex justify-between text-[10px] uppercase font-bold text-muted-foreground mb-1">
-                            <span>Progresso Geral</span>
+                            <span>Prazo Decorrido</span>
                             <span>{progress}%</span>
                         </div>
                         <Progress value={progress} className="h-2" />

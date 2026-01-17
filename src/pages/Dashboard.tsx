@@ -12,8 +12,9 @@ import LimitReachedModal from "@/components/subscription/LimitReachedModal";
 import WelcomeFreeModal from "@/components/subscription/WelcomeFreeModal";
 import { cn } from "@/lib/utils";
 import { useObras } from "@/hooks/use-obras";
-import { formatDate } from "@/utils/formatters";
+import { formatDate, calculateObraProgress } from "@/utils/formatters";
 import { useRdoLimits } from "@/hooks/use-rdo-limits";
+import { Progress } from "@/components/ui/progress";
 
 const Dashboard = () => {
   const { user, isLoading: authLoading, profile, isPro } = useAuth();
@@ -139,50 +140,63 @@ const Dashboard = () => {
             
             {obras && obras.length > 0 ? (
                 <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                    {obras.slice(0, 6).map((obra) => (
-                        <Link to={`/obras/${obra.id}`} key={obra.id}>
-                            <Card className="shadow-sm hover:shadow-xl transition-all cursor-pointer border-none overflow-hidden group h-full flex flex-col rounded-3xl ring-1 ring-border/50">
-                                <div className="h-32 w-full bg-muted relative overflow-hidden">
-                                    {obra.foto_url ? (
-                                        <img src={obra.foto_url} alt={obra.nome} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-accent/30">
-                                            <ImageIcon className="w-8 h-8 text-muted-foreground/30" />
+                    {obras.slice(0, 6).map((obra) => {
+                        const progress = calculateObraProgress(obra.data_inicio, obra.previsao_entrega, obra.status);
+                        
+                        return (
+                            <Link to={`/obras/${obra.id}`} key={obra.id}>
+                                <Card className="shadow-sm hover:shadow-xl transition-all cursor-pointer border-none overflow-hidden group h-full flex flex-col rounded-3xl ring-1 ring-border/50">
+                                    <div className="h-32 w-full bg-muted relative overflow-hidden">
+                                        {obra.foto_url ? (
+                                            <img src={obra.foto_url} alt={obra.nome} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center bg-accent/30">
+                                                <ImageIcon className="w-8 h-8 text-muted-foreground/30" />
+                                            </div>
+                                        )}
+                                        <div className="absolute top-3 right-3">
+                                            {obra.status === 'ativa' && <div className="px-3 py-1 rounded-full bg-green-500/90 backdrop-blur-sm text-white text-[10px] font-black uppercase tracking-wider shadow-lg">Ativa</div>}
+                                            {obra.status === 'pausada' && <div className="px-3 py-1 rounded-full bg-yellow-500/90 backdrop-blur-sm text-white text-[10px] font-black uppercase tracking-wider shadow-lg">Pausada</div>}
+                                            {obra.status === 'concluida' && <div className="px-3 py-1 rounded-full bg-blue-500/90 backdrop-blur-sm text-white text-[10px] font-black uppercase tracking-wider shadow-lg">Concluída</div>}
                                         </div>
-                                    )}
-                                    <div className="absolute top-3 right-3">
-                                        {obra.status === 'ativa' && <div className="px-3 py-1 rounded-full bg-green-500/90 backdrop-blur-sm text-white text-[10px] font-black uppercase tracking-wider shadow-lg">Ativa</div>}
-                                        {obra.status === 'pausada' && <div className="px-3 py-1 rounded-full bg-yellow-500/90 backdrop-blur-sm text-white text-[10px] font-black uppercase tracking-wider shadow-lg">Pausada</div>}
-                                        {obra.status === 'concluida' && <div className="px-3 py-1 rounded-full bg-blue-500/90 backdrop-blur-sm text-white text-[10px] font-black uppercase tracking-wider shadow-lg">Concluída</div>}
-                                    </div>
-                                    <div className="absolute bottom-0 left-0 w-full h-20 bg-gradient-to-t from-black/80 to-transparent"></div>
-                                    <div className="absolute bottom-3 left-4 right-4">
-                                        <h3 className="font-bold text-xl text-white truncate shadow-black drop-shadow-md">{obra.nome}</h3>
-                                        <div className="flex items-center text-xs text-white/80 mt-0.5 truncate">
-                                            <MapPin className="w-3.5 h-3.5 mr-1 shrink-0" />
-                                            <span className="truncate">{obra.endereco || "Local não informado"}</span>
+                                        <div className="absolute bottom-0 left-0 w-full h-20 bg-gradient-to-t from-black/80 to-transparent"></div>
+                                        <div className="absolute bottom-3 left-4 right-4">
+                                            <h3 className="font-bold text-xl text-white truncate shadow-black drop-shadow-md">{obra.nome}</h3>
+                                            <div className="flex items-center text-xs text-white/80 mt-0.5 truncate">
+                                                <MapPin className="w-3.5 h-3.5 mr-1 shrink-0" />
+                                                <span className="truncate">{obra.endereco || "Local não informado"}</span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                <CardContent className="p-5 flex-1 flex flex-col gap-4 bg-card">
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <CardContent className="p-5 flex-1 flex flex-col gap-4 bg-card">
                                         <div className="space-y-1">
-                                            <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
-                                                <Calendar className="w-3 h-3" /> Início
-                                            </span>
-                                            <p className="text-sm font-semibold">{formatDate(obra.data_inicio)}</p>
+                                            <div className="flex justify-between items-end">
+                                                <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                                                    Prazo Decorrido
+                                                </span>
+                                                <span className="text-xs font-black text-primary">{progress}%</span>
+                                            </div>
+                                            <Progress value={progress} className="h-1.5" />
                                         </div>
-                                        <div className="space-y-1">
-                                            <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
-                                                <Calendar className="w-3 h-3" /> Previsão
-                                            </span>
-                                            <p className="text-sm font-semibold">{obra.previsao_entrega ? formatDate(obra.previsao_entrega) : 'Indefinido'}</p>
+                                        <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border/50">
+                                            <div className="space-y-1">
+                                                <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                                                    <Calendar className="w-3 h-3" /> Início
+                                                </span>
+                                                <p className="text-sm font-semibold">{formatDate(obra.data_inicio)}</p>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                                                    <Calendar className="w-3 h-3" /> Previsão
+                                                </span>
+                                                <p className="text-sm font-semibold">{obra.previsao_entrega ? formatDate(obra.previsao_entrega) : 'Indefinido'}</p>
+                                            </div>
                                         </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </Link>
-                    ))}
+                                    </CardContent>
+                                </Card>
+                            </Link>
+                        );
+                    })}
                 </div>
             ) : (
                 <div className="text-center py-16 border-2 border-dashed rounded-3xl bg-muted/20">

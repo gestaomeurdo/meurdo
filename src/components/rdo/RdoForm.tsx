@@ -438,7 +438,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
               <div className="flex items-center gap-3">
                 <div className="bg-primary p-2 rounded-lg text-primary-foreground"><DollarSign className="w-5 h-5" /></div>
                 <div>
-                  <p className="text-xs font-black text-primary uppercase">Custo do Dia (Equipe + Máquinas)</p>
+                  <p className="text-xs font-black text-primary uppercase">Custo de Operação (Equipe + Máquinas)</p>
                   <h2 className="text-2xl font-black">{formatCurrency(estimatedDailyCost)}</h2>
                 </div>
               </div>

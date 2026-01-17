@@ -57,3 +57,29 @@ export const formatDate = (date: string | Date, dateFormat: string = 'dd/MM/yyyy
     return 'Data inv.';
   }
 };
+
+/**
+ * Calcula o progresso baseando-se no prazo (Data Atual vs Previsão).
+ */
+export const calculateObraProgress = (startDateStr: string, endDateStr: string | null | undefined, status: string): number => {
+  if (status === 'concluida') return 100;
+  if (!startDateStr || !endDateStr) return 0;
+
+  try {
+    const start = new Date(startDateStr + 'T00:00:00');
+    const end = new Date(endDateStr + 'T00:00:00');
+    const today = new Date();
+
+    if (start > today) return 0; // Not started
+    if (today > end) return 100; // Past deadline (conceptually 100% of time used)
+
+    const totalDuration = end.getTime() - start.getTime();
+    const elapsed = today.getTime() - start.getTime();
+
+    if (totalDuration <= 0) return 0;
+
+    return Math.min(100, Math.max(0, Math.round((elapsed / totalDuration) * 100)));
+  } catch (e) {
+    return 0;
+  }
+};
