@@ -38,6 +38,7 @@ const RdoDetailSchema = z.object({
   descricao_servico: z.string().min(2, "Descrição obrigatória."),
   avanco_percentual: z.coerce.number().min(0).max(100),
   foto_anexo_url: z.string().nullable().optional(),
+  observacao: z.string().nullable().optional(), // Added
 });
 
 const ManpowerSchema = z.object({
@@ -158,7 +159,8 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
         descricao_servico: a.descricao_servico,
         avanco_percentual: a.avanco_percentual,
         foto_anexo_url: a.foto_anexo_url,
-      })) || [{ descricao_servico: "", avanco_percentual: 0, foto_anexo_url: null }],
+        observacao: a.observacao, // Added mapping
+      })) || [{ descricao_servico: "", avanco_percentual: 0, foto_anexo_url: null, observacao: "" }],
       mao_de_obra: initialData?.rdo_mao_de_obra?.map(m => ({
         funcao: m.funcao,
         quantidade: m.quantidade,
@@ -382,7 +384,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
   const activePeriodsList = activePeriods.split(', ').filter(p => p !== '');
 
   const safetyItems = [
-    { key: "safety_nr35", label: "Treinamentos", photoKey: "safety_nr35_photo" }, // Label atualizado
+    { key: "safety_nr35", label: "Treinamentos", photoKey: "safety_nr35_photo" },
     { key: "safety_epi", label: "Utilização de EPIs", photoKey: "safety_epi_photo" },
     { key: "safety_cleaning", label: "Limpeza e Organização", photoKey: "safety_cleaning_photo" },
     { key: "safety_dds", label: "DDS Realizado", photoKey: "safety_dds_photo" },
@@ -564,7 +566,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
             <Card className="border-l-4 border-l-primary shadow-sm bg-white">
                 <CardHeader className="bg-primary/5 pb-2 py-3">
                     <CardTitle className="text-sm font-black uppercase text-primary flex items-center gap-2">
-                        <ShieldCheck className="w-5 h-5" /> Controle de Segurança (EPI / DDS)
+                        <ShieldCheck className="w-5 h-5" /> Controle de Segurança
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 space-y-6">

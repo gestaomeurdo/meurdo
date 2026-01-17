@@ -378,7 +378,10 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile }: RdoPdfTemplateProps) 
               const isComplete = item.avanco_percentual === 100;
               return (
                 <View key={index} style={[styles.tableRow, { backgroundColor: index % 2 === 0 ? '#ffffff' : '#f9f9f9', paddingVertical: 6 }]}>
-                  <Text style={[styles.tableCell, { flex: 3, fontSize: 9 }]}>{item.descricao_servico}</Text>
+                  <Text style={[styles.tableCell, { flex: 3, fontSize: 9 }]}>
+                    {item.descricao_servico}
+                    {item.observacao && `\nObs: ${item.observacao}`}
+                  </Text>
                   <Text style={[styles.tableCell, { fontFamily: 'Helvetica-Bold' }]}>{item.avanco_percentual}%</Text>
                   <View style={[styles.tableCell, { flexDirection: 'row', alignItems: 'center' }]}>
                     <View style={[styles.statusDot, { backgroundColor: isComplete ? '#48bb78' : '#ecc94b' }]} />

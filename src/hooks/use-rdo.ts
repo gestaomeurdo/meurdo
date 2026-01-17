@@ -11,6 +11,7 @@ export interface RdoAtividadeDetalhe {
   descricao_servico: string;
   avanco_percentual: number;
   foto_anexo_url: string | null;
+  observacao?: string | null;
 }
 
 export type WorkforceType = 'Própria' | 'Terceirizada';

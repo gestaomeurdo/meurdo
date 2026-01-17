@@ -124,6 +124,17 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
               </div>
             </div>
 
+            {/* Novo Campo de Observação */}
+            <div>
+                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Observações / Detalhes (Opcional)</Label>
+                <Textarea
+                  placeholder="Ex: Serviço paralisado por chuva..."
+                  {...register(`atividades.${index}.observacao`)}
+                  rows={1}
+                  className="bg-background mt-1 text-sm"
+                />
+            </div>
+
             <div className="flex items-center gap-3 pt-2">
                 <Label htmlFor={`foto-${index}`} className={cn(
                     "flex items-center justify-center px-4 py-2 border rounded-xl cursor-pointer transition-all text-xs font-bold uppercase tracking-wider h-10",
@@ -153,7 +164,7 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
         );
       })}
       
-      <Button type="button" variant="outline" className="w-full border-dashed py-6" onClick={() => append({ descricao_servico: "", avanco_percentual: 0, foto_anexo_url: null })}>
+      <Button type="button" variant="outline" className="w-full border-dashed py-6" onClick={() => append({ descricao_servico: "", avanco_percentual: 0, foto_anexo_url: null, observacao: "" })}>
         <Plus className="w-4 h-4 mr-2" /> Registrar Novo Serviço no Dia
       </Button>
     </div>
