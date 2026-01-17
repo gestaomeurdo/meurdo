@@ -28,13 +28,10 @@ const RdoDialog = ({ obraId: initialObraId, date, trigger }: RdoDialogProps) => 
   const { data: obras, isLoading: isLoadingObras } = useObras();
   const { canCreateRdo, rdoCount, limit, isPro, isLoading: isLoadingLimits } = useRdoLimits();
   
-  // Determine if we need to force selection
   const needsObraSelection = useMemo(() => {
-    // If the initialObraId is a placeholder, or if no obra is selected
     return !obras || obras.length === 0 || initialObraId === '00000000-0000-0000-0000-000000000000';
   }, [obras, initialObraId]);
 
-  // Set default selectedObraId if we have obras and no valid ID is set yet
   useEffect(() => {
     if (open && needsObraSelection && obras && obras.length > 0) {
       setSelectedObraId(obras[0].id);
@@ -48,7 +45,6 @@ const RdoDialog = ({ obraId: initialObraId, date, trigger }: RdoDialogProps) => 
   const { data: rdoData, isLoading: isLoadingRdo, refetch } = useRdoByDate(validObraId || '', dateString);
   const isEditing = !!rdoData;
 
-  // Fetch previous RDO data only if we are creating a new one and the dialog is open
   const { data: previousRdoData, isLoading: isLoadingPreviousRdo, refetch: refetchPrevious } = useQuery({
     queryKey: ['previousRdo', validObraId, dateString],
     queryFn: () => fetchPreviousRdo(validObraId!, date),
@@ -56,107 +52,23 @@ const RdoDialog = ({ obraId: initialObraId, date, trigger }: RdoDialogProps) => 
   });
 
   const handleSuccess = () => {
-    refetch(); // Refresh data after save
+    refetch();
     setOpen(false);
   };
 
   const handleOpenChange = (newOpen: boolean) => {
-    // Block opening if creating a new RDO and limit is reached
-    if (newOpen && !isEditing && !canCreateRdo) {
-        // We don't open the dialog, but we let the trigger handle the visual feedback
+    if (newOpen && !isEditing && !canCreateRdo && !isPro) {
+        setOpen(true); // Open the limit warning dialog
         return;
     }
-    
     setOpen(newOpen);
-    if (newOpen) {
-        if (validObraId) {
-            refetch(); // Ensure we fetch the latest data when opening
-            if (!isEditing) {
-                refetchPrevious();
-            }
-        }
-    } else {
-        // Reset selectedObraId if it was a placeholder initially
-        if (initialObraId === '00000000-0000-0000-0000-000000000000') {
-            setSelectedObraId(undefined);
-        }
-    }
   };
-
-  const title = isEditing ? `Editar RDO de ${format(date, 'dd/MM/yyyy')}` : `Criar RDO para ${format(date, 'dd/MM/yyyy')}`;
-  const description = isEditing ? "Atualize o Relatório Diário de Obra." : "Preencha o Relatório Diário de Obra para esta data.";
 
   const isLoading = isLoadingRdo || (!isEditing && isLoadingPreviousRdo) || isLoadingObras || isLoadingLimits;
 
-  const renderContent = () => {
-    if (isLoading) {
-        return (
-            <div className="flex justify-center items-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <span className="ml-2">Carregando dados...</span>
-            </div>
-        );
-    }
-
-    if (obras && obras.length === 0) {
-        return (
-            <Card className="border-dashed py-12 text-center">
-                <CardContent>
-                    <Construction className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-                    <p className="text-muted-foreground">Você precisa cadastrar uma obra primeiro.</p>
-                    <Button asChild className="mt-4">
-                        <Link to="/obras">Ir para Obras</Link>
-                    </Button>
-                </CardContent>
-            </Card>
-        );
-    }
-
-    if (!validObraId) {
-        return (
-            <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">Selecione a obra para a qual deseja criar o RDO:</p>
-                <ObraSelector 
-                    selectedObraId={selectedObraId} 
-                    onSelectObra={setSelectedObraId} 
-                />
-                <Button 
-                    onClick={() => {
-                        if (selectedObraId) {
-                            // If an obra is selected, force re-render to show the form
-                            setSelectedObraId(selectedObraId);
-                        }
-                    }}
-                    disabled={!selectedObraId || selectedObraId === '00000000-0000-0000-0000-000000000000'}
-                >
-                    Continuar
-                </Button>
-            </div>
-        );
-    }
-
-    return (
-        <RdoForm
-            obraId={validObraId}
-            initialData={rdoData || undefined}
-            onSuccess={handleSuccess}
-            previousRdoData={previousRdoData}
-        />
-    );
-  };
-  
-  // If creating a new RDO and limit is reached, show a warning dialog instead of the form
-  if (!isEditing && !canCreateRdo && !isPro) {
+  if (!isEditing && !canCreateRdo && !isPro && open) {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                {trigger || (
-                    <Button variant="outline" size="sm" disabled={!canCreateRdo}>
-                        <FileText className="w-4 h-4 mr-2" />
-                        Criar RDO
-                    </Button>
-                )}
-            </DialogTrigger>
             <DialogContent className="sm:max-w-[450px]">
                 <DialogHeader>
                     <div className="mx-auto w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mb-4">
@@ -164,7 +76,7 @@ const RdoDialog = ({ obraId: initialObraId, date, trigger }: RdoDialogProps) => 
                     </div>
                     <DialogTitle className="text-center text-xl">Limite de RDOs Atingido</DialogTitle>
                     <DialogDescription className="text-center pt-2">
-                        Você atingiu o limite de {limit} RDOs no plano gratuito.
+                        Você atingiu o limite de **{limit} RDOs** no plano gratuito.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
@@ -172,7 +84,7 @@ const RdoDialog = ({ obraId: initialObraId, date, trigger }: RdoDialogProps) => 
                         <Zap className="h-4 w-4 text-primary" />
                         <AlertTitle className="text-primary font-bold">Plano PRO</AlertTitle>
                         <AlertDescription>
-                            Assine o plano PRO para ter registros de RDO ilimitados e todos os recursos premium.
+                            Desbloqueie registros ilimitados no plano PRO e tenha todos os recursos premium.
                         </AlertDescription>
                     </Alert>
                     <UpgradeButton />
@@ -194,10 +106,32 @@ const RdoDialog = ({ obraId: initialObraId, date, trigger }: RdoDialogProps) => 
       </DialogTrigger>
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogTitle>{isEditing ? `Editar RDO de ${format(date, 'dd/MM/yyyy')}` : `Criar RDO para ${format(date, 'dd/MM/yyyy')}`}</DialogTitle>
+          <DialogDescription>{isEditing ? "Atualize o Relatório Diário de Obra." : "Preencha o Relatório Diário de Obra para esta data."}</DialogDescription>
         </DialogHeader>
-        {renderContent()}
+        
+        {isLoading ? (
+            <div className="flex justify-center items-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2">Carregando dados...</span>
+            </div>
+        ) : obras && obras.length === 0 ? (
+            <Card className="border-dashed py-12 text-center">
+                <CardContent>
+                    <Construction className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+                    <p className="text-muted-foreground">Você precisa cadastrar uma obra primeiro.</p>
+                    <Button asChild className="mt-4"><Link to="/obras">Ir para Obras</Link></Button>
+                </CardContent>
+            </Card>
+        ) : !validObraId ? (
+            <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">Selecione a obra:</p>
+                <ObraSelector selectedObraId={selectedObraId} onSelectObra={setSelectedObraId} />
+                <Button onClick={() => setSelectedObraId(selectedObraId)} disabled={!selectedObraId || selectedObraId === '00000000-0000-0000-0000-000000000000'}>Continuar</Button>
+            </div>
+        ) : (
+            <RdoForm obraId={validObraId} initialData={rdoData || undefined} onSuccess={handleSuccess} previousRdoData={previousRdoData} />
+        )}
       </DialogContent>
     </Dialog>
   );

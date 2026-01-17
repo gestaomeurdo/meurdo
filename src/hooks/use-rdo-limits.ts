@@ -1,10 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/integrations/supabase/auth-provider";
-import { FREE_PLAN_LIMIT } from "@/config/stripe"; // Reusing the limit constant for consistency, though we'll define a new one for RDOs
 
-// Define RDO specific limit
-const FREE_RDO_LIMIT = 3;
+// Define RDO specific limit as requested by user
+const FREE_RDO_LIMIT = 2;
 
 interface RdoLimitData {
   rdoCount: number;
@@ -31,12 +30,12 @@ export const useRdoLimits = () => {
   const { user, profile, isLoading: isLoadingAuth } = useAuth();
   const userId = user?.id;
   
-  const isPro = profile?.subscription_status === 'active';
+  const isPro = profile?.subscription_status === 'active' || profile?.plan_type === 'pro';
 
   const { data: rdoCount, isLoading: isLoadingCount } = useQuery<number, Error>({
     queryKey: ['rdoCount', userId],
     queryFn: () => fetchRdoCount(userId!),
-    enabled: !!userId && !isPro, // Only fetch count if user is Free
+    enabled: !!userId, // Always fetch to show progress even if PRO
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
