@@ -65,8 +65,7 @@ const Settings = () => {
               <CardContent className="pt-6">
                 <CargosList />
               </CardContent>
-            </Card>
-          </TabsContent>
+            </TabsContent>
 
           <TabsContent value="plano" className="animate-in fade-in duration-500">
             <SubscriptionTab />
