@@ -1,14 +1,10 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useObras } from "@/hooks/use-obras";
-import { useState, useEffect, useMemo } from "react";
-import { Loader2, FileText, Plus, LayoutGrid, List, AlertTriangle, Calendar as CalendarIcon, Trash2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Loader2, FileText, LayoutGrid, List, AlertTriangle, Calendar as CalendarIcon, Trash2 } from "lucide-react";
 import ObraSelector from "@/components/financeiro/ObraSelector";
 import { Button } from "@/components/ui/button";
-import { DateRange } from "react-day-picker";
-import { format, parseISO, isSameMonth } from "date-fns";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 import { useRdoList, useDeleteAllRdo } from "@/hooks/use-rdo";
 import RdoDashboard from "@/components/rdo/RdoDashboard";
 import RdoKanbanBoard from "@/components/rdo/RdoKanbanBoard";
@@ -18,13 +14,13 @@ import RdoCalendar from "@/components/rdo/RdoCalendar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useIsMobile } from "@/hooks/use-mobile";
-import RdoDialog from "@/components/rdo/RdoDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { showSuccess, showError } from "@/utils/toast";
-import RdoLimitWarning from "@/components/rdo/RdoLimitWarning"; // Import NEW component
+import RdoLimitWarning from "@/components/rdo/RdoLimitWarning";
+import { ptBR } from "date-fns/locale";
 
 const GestaoRdo = () => {
-  const { data: obras, isLoading: isLoadingObras, error: obrasError } = useObras();
+  const { data: obras, isLoading: isLoadingObras } = useObras();
   const [selectedObraId, setSelectedObraId] = useState<string | undefined>(undefined);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<'kanban' | 'lista' | 'calendario'>('calendario');
@@ -37,7 +33,6 @@ const GestaoRdo = () => {
     }
   }, [obras, selectedObraId]);
 
-  const selectedObra = obras?.find(o => o.id === selectedObraId);
   const { data: rdoList, isLoading: isLoadingRdoList, error: rdoError } = useRdoList(selectedObraId || '');
 
   const handleClearAll = async () => {
@@ -77,7 +72,7 @@ const GestaoRdo = () => {
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Erro ao carregar RDOs</AlertTitle>
           <AlertDescription>
-            Ocorreu um erro ao buscar os dados. Verifique as permissões (RLS) ou a conexão.
+            Ocorreu um erro ao buscar os dados. Verifique as permissões ou a conexão.
             <p className="mt-2 text-sm italic">Detalhe: {rdoError.message}</p>
           </AlertDescription>
         </Alert>
@@ -91,31 +86,12 @@ const GestaoRdo = () => {
     };
 
     let contentView;
-    
     if (view === "calendario") {
-        contentView = (
-            <RdoCalendar
-                obraId={selectedObraId}
-                rdoList={rdoList || []}
-                currentDate={currentDate}
-            />
-        );
+        contentView = <RdoCalendar obraId={selectedObraId} rdoList={rdoList || []} currentDate={currentDate} />;
     } else if (view === "kanban") {
-        contentView = (
-            <RdoKanbanBoard
-                {...commonProps}
-            />
-        );
-    } else { // view === "lista"
-        contentView = isMobile ? (
-            <RdoMobileList
-                {...commonProps}
-            />
-        ) : (
-            <RdoListTable
-                {...commonProps}
-            />
-        );
+        contentView = <RdoKanbanBoard {...commonProps} />;
+    } else {
+        contentView = isMobile ? <RdoMobileList {...commonProps} /> : <RdoListTable {...commonProps} />;
     }
 
     return (
@@ -163,7 +139,7 @@ const GestaoRdo = () => {
               Anterior
             </Button>
             <span className="text-sm font-bold px-2 capitalize">
-              {format(currentDate, 'MMMM yyyy')}
+              {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
             </span>
             <Button
               variant="ghost"
@@ -187,7 +163,7 @@ const GestaoRdo = () => {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Apagar todos os RDOs?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Esta ação removerá definitivamente todos os Relatórios Diários de Obra desta construção. Não poderá ser desfeito.
+                    Esta ação removerá definitivamente todos os registros desta obra.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -201,9 +177,29 @@ const GestaoRdo = () => {
           </div>
         )}
 
-        <RdoLimitWarning /> {/* NEW: RDO Limit Warning */}
+        <RdoLimitWarning />
 
         {contentView}
+      </div>
+    );
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="p-4 sm:p-6 space-y-6">
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-2xl sm:text-3xl font-bold">Gestão de RDO</h1>
+            <p className="text-sm text-muted-foreground">Controle diário de atividades e equipe.</p>
+          </div>
+          <div className="w-full sm:max-w-sm">
+            <ObraSelector 
+              selectedObraId={selectedObraId} 
+              onSelectObra={setSelectedObraId} 
+            />
+          </div>
+        </div>
+        {renderContent()}
       </div>
     </DashboardLayout>
   );
