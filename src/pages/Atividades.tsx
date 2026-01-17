@@ -17,24 +17,29 @@ import { useQueryClient } from "@tanstack/react-query";
 
 const Atividades = () => {
   const queryClient = useQueryClient();
-  const { data: obras, isLoading: isLoadingObras, error: obrasError } = useObras();
+  const { data: obras, isLoading: isLoadingObras } = useObras();
   const [selectedObraId, setSelectedObraId] = useState<string | undefined>(undefined);
   const [filterEtapa, setFilterEtapa] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const isObraValid = selectedObraId && selectedObraId !== '00000000-0000-0000-0000-000000000000';
-  const { 
-    data: atividades, 
-    isLoading: isLoadingAtividades,
-  } = useAtividades(selectedObraId || '');
-  
-  const deleteMutation = useDeleteAtividade();
-
+  // Seleção automática da primeira obra disponível
   useEffect(() => {
     if (obras && obras.length > 0 && !selectedObraId) {
       setSelectedObraId(obras[0].id);
     }
   }, [obras, selectedObraId]);
+
+  // Hook de Atividades com lógica de estado explícita
+  const { 
+    data: atividades, 
+    isLoading: isLoadingAtividades,
+    status: atividadesStatus,
+    refetch: refetchAtividades
+  } = useAtividades(selectedObraId || '');
+  
+  const deleteMutation = useDeleteAtividade();
+
+  const isObraValid = selectedObraId && selectedObraId !== '00000000-0000-0000-0000-000000000000';
 
   const filteredAtividades = useMemo(() => {
     if (!atividades) return [];
@@ -53,7 +58,6 @@ const Atividades = () => {
       if (!groups[etapa]) groups[etapa] = [];
       groups[etapa].push(atv);
     });
-
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
   }, [filteredAtividades]);
 
@@ -63,30 +67,50 @@ const Atividades = () => {
     return Array.from(new Set(etapas)).sort();
   }, [atividades]);
 
-  const handleManualRefresh = () => {
-    queryClient.invalidateQueries({ queryKey: ['obras'] });
-    if (selectedObraId) {
-        queryClient.invalidateQueries({ queryKey: ['atividades', selectedObraId] });
-    }
-    showSuccess("Cronograma atualizado.");
-  };
-
   const renderContent = () => {
-    if (isLoadingObras) return <div className="flex justify-center items-center py-20"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
-
-    if (!selectedObraId) {
+    // 1. Carregando lista de obras
+    if (isLoadingObras) {
         return (
-            <div className="text-center py-20 border border-dashed rounded-2xl bg-muted/20">
-                <Construction className="w-16 h-16 mx-auto text-primary/30 mb-4" />
-                <h2 className="text-2xl font-bold mb-2">Selecione uma Obra</h2>
-                <p className="text-muted-foreground">Escolha uma obra no seletor para ver seu cronograma técnico.</p>
+            <div className="flex justify-center items-center py-20">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
             </div>
         );
     }
 
-    if (isLoadingAtividades) return <div className="flex justify-center items-center py-20"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+    // 2. Sem obras no sistema
+    if (obras && obras.length === 0) {
+        return (
+            <div className="text-center py-20 border border-dashed rounded-2xl bg-muted/20">
+                <Construction className="w-16 h-16 mx-auto text-primary/30 mb-4" />
+                <h2 className="text-2xl font-bold mb-2">Nenhuma obra cadastrada</h2>
+                <p className="text-muted-foreground mb-6">Cadastre uma obra para gerenciar o cronograma.</p>
+                <Button asChild><a href="/obras">Ir para Minhas Obras</a></Button>
+            </div>
+        );
+    }
 
-    if (atividades && atividades.length === 0) {
+    // 3. Obra não selecionada ainda
+    if (!selectedObraId) {
+        return (
+            <div className="text-center py-20 border border-dashed rounded-2xl bg-muted/10">
+                <ClipboardList className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">Selecione uma obra no menu acima.</p>
+            </div>
+        );
+    }
+
+    // 4. Carregando Atividades (Só mostra se for o carregamento inicial e tiver ID válido)
+    if (isLoadingAtividades && isObraValid) {
+        return (
+            <div className="flex flex-col justify-center items-center py-20 gap-4">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                <p className="text-sm font-medium animate-pulse">Sincronizando cronograma...</p>
+            </div>
+        );
+    }
+
+    // 5. Cronograma Vazio
+    if (atividadesStatus === 'success' && (!atividades || atividades.length === 0)) {
         return (
             <div className="text-center py-20 border border-dashed rounded-3xl bg-accent/5">
                 <div className="bg-primary/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -94,29 +118,21 @@ const Atividades = () => {
                 </div>
                 <h2 className="text-2xl font-black mb-2 uppercase tracking-tight">Cronograma Vazio</h2>
                 <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
-                    Inicie seu planejamento em segundos usando nossos modelos verificados ou crie manualmente.
+                    Inicie seu planejamento em segundos usando nossos modelos ou crie manualmente.
                 </p>
                 <div className="flex flex-col sm:flex-row justify-center gap-4">
-                    <AtividadeModelSelector 
-                        obraId={selectedObraId!} 
-                        className="bg-[#066abc] hover:bg-[#066abc]/90 text-white rounded-2xl px-8 h-14 shadow-xl shadow-primary/20 font-bold"
-                    />
-                    <AtividadeDialog obraId={selectedObraId!} trigger={
-                        <Button size="lg" variant="outline" className="rounded-2xl px-8 border-primary text-primary hover:bg-primary/5 h-14 font-bold">
-                            <Plus className="w-5 h-5 mr-2" />
-                            Criar Manualmente
+                    <AtividadeModelSelector obraId={selectedObraId} />
+                    <AtividadeDialog obraId={selectedObraId} trigger={
+                        <Button size="lg" variant="outline" className="rounded-2xl px-8 border-primary text-primary h-14 font-bold">
+                            <Plus className="w-5 h-5 mr-2" /> Criar Manualmente
                         </Button>
                     } />
-                </div>
-                <div className="mt-8 flex justify-center gap-6 text-[10px] uppercase font-bold text-muted-foreground tracking-widest">
-                    <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-green-500" /> Residencial</span>
-                    <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-green-500" /> Empresarial</span>
-                    <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-green-500" /> Industrial</span>
                 </div>
             </div>
         );
     }
 
+    // 6. Lista de Atividades
     return (
       <div className="space-y-8 animate-in fade-in duration-500">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-card p-4 border rounded-2xl shadow-clean">
@@ -137,7 +153,7 @@ const Atividades = () => {
             </SelectContent>
           </Select>
           <div className="flex justify-end items-center px-2">
-            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{filteredAtividades.length} atividades</span>
+            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{filteredAtividades.length} serviços</span>
           </div>
         </div>
 
@@ -151,7 +167,11 @@ const Atividades = () => {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                         {items.map((atividade) => (
-                            <AtividadeCard key={atividade.id} atividade={atividade} onDelete={(id) => deleteMutation.mutateAsync({ id, obraId: selectedObraId! })} />
+                            <AtividadeCard 
+                                key={atividade.id} 
+                                atividade={atividade} 
+                                onDelete={(id) => deleteMutation.mutateAsync({ id, obraId: selectedObraId! })} 
+                            />
                         ))}
                     </div>
                 </div>
@@ -171,7 +191,16 @@ const Atividades = () => {
           </div>
           <div className="flex flex-wrap gap-3 items-center">
             <ObraSelector selectedObraId={selectedObraId} onSelectObra={setSelectedObraId} />
-            <Button variant="outline" size="icon" onClick={handleManualRefresh} className="rounded-xl">
+            <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={() => {
+                    queryClient.invalidateQueries({ queryKey: ['atividades'] });
+                    refetchAtividades();
+                }} 
+                className="rounded-xl"
+                title="Recarregar Cronograma"
+            >
                 <RefreshCcw className="h-4 w-4" />
             </Button>
             {isObraValid && (
