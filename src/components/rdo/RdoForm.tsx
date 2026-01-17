@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { showSuccess, showError } from "@/utils/toast";
-import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, UserCheck, Sun, Clock, Copy, Upload, Image as ImageIcon, X, Handshake, Moon, SunMedium, CheckCircle, Trash2, AlertTriangle, FileText, StickyNote } from "lucide-react";
+import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, UserCheck, Sun, Clock, Copy, Upload, Image as ImageIcon, X, Handshake, Moon, SunMedium, CheckCircle, Trash2, AlertTriangle, StickyNote } from "lucide-react";
 import { DiarioObra, useCreateRdo, useUpdateRdo, WorkforceType, useDeleteRdo } from "@/hooks/use-rdo";
 import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
@@ -554,7 +554,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
             <TabsTrigger value="mao_de_obra" className="rounded-lg text-[10px] uppercase font-black py-2">Equipe</TabsTrigger>
             <TabsTrigger value="equipamentos" className="rounded-lg text-[10px] uppercase font-black py-2">Máquinas</TabsTrigger>
             <TabsTrigger value="materiais" className="rounded-lg text-[10px] uppercase font-black py-2">Materiais</TabsTrigger>
-            <TabsTrigger value="ocorrencias" className="rounded-lg text-[10px] uppercase font-black py-2">Ocorrências</TabsTrigger>
+            <TabsTrigger value="notas" className="rounded-lg text-[10px] uppercase font-black py-2">Notas</TabsTrigger>
             <TabsTrigger value="seguranca" className="rounded-lg text-[10px] uppercase font-black py-2 md:col-span-1 col-span-3">Segurança</TabsTrigger>
           </TabsList>
           
@@ -563,35 +563,14 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
           <TabsContent value="equipamentos" className="pt-4"><RdoEquipmentForm /></TabsContent>
           <TabsContent value="materiais" className="pt-4"><RdoMaterialsForm /></TabsContent>
           
-          <TabsContent value="ocorrencias" className="pt-4">
+          <TabsContent value="notas" className="pt-4">
             <Card className="border-l-4 border-l-orange-500 shadow-sm bg-white">
                 <CardHeader className="bg-orange-50/50 pb-2 py-3">
                     <CardTitle className="text-sm font-black uppercase text-orange-700 flex items-center gap-2">
-                        <AlertTriangle className="w-5 h-5" /> Diário de Ocorrências
+                        <StickyNote className="w-5 h-5" /> Diário de Notas e Ocorrências
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 space-y-6">
-                    <FormField
-                        control={methods.control}
-                        name="impedimentos_comentarios"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className="text-xs font-black uppercase text-muted-foreground flex items-center gap-1">
-                                    <AlertTriangle className="w-3 h-3 text-destructive" /> Impedimentos / Problemas
-                                </FormLabel>
-                                <FormControl>
-                                    <Textarea 
-                                        placeholder="Descreva problemas como: chuvas, falta de material, acidentes, paralisações..." 
-                                        {...field} 
-                                        value={field.value || ""} 
-                                        rows={4}
-                                        className="bg-red-50/30 border-red-100 focus:border-red-300 transition-all"
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
                     
                     <FormField
                         control={methods.control}
@@ -608,6 +587,28 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                                         value={field.value || ""} 
                                         rows={4}
                                         className="bg-blue-50/30 border-blue-100 focus:border-blue-300 transition-all"
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={methods.control}
+                        name="impedimentos_comentarios"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-xs font-black uppercase text-muted-foreground flex items-center gap-1">
+                                    <AlertTriangle className="w-3 h-3 text-destructive" /> Impedimentos
+                                </FormLabel>
+                                <FormControl>
+                                    <Textarea 
+                                        placeholder="Descreva problemas como: chuvas, falta de material, acidentes, paralisações..." 
+                                        {...field} 
+                                        value={field.value || ""} 
+                                        rows={4}
+                                        className="bg-red-50/30 border-red-100 focus:border-red-300 transition-all"
                                     />
                                 </FormControl>
                                 <FormMessage />

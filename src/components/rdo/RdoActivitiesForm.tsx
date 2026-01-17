@@ -54,7 +54,6 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
   };
 
   const handleSelectActivity = (index: number, value: string) => {
-    // Ensuring the field gets dirty and validated properly
     setValue(`atividades.${index}.descricao_servico`, value, { shouldValidate: true, shouldDirty: true });
   };
 
@@ -72,6 +71,9 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
         const photoUrl = watch(`atividades.${index}.foto_anexo_url`);
         const currentDesc = watch(`atividades.${index}.descricao_servico`);
 
+        // Check if the current description matches any item in the schedule
+        const selectedValue = atividadesCronograma?.some(a => a.descricao === currentDesc) ? currentDesc : undefined;
+
         return (
           <div key={field.id} className="p-4 border rounded-xl space-y-4 bg-secondary/5">
             <div className="flex justify-between items-start">
@@ -86,7 +88,7 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
                 <Label className="text-[10px] uppercase font-bold text-muted-foreground">O que foi trabalhado?</Label>
                 {atividadesCronograma && atividadesCronograma.length > 0 && (
                     <Select 
-                        value={atividadesCronograma.some(a => a.descricao === currentDesc) ? currentDesc : undefined}
+                        value={selectedValue}
                         onValueChange={(val) => handleSelectActivity(index, val)}
                     >
                         <SelectTrigger className="bg-background h-10">
