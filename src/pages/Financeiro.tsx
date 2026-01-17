@@ -164,9 +164,21 @@ const Financeiro = () => {
               <ObraSelector selectedObraId={selectedObraId} onSelectObra={setSelectedObraId} />
             </div>
             <div className="flex flex-wrap gap-2">
+              {selectedObraId && (
+                <EntryDialog
+                  obraId={selectedObraId}
+                  trigger={
+                    <Button className="flex-1 sm:flex-none bg-[#066abc] hover:bg-[#066abc]/90 shadow-sm font-bold min-w-[160px]">
+                      <Plus className="w-5 h-5 mr-2" />
+                      Novo Gasto
+                    </Button>
+                  }
+                />
+              )}
+              
               <CategoryManagementDialog
                 trigger={
-                  <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+                  <Button variant="outline" className="flex-1 sm:flex-none">
                     <Settings className="w-4 h-4 mr-2" />
                     Categorias
                   </Button>
@@ -176,7 +188,7 @@ const Financeiro = () => {
                 selectedObraId={selectedObraId}
                 selectedObraNome={selectedObra?.nome}
                 trigger={
-                  <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+                  <Button variant="outline" className="flex-1 sm:flex-none">
                     <Clipboard className="w-4 h-4 mr-2" />
                     Colar CSV
                   </Button>
@@ -186,7 +198,7 @@ const Financeiro = () => {
                 selectedObraId={selectedObraId}
                 selectedObraNome={selectedObra?.nome}
                 trigger={
-                  <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+                  <Button variant="outline" className="flex-1 sm:flex-none">
                     <FileUp className="w-4 h-4 mr-2" />
                     Importar
                   </Button>
@@ -197,21 +209,6 @@ const Financeiro = () => {
         </div>
         {renderContent()}
       </div>
-      {selectedObraId && (
-        <div className="fixed bottom-6 right-6 z-10 sm:bottom-10 sm:right-10">
-          <EntryDialog
-            obraId={selectedObraId}
-            trigger={
-              <Button
-                size="lg"
-                className="rounded-full shadow-2xl h-14 w-14 p-0 bg-primary hover:bg-primary/90"
-              >
-                <Plus className="w-8 h-8" />
-              </Button>
-            }
-          />
-        </div>
-      )}
     </DashboardLayout>
   );
 };
