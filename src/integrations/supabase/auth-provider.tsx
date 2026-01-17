@@ -82,12 +82,10 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
           }
 
           if (event === 'SIGNED_IN') {
-            // Se não for recuperação, vai pro dashboard
             navigate("/dashboard", { replace: true });
           } else if (event === 'SIGNED_OUT') {
             navigate("/login", { replace: true });
           } else if (event === 'PASSWORD_RECOVERY') {
-            // Redireciona obrigatoriamente para troca de senha
             navigate("/update-password", { replace: true });
           }
         }
@@ -104,8 +102,16 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
   }, [navigate]);
 
   const signOut = async () => {
-    localStorage.removeItem(PRO_CACHE_KEY);
-    await supabase.auth.signOut();
+    try {
+      localStorage.removeItem(PRO_CACHE_KEY);
+      await supabase.auth.signOut();
+      // Garantia de redirecionamento se o evento onAuthStateChange demorar
+      navigate("/login", { replace: true });
+    } catch (err) {
+      console.error("Erro ao sair:", err);
+      // Fallback em caso de erro no SDK
+      window.location.href = "/login";
+    }
   };
 
   if (error) {

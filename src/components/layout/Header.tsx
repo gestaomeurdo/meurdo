@@ -5,7 +5,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useProfile } from "@/hooks/use-profile";
 import { Link } from "react-router-dom";
-import { Badge } from "@/components/ui/badge";
 
 const ICON_URL = "https://meurdo.com.br/wp-content/uploads/2026/01/Icone.png";
 
@@ -15,11 +14,10 @@ interface HeaderProps {
 
 const Header = ({ setSidebarOpen }: HeaderProps) => {
   const { signOut, user } = useAuth();
-  const { data: profile, isLoading: isLoadingProfile } = useProfile();
+  const { data: profile } = useProfile();
   const isMobile = useIsMobile();
 
   const userName = profile?.first_name || user?.email?.split('@')[0] || "Usuário";
-  const isPro = profile?.subscription_status === 'active';
 
   return (
     <header className="sticky top-0 z-20 flex items-center justify-between h-16 px-4 bg-background/80 backdrop-blur-md border-b shadow-sm">
@@ -62,7 +60,7 @@ const Header = ({ setSidebarOpen }: HeaderProps) => {
                 Ver Perfil
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => signOut()} className="text-destructive cursor-pointer">
+            <DropdownMenuItem onSelect={() => signOut()} className="text-destructive cursor-pointer">
               <LogOut className="h-4 w-4 mr-2" />
               Sair
             </DropdownMenuItem>
