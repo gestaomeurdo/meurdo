@@ -27,7 +27,7 @@ const Login = () => {
                     brand: 'hsl(var(--primary))',
                     brandAccent: 'hsl(var(--primary))',
                     inputBorderFocus: 'hsl(var(--primary))',
-                    // Ensure buttons use primary color
+                    // Garante que o botão use o azul corporativo #066abc
                     defaultButtonBackground: 'hsl(var(--primary))',
                     defaultButtonBackgroundHover: 'hsl(var(--primary-foreground))', // Use white for hover background
                     defaultButtonBorder: 'hsl(var(--primary))',
@@ -59,17 +59,22 @@ const Login = () => {
                   button_label: 'Entrar',
                   link_text: 'Não tem uma conta? Cadastre-se',
                   forgotten_password_link_text: 'Esqueceu sua senha?',
+                  email_input_placeholder: 'Seu endereço de e-mail', // Novo placeholder
+                  password_input_placeholder: 'Sua senha', // Novo placeholder
                 },
                 sign_up: {
                   email_label: 'E-mail',
                   password_label: 'Senha',
                   button_label: 'Criar Conta',
                   link_text: 'Já tem uma conta? Entrar',
+                  email_input_placeholder: 'Seu endereço de e-mail', // Novo placeholder
+                  password_input_placeholder: 'Sua senha', // Novo placeholder
                 },
                 forgotten_password: {
                   email_label: 'E-mail',
                   button_label: 'Enviar instruções de recuperação',
                   link_text: 'Esqueceu sua senha?',
+                  email_input_placeholder: 'Seu endereço de e-mail', // Novo placeholder
                 },
                 update_password: {
                   password_label: 'Nova Senha',
@@ -79,6 +84,7 @@ const Login = () => {
                   email_label: 'E-mail',
                   button_label: 'Enviar Link Mágico',
                   link_text: 'Entrar com Link Mágico',
+                  email_input_placeholder: 'Seu endereço de e-mail', // Novo placeholder
                 },
               },
             }}
