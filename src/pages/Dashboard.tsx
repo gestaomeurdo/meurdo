@@ -1,7 +1,7 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/integrations/supabase/auth-provider";
-import { Loader2, CheckCircle, Zap, MapPin, Calendar, DollarSign, ArrowRight } from "lucide-react";
+import { Loader2, CheckCircle, Zap, MapPin, Calendar, DollarSign, ArrowRight, ImageIcon } from "lucide-react";
 import { useRdoDashboardMetrics } from "@/hooks/use-rdo-dashboard-metrics";
 import RecentRdoList from "@/components/dashboard/RecentRdoList";
 import { useEffect, useState } from "react";
@@ -106,29 +106,38 @@ const Dashboard = () => {
                 <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                     {obras.slice(0, 3).map((obra) => (
                         <Link to="/gestao-rdo" key={obra.id}>
-                            <Card className="shadow-sm hover:shadow-md transition-all cursor-pointer border-l-4 border-l-primary group">
-                                <CardContent className="p-4">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <h3 className="font-bold text-lg truncate pr-2 group-hover:text-primary transition-colors">{obra.nome}</h3>
-                                        {obra.status === 'ativa' && <div className="h-2 w-2 rounded-full bg-green-500 shrink-0 mt-1.5 shadow-sm" title="Ativa" />}
-                                        {obra.status !== 'ativa' && <div className="h-2 w-2 rounded-full bg-muted-foreground shrink-0 mt-1.5" title={obra.status} />}
+                            <Card className="shadow-sm hover:shadow-md transition-all cursor-pointer border-none overflow-hidden group h-full flex flex-col">
+                                <div className="h-24 w-full bg-muted relative overflow-hidden">
+                                    {obra.foto_url ? (
+                                        <img src={obra.foto_url} alt={obra.nome} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-accent/30">
+                                            <ImageIcon className="w-6 h-6 text-muted-foreground/30" />
+                                        </div>
+                                    )}
+                                    <div className="absolute top-2 right-2">
+                                        {obra.status === 'ativa' && <div className="h-2 w-2 rounded-full bg-green-500 shadow-sm ring-2 ring-white" />}
+                                        {obra.status !== 'ativa' && <div className="h-2 w-2 rounded-full bg-muted-foreground shadow-sm ring-2 ring-white" />}
                                     </div>
-                                    
-                                    <div className="space-y-3">
-                                        <div className="flex items-center text-xs text-muted-foreground">
+                                    <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-black/60 to-transparent"></div>
+                                </div>
+                                <CardContent className="p-4 flex-1 flex flex-col">
+                                    <div className="mb-2">
+                                        <h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">{obra.nome}</h3>
+                                        <div className="flex items-center text-xs text-muted-foreground mt-1">
                                             <MapPin className="w-3.5 h-3.5 mr-1.5 text-primary/70 shrink-0" />
                                             <span className="truncate">{obra.endereco || "Local não informado"}</span>
                                         </div>
-                                        
-                                        <div className="flex items-center justify-between pt-3 mt-1 border-t border-dashed">
-                                            <div className="flex items-center text-xs font-medium text-muted-foreground">
-                                                <Calendar className="w-3.5 h-3.5 mr-1.5" />
-                                                {formatDate(obra.data_inicio)}
-                                            </div>
-                                            <div className="flex items-center text-xs font-bold text-foreground">
-                                                <DollarSign className="w-3.5 h-3.5 mr-0.5 text-primary" />
-                                                {formatCurrency(obra.orcamento_inicial)}
-                                            </div>
+                                    </div>
+                                    
+                                    <div className="mt-auto pt-3 border-t border-dashed flex items-center justify-between">
+                                        <div className="flex items-center text-xs font-medium text-muted-foreground">
+                                            <Calendar className="w-3.5 h-3.5 mr-1.5" />
+                                            {formatDate(obra.data_inicio)}
+                                        </div>
+                                        <div className="flex items-center text-xs font-bold text-foreground">
+                                            <DollarSign className="w-3.5 h-3.5 mr-0.5 text-primary" />
+                                            {formatCurrency(obra.orcamento_inicial)}
                                         </div>
                                     </div>
                                 </CardContent>

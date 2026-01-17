@@ -8,7 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { showSuccess, showError } from "@/utils/toast";
-import { CalendarIcon, Loader2, Home, Building2, ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { CalendarIcon, Loader2, Home, Building2, ArrowRight, ArrowLeft, CheckCircle2, Upload, ImageIcon, X } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { parseCurrencyInput, formatCurrencyForInput } from "@/utils/formatters";
 import { useCurrencyInput } from "@/hooks/use-currency-input";
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const ObraSchema = z.object({
   nome: z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),
@@ -26,6 +27,7 @@ const ObraSchema = z.object({
   previsao_entrega: z.date().optional().nullable(),
   orcamento_inicial: z.string().min(1, "O orçamento é obrigatório."),
   status: z.enum(['ativa', 'concluida', 'pausada']),
+  foto_url: z.string().optional().nullable(),
   modelo_id: z.string().optional(),
 }).refine((data) => {
   const parsedValue = parseCurrencyInput(data.orcamento_inicial);
@@ -47,6 +49,7 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
   const [step, setStep] = useState(isEditing ? 2 : 1);
   const createMutation = useCreateObra();
   const updateMutation = useUpdateObra();
+  const [isUploading, setIsUploading] = useState(false);
 
   const form = useForm<ObraFormValues>({
     resolver: zodResolver(ObraSchema),
@@ -59,11 +62,48 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
       previsao_entrega: initialData?.previsao_entrega ? new Date(initialData.previsao_entrega) : null,
       orcamento_inicial: initialData?.orcamento_inicial !== undefined ? formatCurrencyForInput(initialData.orcamento_inicial) : "0,00",
       status: initialData?.status || 'ativa',
+      foto_url: initialData?.foto_url || null,
       modelo_id: "",
     },
   });
 
   const { handleCurrencyChange } = useCurrencyInput('orcamento_inicial', form.setValue, form.getValues);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+        showError("A imagem deve ter no máximo 2MB.");
+        return;
+    }
+
+    setIsUploading(true);
+    const fileExt = file.name.split('.').pop();
+    const fileName = `obra-cover-${Date.now()}.${fileExt}`;
+    // Usar um bucket público ou existente. Vamos usar 'company_assets' como no logo.
+    const filePath = `obras/${fileName}`;
+
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from('company_assets')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage
+        .from('company_assets')
+        .getPublicUrl(filePath);
+
+      form.setValue('foto_url', publicUrlData.publicUrl, { shouldDirty: true });
+      showSuccess("Foto carregada com sucesso!");
+    } catch (error) {
+      console.error("Upload error:", error);
+      showError("Erro no upload da foto.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const onSubmit = async (values: ObraFormValues) => {
     try {
@@ -77,6 +117,7 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
         previsao_entrega: values.previsao_entrega ? format(values.previsao_entrega, 'yyyy-MM-dd') : null,
         orcamento_inicial: parsedOrcamento,
         status: values.status,
+        foto_url: values.foto_url,
         modelo_id: values.modelo_id,
       };
 
@@ -91,7 +132,6 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
         showSuccess("Obra criada com sucesso!");
       }
 
-      // Chamamos onSuccess para fechar o diálogo apenas após o sucesso da mutação
       onSuccess();
     } catch (error) {
       console.error("[ObraForm] Erro na submissão:", error);
@@ -99,7 +139,8 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
     }
   };
 
-  const isLoading = createMutation.isPending || updateMutation.isPending;
+  const isLoading = createMutation.isPending || updateMutation.isPending || isUploading;
+  const currentPhoto = form.watch('foto_url');
 
   if (step === 1 && !isEditing) {
     return (
@@ -182,6 +223,43 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
             </button>
           </div>
         )}
+
+        <div className="space-y-3">
+            <FormLabel>Foto da Obra (Capa)</FormLabel>
+            <div className="flex items-center gap-4">
+                {currentPhoto ? (
+                    <div className="relative w-32 h-20 rounded-lg overflow-hidden border bg-muted">
+                        <img src={currentPhoto} alt="Capa da Obra" className="w-full h-full object-cover" />
+                        <button
+                            type="button"
+                            onClick={() => form.setValue('foto_url', null, { shouldDirty: true })}
+                            className="absolute top-1 right-1 bg-destructive text-white rounded-full p-1 shadow-sm hover:bg-destructive/90"
+                        >
+                            <X className="w-3 h-3" />
+                        </button>
+                    </div>
+                ) : (
+                    <label className="flex flex-col items-center justify-center w-32 h-20 border-2 border-dashed rounded-lg cursor-pointer hover:bg-accent/50 transition-colors bg-muted/10">
+                        {isUploading ? (
+                            <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                        ) : (
+                            <div className="flex flex-col items-center gap-1">
+                                <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                                <span className="text-[9px] text-muted-foreground font-bold uppercase">Adicionar Foto</span>
+                            </div>
+                        )}
+                        <input
+                            type="file"
+                            className="hidden"
+                            accept="image/*"
+                            onChange={handleFileUpload}
+                            disabled={isUploading}
+                        />
+                    </label>
+                )}
+            </div>
+        </div>
+
         <FormField
           control={form.control}
           name="nome"

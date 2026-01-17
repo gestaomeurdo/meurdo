@@ -1,6 +1,6 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2, Loader2, MapPin, Construction, Zap, ArrowRight } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2, MapPin, Construction, Zap, ArrowRight, ImageIcon } from "lucide-react";
 import ObraDialog from "@/components/obras/ObraDialog";
 import { useDeleteObra, useObras, Obra } from "@/hooks/use-obras";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -110,25 +110,38 @@ const Obras = () => {
                 key={obra.id}
                 className="group hover:shadow-xl transition-all duration-300 border-none bg-card shadow-clean rounded-2xl overflow-hidden flex flex-col"
               >
-                <div
-                  className={cn(
-                    "h-2 w-full",
-                    obra.status === 'ativa'
-                      ? "bg-primary"
-                      : obra.status === 'concluida'
-                      ? "bg-blue-500"
-                      : "bg-destructive"
-                  )}
-                ></div>
-                <CardHeader className="pb-4">
+                <div className="relative h-32 bg-muted w-full overflow-hidden">
+                    {obra.foto_url ? (
+                        <img src={obra.foto_url} alt={obra.nome} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-accent/30">
+                            <ImageIcon className="w-8 h-8 text-muted-foreground/30" />
+                        </div>
+                    )}
+                    <div className="absolute top-2 right-2">
+                        <Badge
+                            variant={statusColorMap[obra.status]}
+                            className="rounded-full px-3 py-0.5 text-[10px] font-black uppercase tracking-widest shadow-sm border border-white/20 backdrop-blur-md"
+                        >
+                            {statusMap[obra.status]}
+                        </Badge>
+                    </div>
+                    <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-black/60 to-transparent"></div>
+                </div>
+                
+                <CardHeader className="pb-4 relative -mt-4 pt-4">
                   <div className="flex justify-between items-start mb-2">
-                    <Badge
-                      variant={statusColorMap[obra.status]}
-                      className="rounded-full px-3 py-0.5 text-[10px] font-black uppercase tracking-widest"
-                    >
-                      {statusMap[obra.status]}
-                    </Badge>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex-1">
+                        <CardTitle className="text-xl font-bold truncate leading-tight mt-1">
+                            {obra.nome}
+                        </CardTitle>
+                        <CardDescription className="flex items-center text-xs pt-1">
+                            <MapPin className="w-3 h-3 mr-1 text-primary" />
+                            {obra.endereco || "Local não informado"}
+                        </CardDescription>
+                    </div>
+                    
+                    <div className="flex gap-1 ml-2">
                       <ObraDialog
                         initialData={obra}
                         trigger={
@@ -167,13 +180,6 @@ const Obras = () => {
                       </AlertDialog>
                     </div>
                   </div>
-                  <CardTitle className="text-xl font-bold truncate leading-tight">
-                    {obra.nome}
-                  </CardTitle>
-                  <CardDescription className="flex items-center text-xs pt-1">
-                    <MapPin className="w-3 h-3 mr-1 text-primary" />
-                    {obra.endereco || "Local não informado"}
-                  </CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow space-y-4 pt-0">
                   <div className="grid grid-cols-2 gap-4 bg-accent/30 p-3 rounded-xl">

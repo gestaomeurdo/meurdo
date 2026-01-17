@@ -14,6 +14,7 @@ export interface Obra {
   previsao_entrega: string | null; 
   orcamento_inicial: number;
   status: 'ativa' | 'concluida' | 'pausada';
+  foto_url?: string | null;
   criado_em: string;
 }
 
@@ -48,6 +49,7 @@ interface ObraInput {
   previsao_entrega?: string | null;
   orcamento_inicial: number;
   status: 'ativa' | 'concluida' | 'pausada';
+  foto_url?: string | null;
   modelo_id?: string;
 }
 
