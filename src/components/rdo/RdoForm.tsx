@@ -9,14 +9,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { showSuccess, showError } from "@/utils/toast";
 import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, UserCheck, Sun, AlertOctagon, Clock, Copy, Upload, Image as ImageIcon, X, Handshake, Moon, SunMedium } from "lucide-react";
-import { DiarioObra, RdoClima, RdoStatusDia, useCreateRdo, useUpdateRdo, WorkforceType } from "@/hooks/use-rdo";
+import { DiarioObra, RdoStatusDia, useCreateRdo, useUpdateRdo, WorkforceType } from "@/hooks/use-rdo";
 import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
 import RdoEquipmentForm from "./RdoEquipmentForm";
 import RdoMaterialsForm from "./RdoMaterialsForm";
 import RdoSignaturePad from "./RdoSignaturePad";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { formatCurrency } from "@/utils/formatters";
 import { generateRdoPdf } from "@/utils/rdo-pdf";
 import { useObras } from "@/hooks/use-obras";
@@ -29,7 +29,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Label } from "@/components/ui/label";
 
 const statusOptions: RdoStatusDia[] = ['Operacional', 'Parcialmente Paralisado', 'Totalmente Paralisado - Não Praticável'];
-const climaOptions: RdoClima[] = ['Sol', 'Nublado', 'Chuva Leve', 'Chuva Forte'];
+// Clima as string options
+const climaOptions = ['Sol', 'Nublado', 'Chuva Leve', 'Chuva Forte'];
 const workforceTypes: WorkforceType[] = ['Própria', 'Terceirizada'];
 
 const RdoDetailSchema = z.object({
@@ -63,7 +64,7 @@ const RdoSchema = z.object({
   obra_id: z.string().uuid("Obra inválida."),
   data_rdo: z.date({ required_error: "A data é obrigatória." }),
   periodo: z.string().min(1, "Selecione pelo menos um período."),
-  clima_condicoes: z.enum(climaOptions).nullable().optional(),
+  clima_condicoes: z.string().nullable().optional(), // Changed to string
   status_dia: z.enum(statusOptions, { required_error: "O status do dia é obrigatório." }),
   observacoes_gerais: z.string().nullable().optional(),
   impedimentos_comentarios: z.string().nullable().optional(),
@@ -104,6 +105,9 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
   const { data: obras } = useObras();
   const obraNome = obras?.find(o => o.id === obraId)?.nome || "Obra";
   const [isUploadingSafety, setIsUploadingSafety] = useState(false);
+  
+  // State for weather per period
+  const [weatherMap, setWeatherMap] = useState<Record<string, string>>({});
 
   // Helper para normalizar o período inicial
   const getInitialPeriod = () => {
@@ -120,7 +124,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
         ? new Date(initialData.data_rdo + 'T12:00:00') 
         : (selectedDate || new Date()),
       periodo: getInitialPeriod(),
-      clima_condicoes: initialData?.clima_condicoes || undefined,
+      clima_condicoes: initialData?.clima_condicoes || "",
       status_dia: initialData?.status_dia || 'Operacional',
       observacoes_gerais: initialData?.observacoes_gerais || "",
       impedimentos_comentarios: initialData?.impedimentos_comentarios || "",
@@ -167,6 +171,42 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
   });
   const workStopped = methods.watch("work_stopped");
   const safetyPhotoUrl = methods.watch("safety_photo_url");
+  const activePeriods = methods.watch("periodo");
+
+  // Parse initial weather string
+  useEffect(() => {
+    if (initialData?.clima_condicoes) {
+      const weatherString = initialData.clima_condicoes;
+      // Try to parse "Manhã: Sol, Tarde: Chuva" format
+      if (weatherString.includes(':')) {
+        const parts = weatherString.split(', ');
+        const map: Record<string, string> = {};
+        parts.forEach(p => {
+          const [period, condition] = p.split(': ');
+          if (period && condition) map[period] = condition;
+        });
+        setWeatherMap(map);
+      } else {
+        // Fallback for simple format (e.g. "Sol") -> Assign to all periods
+        const map: Record<string, string> = {};
+        ['Manhã', 'Tarde', 'Noite'].forEach(p => map[p] = weatherString);
+        setWeatherMap(map);
+      }
+    }
+  }, [initialData]);
+
+  // Update clima_condicoes hidden field whenever weatherMap or activePeriods change
+  useEffect(() => {
+    const selectedPeriods = activePeriods.split(', ').filter(p => p !== '');
+    const weatherString = selectedPeriods
+      .map(p => {
+        const condition = weatherMap[p] || 'Sol'; // Default to Sol if not selected
+        return `${p}: ${condition}`;
+      })
+      .join(', ');
+    
+    methods.setValue('clima_condicoes', weatherString, { shouldDirty: true });
+  }, [weatherMap, activePeriods, methods]);
 
   const estimatedDailyCost = useMemo(() => {
     return maoDeObra?.reduce((sum, item) => {
@@ -288,6 +328,8 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
     }
   };
 
+  const activePeriodsList = activePeriods.split(', ').filter(p => p !== '');
+
   return (
     <FormProvider {...methods}>
       <form onSubmit={methods.handleSubmit(onSubmit, onInvalid)} className="space-y-6">
@@ -339,13 +381,16 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
 
         {/* Informações Gerais (Local e Clima) */}
         <Card className="border-none shadow-clean bg-accent/20">
-          <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Seletor de Períodos */}
             <FormField
               control={methods.control}
               name="periodo"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Períodos Ativos</FormLabel>
+                  <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1 mb-2">
+                    <Clock className="w-3 h-3" /> Períodos Ativos
+                  </FormLabel>
                   <FormControl>
                     <div className="flex gap-2">
                         {['Manhã', 'Tarde', 'Noite'].map((p) => {
@@ -376,28 +421,33 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
               )}
             />
 
-            <FormField
-              control={methods.control}
-              name="clima_condicoes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1"><Sun className="w-3 h-3" /> Condições Climáticas</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
-                    <FormControl>
-                      <SelectTrigger className="rounded-xl bg-white border-none shadow-sm h-10">
-                        <SelectValue placeholder="Selecione o clima" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {climaOptions.map(option => (
-                        <SelectItem key={option} value={option}>{option}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Clima por Período */}
+            <div>
+                <Label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1 mb-2">
+                    <Sun className="w-3 h-3" /> Condições Climáticas
+                </Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {activePeriodsList.length > 0 ? activePeriodsList.map(period => (
+                        <div key={period} className="flex items-center gap-2 bg-white p-2 rounded-xl border shadow-sm">
+                            <span className="text-[10px] font-black uppercase text-muted-foreground w-12 text-center">{period}</span>
+                            <div className="h-4 w-[1px] bg-border mx-1"></div>
+                            <Select 
+                                value={weatherMap[period] || 'Sol'} 
+                                onValueChange={(val) => setWeatherMap(prev => ({ ...prev, [period]: val }))}
+                            >
+                                <SelectTrigger className="border-none h-7 text-xs font-medium focus:ring-0">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {climaOptions.map(opt => <SelectItem key={opt} value={opt} className="text-xs">{opt}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )) : (
+                        <p className="text-xs text-muted-foreground italic p-2">Selecione um período primeiro.</p>
+                    )}
+                </div>
+            </div>
           </CardContent>
           
           <div className="px-4 pb-4 pt-0 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
@@ -453,7 +503,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
           </div>
         </Card>
 
-        {/* SEÇÃO DE SEGURANÇA EM DESTAQUE (Movida para cá) */}
+        {/* SEÇÃO DE SEGURANÇA EM DESTAQUE */}
         <Card className="border-l-4 border-l-primary shadow-sm overflow-hidden bg-white">
             <CardHeader className="bg-primary/5 pb-2 py-3">
                 <CardTitle className="text-sm font-black uppercase text-primary flex items-center gap-2">
@@ -536,28 +586,20 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
             </CardContent>
         </Card>
 
-        {/* Tabs - Agora sem Segurança */}
+        {/* Tabs */}
         <Tabs defaultValue="atividades" className="w-full">
           <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto bg-muted/50 p-1 rounded-xl gap-1">
             <TabsTrigger value="atividades" className="rounded-lg text-[10px] uppercase font-black py-2">Serviços</TabsTrigger>
             <TabsTrigger value="mao_de_obra" className="rounded-lg text-[10px] uppercase font-black py-2">Equipe</TabsTrigger>
             <TabsTrigger value="equipamentos" className="rounded-lg text-[10px] uppercase font-black py-2">Máquinas</TabsTrigger>
             <TabsTrigger value="materiais" className="rounded-lg text-[10px] uppercase font-black py-2">Materiais</TabsTrigger>
-            {/* Ocorrências pode ser acessado em 'Materiais' ou criar tab propria, mantive Notas separadas se existir ou removi se for redundante com 'Obs Gerais', aqui vou manter 'Notas/Ocorrências' */}
           </TabsList>
           
           <TabsContent value="atividades" className="pt-4"><RdoActivitiesForm obraId={obraId} /></TabsContent>
           <TabsContent value="mao_de_obra" className="pt-4"><RdoManpowerForm /></TabsContent>
           <TabsContent value="equipamentos" className="pt-4"><RdoEquipmentForm /></TabsContent>
           <TabsContent value="materiais" className="pt-4"><RdoMaterialsForm /></TabsContent>
-          {/* Ocorrências foi para 'Notas' se existir essa tab ou apenas um formfield abaixo */}
         </Tabs>
-
-        {/* Ocorrências / Notas (Fora das tabs ou uma tab especifica) - Mantendo a logica anterior de ter Notes na Tab se necessario, mas o codigo anterior tinha uma tab 'ocorrencias' */}
-        {/* Como removi do TabsList acima por simplicidade visual (4 cols), vou reinserir a tab Notas caso precise, ou deixar como Card separado no final. Vou reinserir a Tab trigger. */}
-        
-        {/* Correção: Reinserindo a TabTrigger de Notas que acabei tirando sem querer na visualizacao acima */}
-        {/* Vou corrigir o TabsList acima para incluir Ocorrencias/Notas */}
         
         <div className="pt-6 border-t space-y-6">
           {!isPro ? (

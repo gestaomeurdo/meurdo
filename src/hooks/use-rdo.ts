@@ -45,8 +45,8 @@ export interface RdoMaterial {
 
 // --- Main RDO Type ---
 export type RdoStatusDia = 'Operacional' | 'Parcialmente Paralisado' | 'Totalmente Paralisado - Não Praticável';
-export type RdoClima = 'Sol' | 'Nublado' | 'Chuva Leve' | 'Chuva Forte';
-// Alterado para string para aceitar combinações como "Manhã, Tarde"
+// Changed to string to support "Manhã: Sol, Tarde: Chuva"
+export type RdoClima = string; 
 export type RdoPeriodo = string; 
 
 export interface DiarioObra {
@@ -146,7 +146,7 @@ export const useRdoList = (obraId: string) => {
   });
 };
 
-// Improved to fetch the MOST RECENT RDO before the current date, not just yesterday
+// Improved to fetch the MOST RECENT RDO before the current date
 export const fetchPreviousRdo = async (obraId: string, currentDate: Date): Promise<DiarioObra | null> => {
   const dateString = format(currentDate, 'yyyy-MM-dd');
 
