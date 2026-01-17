@@ -190,7 +190,7 @@ const ObraDetails = () => {
                 <CardContent className="p-4 pt-0">
                     <div className="space-y-1">
                         <p className="text-sm"><span className="font-bold">Início:</span> {formatDate(obra.data_inicio)}</p>
-                        <p className="text-sm"><span className="font-bold">Previsão:</span> {obra.previsao_entrega ? formatDate(obra.previsao_entrega) : 'N/A'}</p>
+                        <p className="text-sm"><span className="font-bold">Previsão de Término:</span> {obra.previsao_entrega ? formatDate(obra.previsao_entrega) : 'N/A'}</p>
                     </div>
                 </CardContent>
             </Card>
@@ -232,7 +232,7 @@ const ObraDetails = () => {
                     <Link to={module.href} key={module.href} className="group">
                         <Card className="h-full border hover:border-primary/50 transition-all hover:shadow-md cursor-pointer group-hover:-translate-y-1">
                             <CardContent className="p-6 flex items-start gap-4">
-                                <div className={`p-3 rounded-2xl ${module.bg} ${module.color}`}>
+                                <div className="p-3 rounded-2xl ${module.bg} ${module.color}">
                                     <module.icon className="w-6 h-6" />
                                 </div>
                                 <div className="space-y-1">

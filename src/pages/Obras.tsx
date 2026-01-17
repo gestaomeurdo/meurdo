@@ -1,6 +1,6 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2, Loader2, MapPin, Construction, Zap, ArrowRight, ImageIcon } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2, MapPin, Construction, Zap, ArrowRight, ImageIcon, Calendar } from "lucide-react";
 import ObraDialog from "@/components/obras/ObraDialog";
 import { useDeleteObra, useObras, Obra } from "@/hooks/use-obras";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -203,10 +203,10 @@ const Obras = () => {
                         </div>
                     </div>
                     <div className="space-y-1">
-                        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
-                        Proprietário / Cliente
+                        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider flex items-center gap-1">
+                            <Calendar className="w-3 h-3" /> Previsão de Término
                         </p>
-                        <p className="text-sm font-medium">{obra.dono_cliente || "N/A"}</p>
+                        <p className="text-sm font-medium">{obra.previsao_entrega ? formatDate(obra.previsao_entrega) : 'Indefinido'}</p>
                     </div>
                     </CardContent>
                 </Link>

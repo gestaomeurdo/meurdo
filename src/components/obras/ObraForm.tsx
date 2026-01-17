@@ -382,7 +382,7 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
             name="previsao_entrega"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel className="mb-1">Previsão de Entrega</FormLabel>
+                <FormLabel className="mb-1">Previsão de Término</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
