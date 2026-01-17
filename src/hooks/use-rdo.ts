@@ -69,6 +69,10 @@ export interface DiarioObra {
   safety_cleaning: boolean;
   safety_dds: boolean;
   
+  // Signatures
+  signer_name: string | null;
+  signer_registration: string | null;
+
   rdo_atividades_detalhe?: RdoAtividadeDetalhe[];
   rdo_mao_de_obra?: RdoMaoDeObra[];
   rdo_equipamentos?: RdoEquipamento[];
@@ -113,6 +117,8 @@ const fetchRdoList = async (obraId: string): Promise<DiarioObra[]> => {
       clima_condicoes,
       status_dia,
       user_id,
+      rdo_mao_de_obra (quantidade, custo_unitario),
+      rdo_atividades_detalhe (foto_anexo_url),
       profiles (first_name, last_name)
     `)
     .eq('obra_id', obraId)
@@ -176,6 +182,10 @@ export interface RdoInput {
   safety_cleaning: boolean;
   safety_dds: boolean;
 
+  // Signer
+  signer_name?: string | null;
+  signer_registration?: string | null;
+
   atividades: Omit<RdoAtividadeDetalhe, 'id' | 'diario_id'>[];
   mao_de_obra: Omit<RdoMaoDeObra, 'id' | 'diario_id' | 'cargo_id'>[]; 
   equipamentos: Omit<RdoEquipamento, 'id' | 'diario_id'>[];
@@ -217,6 +227,8 @@ export const useCreateRdo = () => {
         .single();
 
       if (error) throw new Error(error.message);
+      if (!data) throw new Error("Erro ao criar RDO: nenhum dado retornado.");
+      
       await insertRdoDetails(data.id, newRdo);
       
       const completeRdo = await fetchRdoByDate(newRdo.obra_id, newRdo.data_rdo);
@@ -248,6 +260,7 @@ export const useUpdateRdo = () => {
 
       if (updateError) throw new Error(updateError.message);
       
+      // Limpar detalhes antigos e reinserir (estratégia simples)
       await supabase.from('rdo_atividades_detalhe').delete().eq('diario_id', id);
       await supabase.from('rdo_mao_de_obra').delete().eq('diario_id', id);
       await supabase.from('rdo_equipamentos').delete().eq('diario_id', id);

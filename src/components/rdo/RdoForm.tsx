@@ -29,7 +29,7 @@ const climaOptions: RdoClima[] = ['Sol', 'Nublado', 'Chuva Leve', 'Chuva Forte']
 const workforceTypes: WorkforceType[] = ['Própria', 'Terceirizada'];
 
 const RdoDetailSchema = z.object({
-  descricao_servico: z.string().min(5, "Descrição é obrigatória."),
+  descricao_servico: z.string().min(5, "Descrição do serviço deve ter no mínimo 5 letras."),
   avanco_percentual: z.number().min(0).max(100),
   foto_anexo_url: z.string().nullable().optional(),
 });
@@ -72,7 +72,7 @@ const RdoSchema = z.object({
   safety_epi: z.boolean().default(false),
   safety_cleaning: z.boolean().default(false),
   safety_dds: z.boolean().default(false),
-  atividades: z.array(RdoDetailSchema).min(1, "Pelo menos uma atividade deve ser registrada."),
+  atividades: z.array(RdoDetailSchema).min(1, "Registre ao menos 1 atividade para salvar."),
   mao_de_obra: z.array(ManpowerSchema).optional(),
   equipamentos: z.array(EquipmentSchema).optional(),
   materiais: z.array(MaterialSchema).optional(),
@@ -142,7 +142,6 @@ const RdoForm = ({ obraId, initialData, onSuccess }: RdoFormProps) => {
     },
   });
 
-  // Observa mudanças no array de mão de obra para recalcular o custo
   const maoDeObra = methods.watch("mao_de_obra");
 
   const estimatedDailyCost = useMemo(() => {
@@ -170,6 +169,23 @@ const RdoForm = ({ obraId, initialData, onSuccess }: RdoFormProps) => {
     }
   };
 
+  const onInvalid = (errors: any) => {
+    console.error("Erros de validação:", errors);
+    if (errors.atividades) {
+      const atividadesErrors = errors.atividades;
+      if (Array.isArray(atividadesErrors)) {
+         // Verifica se o erro é no primeiro item
+         if(atividadesErrors[0]?.descricao_servico) {
+             showError("Preencha a descrição da atividade (mínimo 5 letras).");
+             return;
+         }
+      }
+      showError("Verifique a aba 'Serviços': " + (errors.atividades.message || "Dados inválidos"));
+    } else {
+      showError("Verifique os campos obrigatórios em vermelho.");
+    }
+  };
+
   const onSubmit = async (values: RdoFormValues) => {
     try {
       const dataToSubmit = {
@@ -192,7 +208,7 @@ const RdoForm = ({ obraId, initialData, onSuccess }: RdoFormProps) => {
 
   return (
     <FormProvider {...methods}>
-      <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={methods.handleSubmit(onSubmit, onInvalid)} className="space-y-6">
         <UpgradeModal 
             open={showUpgrade} 
             onOpenChange={setShowUpgrade} 
