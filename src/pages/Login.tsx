@@ -43,7 +43,7 @@ const Login = () => {
               },
             }}
             theme="light"
-            view="sign_in"
+            view="sign_in" // Garante que a tela inicial seja Login
             showLinks={true}
             onlyAllowIf={['sign_in', 'sign_up', 'forgotten_password']}
             localization={{
@@ -56,11 +56,11 @@ const Login = () => {
                 sign_in: {
                   email_label: 'E-mail',
                   password_label: 'Senha',
-                  button_label: 'Entrar Agora',
-                  link_text: 'Não tem uma conta? Cadastre-se agora',
+                  button_label: 'Entrar',
+                  link_text: 'Não tem uma conta? Cadastre-se aqui',
                   forgotten_password_link_text: 'Esqueceu sua senha?',
-                  email_input_placeholder: 'Seu e-mail profissional',
-                  password_input_placeholder: 'Sua senha segura',
+                  email_input_placeholder: 'Seu e-mail',
+                  password_input_placeholder: 'Sua senha',
                 },
                 sign_up: {
                   email_label: 'E-mail',
