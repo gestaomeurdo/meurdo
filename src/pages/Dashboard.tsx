@@ -1,7 +1,7 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/integrations/supabase/auth-provider";
-import { Loader2, Plus, CheckCircle } from "lucide-react";
+import { Loader2, Plus, CheckCircle, AlertTriangle } from "lucide-react";
 import { useRdoDashboardMetrics } from "@/hooks/use-rdo-dashboard-metrics";
 import RecentRdoList from "@/components/dashboard/RecentRdoList";
 import RdoDialog from "@/components/rdo/RdoDialog";
@@ -11,13 +11,17 @@ import { useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { showSuccess } from "@/utils/toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useCanCreateObra } from "@/hooks/use-subscription-limits";
+import LimitReachedModal from "@/components/subscription/LimitReachedModal";
 
 const Dashboard = () => {
   const { user, isLoading: authLoading, profile } = useAuth();
   const { data: rdoMetrics, isLoading: isLoadingRdoMetrics } = useRdoDashboardMetrics();
+  const { canCreate, isLoading: isLoadingLimits, obraCount } = useCanCreateObra();
   const location = useLocation();
   const queryClient = useQueryClient();
   const [showWelcomePro, setShowWelcomePro] = useState(false);
+  const [limitModalOpen, setLimitModalOpen] = useState(false);
 
   // Efeito para verificar o retorno do Stripe e forçar a atualização do perfil
   useEffect(() => {
@@ -40,7 +44,7 @@ const Dashboard = () => {
     }
   }, [location.search, queryClient]);
 
-  if (authLoading) {
+  if (authLoading || isLoadingLimits) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -50,6 +54,12 @@ const Dashboard = () => {
 
   const firstName = profile?.first_name || user?.email?.split('@')[0] || "Usuário";
   const dummyObraId = '00000000-0000-0000-0000-000000000000';
+  
+  const handleNewRdoClick = () => {
+    if (!canCreate && obraCount >= 1) {
+      setLimitModalOpen(true);
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -68,16 +78,38 @@ const Dashboard = () => {
             </AlertDescription>
           </Alert>
         )}
+        
+        {!canCreate && obraCount >= 1 && (
+          <Alert variant="default" className="bg-yellow-500/10 border-yellow-500/30 text-yellow-800">
+            <AlertTriangle className="h-4 w-4 text-yellow-600" />
+            <AlertTitle className="text-yellow-700 font-bold">Limite Atingido</AlertTitle>
+            <AlertDescription>
+              Você atingiu o limite de 1 obra no plano gratuito. Faça upgrade para continuar.
+            </AlertDescription>
+          </Alert>
+        )}
 
-        <RdoDialog
-          obraId={dummyObraId}
-          date={new Date()}
-          trigger={
-            <Button size="lg" className="w-full bg-primary hover:bg-primary/90 py-6 text-lg font-bold shadow-md">
-              <Plus className="mr-3 h-6 w-6" /> NOVO RDO
-            </Button>
-          }
-        />
+        {canCreate ? (
+          <RdoDialog
+            obraId={dummyObraId}
+            date={new Date()}
+            trigger={
+              <Button size="lg" className="w-full bg-primary hover:bg-primary/90 py-6 text-lg font-bold shadow-md">
+                <Plus className="mr-3 h-6 w-6" /> NOVO RDO
+              </Button>
+            }
+          />
+        ) : (
+          <Button 
+            size="lg" 
+            className="w-full bg-primary/50 cursor-not-allowed py-6 text-lg font-bold shadow-md"
+            onClick={handleNewRdoClick}
+          >
+            <Plus className="mr-3 h-6 w-6" /> NOVO RDO (Limite Atingido)
+          </Button>
+        )}
+
+        <LimitReachedModal open={limitModalOpen} onOpenChange={setLimitModalOpen} />
 
         <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
            <Card className="p-4 border-l-4 border-l-blue-500 shadow-sm">
