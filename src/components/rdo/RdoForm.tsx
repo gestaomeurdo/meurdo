@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { showSuccess, showError } from "@/utils/toast";
-import { CalendarIcon, Loader2, Save, FileDown, DollarSign, CheckCircle, Trash2, CloudRain, Clock, ShieldCheck, Zap, UserCheck } from "lucide-react";
+import { CalendarIcon, Loader2, Save, FileDown, DollarSign, CheckCircle, Trash2, CloudRain, Clock, ShieldCheck, Zap, UserCheck, PackageOpen } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -30,6 +30,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/integrations/supabase/auth-provider";
 import UpgradeButton from "../subscription/UpgradeButton";
+import { useMaterialReceipts } from "@/hooks/use-material-receipts";
 
 const statusOptions: RdoStatusDia[] = ['Operacional', 'Parcialmente Paralisado', 'Totalmente Paralisado - Não Praticável'];
 const climaOptions: RdoClima[] = ['Sol', 'Nublado', 'Chuva Leve', 'Chuva Forte'];
@@ -78,7 +79,6 @@ const RdoSchema = z.object({
   work_stopped: z.boolean().default(false),
   hours_lost: z.number().min(0).max(24).default(0),
   
-  // Safety
   safety_nr35: z.boolean().default(false),
   safety_epi: z.boolean().default(false),
   safety_cleaning: z.boolean().default(false),
@@ -154,6 +154,30 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
     },
   });
 
+  const selectedDate = methods.watch("data_rdo");
+  const dateStr = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : '';
+
+  // Busca materiais recebidos no dia para auto-preenchimento
+  const { data: dailyReceipts, isLoading: isLoadingDailyReceipts } = useMaterialReceipts(obraId, dateStr);
+
+  useEffect(() => {
+    // Apenas pré-preenche se for um RDO NOVO e existirem recebimentos e a aba de materiais estiver vazia
+    if (!isEditing && dailyReceipts && dailyReceipts.length > 0) {
+        const currentMaterials = methods.getValues("materiais") || [];
+        if (currentMaterials.length === 0) {
+            const mappedMaterials = dailyReceipts.map(r => ({
+                nome_material: r.material,
+                unidade: r.unidade || 'un',
+                quantidade_entrada: r.quantidade,
+                quantidade_consumida: 0,
+                observacao: `Recebido da ${r.fornecedor || 'Fornecedor'}`
+            }));
+            methods.setValue("materiais", mappedMaterials);
+            showSuccess(`${dailyReceipts.length} materiais importados do estoque.`);
+        }
+    }
+  }, [dailyReceipts, isEditing, methods]);
+
   const estimatedDailyCost = useMemo(() => {
     return methods.watch("mao_de_obra")?.reduce((sum, item) => sum + (item.quantidade * (item.custo_unitario || 0)), 0) || 0;
   }, [methods.watch("mao_de_obra")]);
@@ -214,40 +238,40 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
             </div>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
-            {isEditing && <Button type="button" variant="outline" onClick={handleExportPdf} className="flex-1 sm:flex-none"><FileDown className="w-4 h-4 mr-2" /> Gerar PDF</Button>}
-            <Button type="submit" disabled={updateMutation.isPending || createMutation.isPending} className="flex-1 sm:flex-none">
+            {isEditing && <Button type="button" variant="outline" onClick={handleExportPdf} className="flex-1 sm:flex-none rounded-xl"><FileDown className="w-4 h-4 mr-2" /> PDF</Button>}
+            <Button type="submit" disabled={updateMutation.isPending || createMutation.isPending} className="flex-1 sm:flex-none rounded-xl bg-primary hover:bg-primary/90">
               {(updateMutation.isPending || createMutation.isPending) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-              Salvar RDO
+              Salvar Diário
             </Button>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <FormField control={methods.control} name="data_rdo" render={({ field }) => (
-                <FormItem className="flex flex-col"><FormLabel>Data</FormLabel><Popover><PopoverTrigger asChild><Button variant="outline" className="w-full justify-start text-left font-normal"><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "dd/MM/yyyy") : "Selecionar"}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover></FormItem>
+                <FormItem className="flex flex-col"><FormLabel>Data do Relatório</FormLabel><Popover><PopoverTrigger asChild><Button variant="outline" className="w-full justify-start text-left font-normal rounded-xl"><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "dd/MM/yyyy") : "Selecionar"}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover></FormItem>
             )} />
             <FormField control={methods.control} name="status_dia" render={({ field }) => (
-                <FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl><SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger></FormControl>
+                <FormItem><FormLabel>Condição da Obra</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl><SelectTrigger className="rounded-xl"><SelectValue placeholder="Status" /></SelectTrigger></FormControl>
                   <SelectContent>{statusOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                 </Select></FormItem>
             )} />
             <FormField control={methods.control} name="clima_condicoes" render={({ field }) => (
                 <FormItem><FormLabel>Clima</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
-                  <FormControl><SelectTrigger><SelectValue placeholder="Clima" /></SelectTrigger></FormControl>
+                  <FormControl><SelectTrigger className="rounded-xl"><SelectValue placeholder="Clima" /></SelectTrigger></FormControl>
                   <SelectContent>{climaOptions.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                 </Select></FormItem>
             )} />
         </div>
 
         <Tabs defaultValue="atividades" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="atividades">Atividades</TabsTrigger>
-            <TabsTrigger value="mao_de_obra">Mão de Obra</TabsTrigger>
-            <TabsTrigger value="seguranca" className="text-[#066abc] font-bold">Segurança</TabsTrigger>
-            <TabsTrigger value="equipamentos">Equip.</TabsTrigger>
-            <TabsTrigger value="materiais">Materiais</TabsTrigger>
-            <TabsTrigger value="ocorrencias">Notas</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-6 h-12 bg-muted/50 p-1 rounded-xl">
+            <TabsTrigger value="atividades" className="rounded-lg data-[state=active]:shadow-sm">Ativ.</TabsTrigger>
+            <TabsTrigger value="mao_de_obra" className="rounded-lg data-[state=active]:shadow-sm">Equipe</TabsTrigger>
+            <TabsTrigger value="seguranca" className="rounded-lg data-[state=active]:shadow-sm text-primary font-bold">Seg.</TabsTrigger>
+            <TabsTrigger value="equipamentos" className="rounded-lg data-[state=active]:shadow-sm">Máq.</TabsTrigger>
+            <TabsTrigger value="materiais" className="rounded-lg data-[state=active]:shadow-sm flex items-center gap-1">Mat. {dailyReceipts && dailyReceipts.length > 0 && <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />}</TabsTrigger>
+            <TabsTrigger value="ocorrencias" className="rounded-lg data-[state=active]:shadow-sm">Notas</TabsTrigger>
           </TabsList>
           
           <TabsContent value="atividades" className="pt-4"><RdoActivitiesForm obraId={obraId} /></TabsContent>
@@ -255,10 +279,10 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
           
           <TabsContent value="seguranca" className="pt-4 space-y-6">
             <div className="flex items-center gap-3 border-b pb-4 mb-4">
-                <img src={ICON_URL} alt="Ícone" className="h-8 object-contain" />
+                <ShieldCheck className="h-8 w-8 text-primary" />
                 <div>
-                    <h3 className="text-xl font-black text-[#066abc] uppercase tracking-tight">Segurança do Trabalho</h3>
-                    <p className="text-xs text-muted-foreground font-medium">Fiscalização e cumprimento de normas técnicas.</p>
+                    <h3 className="text-xl font-black text-primary uppercase tracking-tight">Segurança do Trabalho</h3>
+                    <p className="text-xs text-muted-foreground font-medium">Cumprimento de normas e proteção da equipe.</p>
                 </div>
             </div>
 
@@ -299,7 +323,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
                                         <Switch
                                             checked={field.value}
                                             onCheckedChange={field.onChange}
-                                            className="data-[state=checked]:bg-[#066abc]"
+                                            className="data-[state=checked]:bg-primary"
                                         />
                                     </FormControl>
                                 </FormItem>
@@ -311,20 +335,33 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
           </TabsContent>
 
           <TabsContent value="equipamentos" className="pt-4"><RdoEquipmentForm /></TabsContent>
-          <TabsContent value="materiais" className="pt-4"><RdoMaterialsForm /></TabsContent>
+          
+          <TabsContent value="materiais" className="pt-4 space-y-4">
+            {dailyReceipts && dailyReceipts.length > 0 && !isEditing && (
+                <div className="bg-primary/5 p-4 rounded-xl border border-primary/20 flex items-center gap-3 mb-4 animate-in fade-in zoom-in duration-300">
+                    <div className="bg-primary p-2 rounded-lg"><PackageOpen className="w-5 h-5 text-white" /></div>
+                    <div className="flex-1">
+                        <p className="text-sm font-bold text-primary uppercase">Integração Ativa</p>
+                        <p className="text-xs text-muted-foreground">Importamos automaticamente os {dailyReceipts.length} materiais recebidos nesta data.</p>
+                    </div>
+                </div>
+            )}
+            <RdoMaterialsForm />
+          </TabsContent>
+
           <TabsContent value="ocorrencias" className="pt-4 space-y-4">
             <FormField control={methods.control} name="impedimentos_comentarios" render={({ field }) => (
-                <FormItem><FormLabel>Impedimentos</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} /></FormControl></FormItem>
+                <FormItem><FormLabel>Impedimentos e Ocorrências</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} className="rounded-xl bg-background" placeholder="Descreva qualquer fator que paralisou ou atrasou a obra..." /></FormControl></FormItem>
             )} />
             <FormField control={methods.control} name="observacoes_gerais" render={({ field }) => (
-                <FormItem><FormLabel>Observações Gerais</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} /></FormControl></FormItem>
+                <FormItem><FormLabel>Observações do Engenheiro/Encarregado</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} className="rounded-xl bg-background" placeholder="Notas gerais sobre o andamento do dia..." /></FormControl></FormItem>
             )} />
           </TabsContent>
         </Tabs>
         
         <div className="pt-6 border-t space-y-6">
             <div className="flex items-center gap-2">
-                <UserCheck className="w-5 h-5 text-[#066abc]" />
+                <UserCheck className="w-5 h-5 text-primary" />
                 <h2 className="text-xl font-black uppercase tracking-tight">Validação e Assinatura Digital</h2>
             </div>
 
@@ -342,13 +379,13 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-4">
-                        <Card className="bg-muted/30 border-none shadow-none">
+                        <Card className="bg-muted/30 border-none shadow-none rounded-2xl">
                             <CardContent className="p-4 space-y-4">
                                 <FormField control={methods.control} name="signer_name" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-bold uppercase">Nome do Signatário</FormLabel><FormControl><Input placeholder="Nome Completo" {...field} value={field.value || ""} /></FormControl></FormItem>
+                                    <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Nome do Responsável</FormLabel><FormControl><Input placeholder="Nome Completo" {...field} value={field.value || ""} className="rounded-xl" /></FormControl></FormItem>
                                 )} />
                                 <FormField control={methods.control} name="signer_registration" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-bold uppercase">CPF ou Registro (CREA/CAU)</FormLabel><FormControl><Input placeholder="000.000.000-00" {...field} value={field.value || ""} /></FormControl></FormItem>
+                                    <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Registro Profissional (CREA/CAU)</FormLabel><FormControl><Input placeholder="000.000.000-00" {...field} value={field.value || ""} className="rounded-xl" /></FormControl></FormItem>
                                 )} />
                             </CardContent>
                         </Card>

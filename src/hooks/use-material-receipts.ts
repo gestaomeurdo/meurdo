@@ -20,22 +20,32 @@ export interface MaterialReceipt {
   criado_em: string;
 }
 
-const fetchReceipts = async (obraId: string): Promise<MaterialReceipt[]> => {
-  const { data, error } = await supabase
+const fetchReceipts = async (obraId: string, date?: string): Promise<MaterialReceipt[]> => {
+  let query = supabase
     .from('recebimento_materiais')
     .select('*')
-    .eq('obra_id', obraId)
-    .order('data_recebimento', { ascending: false });
+    .eq('obra_id', obraId);
 
-  if (error) throw new Error(error.message);
+  if (date) {
+    query = query.eq('data_recebimento', date);
+  }
+
+  const { data, error } = await query.order('data_recebimento', { ascending: false });
+
+  if (error) {
+    console.error("[useMaterialReceipts] Erro ao buscar:", error);
+    throw new Error(error.message);
+  }
   return data as MaterialReceipt[];
 };
 
-export const useMaterialReceipts = (obraId: string) => {
+export const useMaterialReceipts = (obraId: string, date?: string) => {
   return useQuery<MaterialReceipt[], Error>({
-    queryKey: ['materialReceipts', obraId],
-    queryFn: () => fetchReceipts(obraId),
+    queryKey: ['materialReceipts', obraId, date],
+    queryFn: () => fetchReceipts(obraId, date),
     enabled: !!obraId,
+    retry: 1,
+    staleTime: 1000 * 60 * 5, // 5 minutos
   });
 };
 
@@ -55,7 +65,9 @@ export const useCreateReceipt = () => {
       return data as MaterialReceipt;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['materialReceipts', data.obra_id] });
+      queryClient.invalidateQueries({ queryKey: ['materialReceipts'] });
+      // Invalida também os dados de RDO para que o auto-preenchimento funcione se o RDO estiver aberto
+      queryClient.invalidateQueries({ queryKey: ['rdo'] });
     },
   });
 };
@@ -67,8 +79,8 @@ export const useDeleteReceipt = () => {
       const { error } = await supabase.from('recebimento_materiais').delete().eq('id', id);
       if (error) throw new Error(error.message);
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['materialReceipts', variables.obraId] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['materialReceipts'] });
     },
   });
 };
