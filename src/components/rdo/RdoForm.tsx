@@ -90,9 +90,10 @@ interface RdoFormProps {
   initialData?: DiarioObra;
   onSuccess: () => void;
   previousRdoData?: DiarioObra | null;
+  selectedDate?: Date;
 }
 
-const RdoForm = ({ obraId, initialData, onSuccess }: RdoFormProps) => {
+const RdoForm = ({ obraId, initialData, onSuccess, selectedDate }: RdoFormProps) => {
   const { profile } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const isEditing = !!initialData;
@@ -106,7 +107,10 @@ const RdoForm = ({ obraId, initialData, onSuccess }: RdoFormProps) => {
     resolver: zodResolver(RdoSchema),
     defaultValues: {
       obra_id: obraId,
-      data_rdo: initialData?.data_rdo ? new Date(initialData.data_rdo + 'T12:00:00') : new Date(),
+      // Se tiver dados iniciais, usa a data do RDO. Se não, usa a selectedDate (se houver), ou cai na data atual.
+      data_rdo: initialData?.data_rdo 
+        ? new Date(initialData.data_rdo + 'T12:00:00') 
+        : (selectedDate || new Date()),
       clima_condicoes: initialData?.clima_condicoes || undefined,
       status_dia: initialData?.status_dia || 'Operacional',
       observacoes_gerais: initialData?.observacoes_gerais || "",

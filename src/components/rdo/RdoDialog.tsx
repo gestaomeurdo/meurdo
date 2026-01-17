@@ -115,6 +115,7 @@ const RdoDialog = ({ obraId: initialObraId, date, trigger }: RdoDialogProps) => 
               initialData={rdoData || undefined} 
               onSuccess={handleSuccess} 
               previousRdoData={previousRdoData} 
+              selectedDate={date}
             />
           )}
         </DialogContent>
