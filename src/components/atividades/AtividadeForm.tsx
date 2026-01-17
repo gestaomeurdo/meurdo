@@ -7,22 +7,35 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { showSuccess, showError } from "@/utils/toast";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { CalendarIcon, Loader2, User, LayoutGrid } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Atividade, AtividadeStatus, useCreateAtividade, useUpdateAtividade } from "@/hooks/use-atividades";
 
-const statusOptions: AtividadeStatus[] = ['Em andamento', 'Concluída', 'Pendente'];
+const etapasObra = [
+  "Serviços Preliminares",
+  "Fundação",
+  "Estrutura",
+  "Alvenaria",
+  "Instalações Elétricas",
+  "Instalações Hidráulicas",
+  "Revestimento",
+  "Acabamento",
+  "Pintura",
+  "Limpeza de Obra"
+];
 
 const AtividadeSchema = z.object({
   obra_id: z.string().uuid("Obra inválida."),
-  data_atividade: z.date({ required_error: "A data é obrigatória." }),
-  descricao: z.string().min(10, "A descrição deve ter pelo menos 10 caracteres."),
-  status: z.enum(statusOptions),
-  pedagio: z.coerce.number().nonnegative("O valor do pedágio não pode ser negativo.").optional().nullable(),
-  km_rodado: z.coerce.number().nonnegative("O valor de KM não pode ser negativo.").optional().nullable(),
+  data_atividade: z.date({ required_error: "A data de início é obrigatória." }),
+  data_prevista: z.date().optional().nullable(),
+  descricao: z.string().min(3, "A descrição deve ter pelo menos 3 caracteres."),
+  responsavel_nome: z.string().optional().nullable(),
+  etapa: z.string().optional().nullable(),
+  progresso_atual: z.coerce.number().min(0).max(100),
+  status: z.enum(['Em andamento', 'Concluída', 'Pendente', 'Pausada']),
 });
 
 type AtividadeFormValues = z.infer<typeof AtividadeSchema>;
@@ -43,10 +56,12 @@ const AtividadeForm = ({ obraId, initialData, onSuccess }: AtividadeFormProps) =
     defaultValues: {
       obra_id: obraId,
       data_atividade: initialData?.data_atividade ? new Date(initialData.data_atividade) : new Date(),
+      data_prevista: initialData?.data_prevista ? new Date(initialData.data_prevista) : null,
       descricao: initialData?.descricao || "",
-      status: initialData?.status || 'Em andamento',
-      pedagio: initialData?.pedagio || undefined,
-      km_rodado: initialData?.km_rodado || undefined,
+      responsavel_nome: initialData?.responsavel_nome || "",
+      etapa: initialData?.etapa || "",
+      progresso_atual: initialData?.progresso_atual || 0,
+      status: (initialData?.status as any) || 'Em andamento',
     },
   });
 
@@ -55,18 +70,19 @@ const AtividadeForm = ({ obraId, initialData, onSuccess }: AtividadeFormProps) =
       const dataToSubmit = {
         ...values,
         data_atividade: format(values.data_atividade, 'yyyy-MM-dd'),
+        data_prevista: values.data_prevista ? format(values.data_prevista, 'yyyy-MM-dd') : null,
       };
 
       if (isEditing && initialData) {
-        await updateMutation.mutateAsync({ ...dataToSubmit, id: initialData.id });
-        showSuccess("Atividade atualizada com sucesso!");
+        await updateMutation.mutateAsync({ ...dataToSubmit, id: initialData.id } as any);
+        showSuccess("Atividade técnica atualizada!");
       } else {
-        await createMutation.mutateAsync(dataToSubmit);
-        showSuccess("Atividade criada com sucesso!");
+        await createMutation.mutateAsync(dataToSubmit as any);
+        showSuccess("Nova atividade cadastrada no planejamento!");
       }
       onSuccess();
     } catch (error) {
-      showError(`Erro ao salvar atividade: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+      showError(`Erro ao salvar: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
     }
   };
 
@@ -75,19 +91,52 @@ const AtividadeForm = ({ obraId, initialData, onSuccess }: AtividadeFormProps) =
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="data_atividade"
-            render={({ field }) => (
+        <FormField control={form.control} name="descricao" render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nome da Atividade / Serviço</FormLabel>
+              <FormControl><Input placeholder="Ex: Assentamento de porcelanato piso térreo" {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField control={form.control} name="etapa" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Etapa da Obra</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
+                  <FormControl><SelectTrigger><SelectValue placeholder="Selecione a etapa" /></SelectTrigger></FormControl>
+                  <SelectContent>{etapasObra.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField control={form.control} name="responsavel_nome" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Responsável Técnico / Encarregado</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input className="pl-9" placeholder="Nome do profissional" {...field} value={field.value || ""} />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField control={form.control} name="data_atividade" render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Data da Atividade</FormLabel>
+                <FormLabel>Início Planejado</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
-                      <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {field.value ? format(field.value, "dd/MM/yyyy") : <span>Selecione a data</span>}
+                      <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                        {field.value ? format(field.value, "dd/MM/yyyy") : "Selecionar"}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
@@ -97,47 +146,56 @@ const AtividadeForm = ({ obraId, initialData, onSuccess }: AtividadeFormProps) =
               </FormItem>
             )}
           />
+          <FormField control={form.control} name="data_prevista" render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Previsão de Conclusão</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                        {field.value ? format(field.value, "dd/MM/yyyy") : "Opcional"}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value || undefined} onSelect={field.onChange} initialFocus /></PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField control={form.control} name="progresso_atual" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Avanço Físico (%)</FormLabel>
+                <FormControl><Input type="number" {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <FormField control={form.control} name="status" render={({ field }) => (
               <FormItem>
-                <FormLabel>Status</FormLabel>
+                <FormLabel>Status Operacional</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl><SelectTrigger><SelectValue placeholder="Selecione o status" /></SelectTrigger></FormControl>
-                  <SelectContent>{statusOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                  <FormControl><SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger></FormControl>
+                  <SelectContent>
+                    <SelectItem value="Em andamento">Em andamento</SelectItem>
+                    <SelectItem value="Concluída">Concluída</SelectItem>
+                    <SelectItem value="Pendente">Pendente</SelectItem>
+                    <SelectItem value="Pausada">Pausada</SelectItem>
+                  </SelectContent>
                 </Select>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
-        <FormField control={form.control} name="descricao" render={({ field }) => (
-            <FormItem>
-              <FormLabel>Descrição do que foi feito</FormLabel>
-              <FormControl><Textarea placeholder="Detalhe as tarefas realizadas, problemas encontrados, etc." {...field} rows={5} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="grid grid-cols-2 gap-4">
-          <FormField control={form.control} name="pedagio" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Pedágio (R$)</FormLabel>
-                <FormControl><Input type="number" placeholder="Ex: 12.50" {...field} value={field.value ?? ''} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField control={form.control} name="km_rodado" render={({ field }) => (
-              <FormItem>
-                <FormLabel>KM Rodado</FormLabel>
-                <FormControl><Input type="number" placeholder="Ex: 80" {...field} value={field.value ?? ''} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        <Button type="submit" disabled={isLoading}>
+
+        <Button type="submit" disabled={isLoading} className="w-full">
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          {isEditing ? "Salvar Alterações" : "Salvar Atividade"}
+          {isEditing ? "Atualizar Atividade" : "Cadastrar Atividade no Cronograma"}
         </Button>
       </form>
     </Form>

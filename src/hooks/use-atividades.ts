@@ -2,21 +2,24 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/integrations/supabase/auth-provider";
 
-export type AtividadeStatus = 'Em andamento' | 'Concluída' | 'Pendente';
+export type AtividadeStatus = 'Em andamento' | 'Concluída' | 'Pendente' | 'Atrasada' | 'Pausada' | 'No Prazo';
 
 export interface Atividade {
   id: string;
   user_id: string;
   obra_id: string;
-  data_atividade: string; // Date string
+  data_atividade: string; 
+  data_prevista: string | null;
   descricao: string;
+  responsavel_nome: string | null;
+  progresso_atual: number;
+  etapa: string | null;
   status: AtividadeStatus;
   pedagio: number | null;
   km_rodado: number | null;
   created_at: string;
 }
 
-// --- Fetching ---
 const fetchAtividades = async (obraId: string): Promise<Atividade[]> => {
   const { data, error } = await supabase
     .from('atividades_obra')
@@ -36,7 +39,6 @@ export const useAtividades = (obraId: string) => {
   });
 };
 
-// --- Mutations ---
 type AtividadeInput = Omit<Atividade, 'id' | 'user_id' | 'created_at'>;
 
 export const useCreateAtividade = () => {
@@ -89,22 +91,6 @@ export const useDeleteAtividade = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['atividades', variables.obraId] });
-    },
-  });
-};
-
-export const useDeleteAllAtividades = () => {
-  const queryClient = useQueryClient();
-  return useMutation<void, Error, string>({
-    mutationFn: async (obraId) => {
-      const { error } = await supabase
-        .from('atividades_obra')
-        .delete()
-        .eq('obra_id', obraId);
-      if (error) throw new Error(error.message);
-    },
-    onSuccess: (_, obraId) => {
-      queryClient.invalidateQueries({ queryKey: ['atividades', obraId] });
     },
   });
 };
