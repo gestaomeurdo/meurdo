@@ -8,8 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { showSuccess, showError } from "@/utils/toast";
-import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, UserCheck, Sun, Clock, Copy, Upload, Image as ImageIcon, X, Handshake, Moon, SunMedium, CheckCircle } from "lucide-react";
-import { DiarioObra, useCreateRdo, useUpdateRdo, WorkforceType, usePayRdo } from "@/hooks/use-rdo";
+import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, UserCheck, Sun, Clock, Copy, Upload, Image as ImageIcon, X, Handshake, Moon, SunMedium, CheckCircle, Trash2 } from "lucide-react";
+import { DiarioObra, useCreateRdo, useUpdateRdo, WorkforceType, usePayRdo, useDeleteRdo } from "@/hooks/use-rdo";
 import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
 import RdoEquipmentForm from "./RdoEquipmentForm";
@@ -112,6 +112,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
   const isPro = profile?.subscription_status === 'active' || profile?.plan_type === 'pro';
   const createMutation = useCreateRdo();
   const updateMutation = useUpdateRdo();
+  const deleteMutation = useDeleteRdo();
   const payMutation = usePayRdo();
   const { data: obras } = useObras();
   const obraNome = obras?.find(o => o.id === obraId)?.nome || "Obra";
@@ -337,6 +338,17 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
     }
   };
 
+  const handleDeleteRdo = async () => {
+    if (!initialData?.id) return;
+    try {
+      await deleteMutation.mutateAsync({ id: initialData.id, obraId });
+      showSuccess("RDO excluído com sucesso.");
+      onSuccess();
+    } catch (error) {
+      showError(`Erro ao excluir RDO: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+    }
+  };
+
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, fieldName: any) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -468,6 +480,31 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                     <FileDown className="w-4 h-4 mr-2" /> PDF
                   </Button>
                 )}
+                
+                {isEditing && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button type="button" variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 rounded-xl border border-destructive/20">
+                        <Trash2 className="w-5 h-5" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir RDO?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Tem certeza que deseja excluir este relatório diário? Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteRdo} className="bg-destructive hover:bg-destructive/90">
+                          Excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+
                 <Button type="submit" disabled={updateMutation.isPending || createMutation.isPending} className="flex-1 sm:flex-none rounded-xl bg-primary hover:bg-primary/90 font-bold uppercase text-xs">
                   {(updateMutation.isPending || createMutation.isPending) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
                   Salvar
