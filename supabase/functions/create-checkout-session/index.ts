@@ -12,6 +12,9 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
+  // 1. Log de Verificação da Chave Stripe
+  console.log('[create-checkout-session] Stripe Key exists:', !!Deno.env.get('STRIPE_SECRET_KEY'));
+
   try {
     const { priceId, successUrl, cancelUrl } = await req.json()
     
@@ -72,10 +75,16 @@ serve(async (req) => {
       status: 200,
     })
   } catch (error) {
-    console.error("[create-checkout-session] Error", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    // 2. Tratamento de Erro Explícito
+    console.error("[create-checkout-session] Error processing request:", error.message);
+    
+    // Retorna a mensagem de erro explícita com status 500
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      detail: "Internal server error or invalid input."
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: 500, 
     })
   }
 })
