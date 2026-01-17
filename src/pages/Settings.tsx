@@ -5,7 +5,7 @@ import SubscriptionTab from "@/components/settings/SubscriptionTab";
 import ProfileForm from "@/components/profile/ProfileForm";
 import UserLogoUpload from "@/components/profile/UserLogoUpload";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Users, CreditCard, ShieldCheck } from "lucide-react";
+import { Building2, Users, CreditCard } from "lucide-react";
 import { useProfile } from "@/hooks/use-profile";
 import { Loader2 } from "lucide-react";
 
@@ -65,7 +65,8 @@ const Settings = () => {
               <CardContent className="pt-6">
                 <CargosList />
               </CardContent>
-            </TabsContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="plano" className="animate-in fade-in duration-500">
             <SubscriptionTab />
