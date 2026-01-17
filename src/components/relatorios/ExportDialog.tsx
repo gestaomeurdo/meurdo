@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { FileText, Download, Loader2 } from "lucide-react";
@@ -12,12 +12,7 @@ import { RdoReportMetrics } from '@/hooks/use-rdo-report-data';
 import { formatCurrency, formatDate } from '@/utils/formatters';
 import { DiarioObra } from '@/hooks/use-rdo';
 import { useAuth } from '@/integrations/supabase/auth-provider';
-
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: any;
-  }
-}
+import { format } from "date-fns";
 
 interface ExportDialogProps {
   obraNome: string;

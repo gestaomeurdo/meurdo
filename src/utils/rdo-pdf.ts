@@ -1,14 +1,8 @@
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { DiarioObra } from "@/hooks/use-rdo";
 import { formatCurrency, formatDate } from "./formatters";
 import { Profile } from "@/hooks/use-profile";
-
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: any;
-  }
-}
 
 const DEFAULT_LOGO = "https://meurdo.com.br/wp-content/uploads/2026/01/Logo-MEU-RDO-scaled.png";
 const ICON_URL = "https://meurdo.com.br/wp-content/uploads/2026/01/Icone.png";
@@ -95,7 +89,7 @@ export const generateRdoPdf = async (rdo: DiarioObra, obraNome: string, profile:
       ['Treinamento DDS (Diálogo Segurança)', rdo.safety_dds ? 'REALIZADO' : 'NÃO REALIZADO']
     ];
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: y,
       head: [safetyData[0]],
       body: safetyData.slice(1),
@@ -131,7 +125,7 @@ export const generateRdoPdf = async (rdo: DiarioObra, obraNome: string, profile:
   // --- TABELAS ---
   y += 10;
   // Mão de Obra
-  doc.autoTable({
+  autoTable(doc, {
     startY: y,
     head: [['EFETIVO / FUNÇÃO', 'TIPO', 'QTD', 'CUSTO UNIT. (EST)', 'TOTAL']],
     body: rdo.rdo_mao_de_obra?.map(m => [
@@ -154,7 +148,7 @@ export const generateRdoPdf = async (rdo: DiarioObra, obraNome: string, profile:
   y = (doc as any).lastAutoTable.finalY + 10;
 
   // Atividades
-  doc.autoTable({
+  autoTable(doc, {
     startY: y,
     head: [['DESCRIÇÃO DOS SERVIÇOS REALIZADOS', 'AVANÇO (%)']],
     body: rdo.rdo_atividades_detalhe?.map(a => [a.descricao_servico, `${a.avanco_percentual}%`]) || [],
