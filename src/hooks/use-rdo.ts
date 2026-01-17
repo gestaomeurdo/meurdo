@@ -140,10 +140,9 @@ export const useRdoList = (obraId: string) => {
   });
 };
 
+// Improved to fetch the MOST RECENT RDO before the current date, not just yesterday
 export const fetchPreviousRdo = async (obraId: string, currentDate: Date): Promise<DiarioObra | null> => {
-  const yesterday = new Date(currentDate);
-  yesterday.setDate(currentDate.getDate() - 1);
-  const yesterdayString = format(yesterday, 'yyyy-MM-dd');
+  const dateString = format(currentDate, 'yyyy-MM-dd');
 
   const { data, error } = await supabase
     .from('diarios_obra')
@@ -151,12 +150,16 @@ export const fetchPreviousRdo = async (obraId: string, currentDate: Date): Promi
       id,
       obra_id,
       data_rdo,
+      signer_name,
+      signer_registration,
       rdo_mao_de_obra (*),
       rdo_equipamentos (*),
       rdo_materiais (*)
     `)
     .eq('obra_id', obraId)
-    .eq('data_rdo', yesterdayString)
+    .lt('data_rdo', dateString) // Less than current date
+    .order('data_rdo', { ascending: false }) // Get the most recent one
+    .limit(1)
     .maybeSingle();
 
   if (error) return null;
