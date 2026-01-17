@@ -10,7 +10,7 @@ import { supabase } from "./client";
 import { useNavigate } from "react-router-dom";
 import { Profile, fetchProfile } from "@/hooks/use-profile";
 import { Loader2 } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query"; // Import useQueryClient
+import { useQueryClient } from "@tanstack/react-query";
 
 interface AuthContextType {
   session: Session | null;
@@ -35,12 +35,28 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
   });
   
   const navigate = useNavigate();
-  const queryClient = useQueryClient(); // Get queryClient instance
+  const queryClient = useQueryClient();
 
   const updateProStatus = (p: Profile | null) => {
     const status = p?.subscription_status === 'active' || p?.plan_type === 'pro';
     setIsPro(status);
     localStorage.setItem(PRO_CACHE_KEY, status ? 'true' : 'false');
+  };
+
+  const signOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      // Clearing local state immediately for better UX
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setIsPro(false);
+      localStorage.removeItem(PRO_CACHE_KEY);
+      queryClient.clear();
+      navigate("/login", { replace: true });
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
   };
 
   useEffect(() => {
@@ -56,7 +72,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
           const userProfile = await fetchProfile(currentUser.id);
           setProfile(userProfile);
           updateProStatus(userProfile);
-          queryClient.invalidateQueries({ queryKey: ['profile'] }); // Invalidate on initial load if user exists
+          queryClient.invalidateQueries({ queryKey: ['profile'] });
         }
       } catch (err) {
         console.error("Auth init error:", err);
@@ -74,15 +90,14 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
             const userProfile = await fetchProfile(currentUser.id);
             setProfile(userProfile);
             updateProStatus(userProfile);
-            queryClient.invalidateQueries({ queryKey: ['profile'] }); // Invalidate on auth state change
+            queryClient.invalidateQueries({ queryKey: ['profile'] });
           } else {
             setProfile(null);
             updateProStatus(null);
-            queryClient.invalidateQueries({ queryKey: ['profile'] }); // Invalidate on sign out
+            queryClient.invalidateQueries({ queryKey: ['profile'] });
           }
 
           if (event === 'SIGNED_IN') {
-            // Apenas navega se não estiver vindo de um link de recuperação
             if (!window.location.href.includes('type=recovery')) {
                 navigate("/dashboard", { replace: true });
             }
@@ -102,9 +117,8 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
     return () => {
       listenerPromise.then(res => res?.subscription.unsubscribe());
     };
-  }, [navigate, queryClient]); // Add queryClient to dependency array
+  }, [navigate, queryClient]);
 
-  // Substituído o erro crítico por uma tela de carregamento elegante
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background">
