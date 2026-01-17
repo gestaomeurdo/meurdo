@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { StorageMetrics } from "@/hooks/use-document-storage";
 import { Loader2, HardDrive, Zap, CheckCircle2 } from "lucide-react";
-import { formatBytes } from "./DocumentList";
+import { formatBytes } from "@/utils/file-utils";
 import UpgradeButton from "../subscription/UpgradeButton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -40,35 +40,30 @@ const StorageMetricsCard = ({ metrics, isLoading }: StorageMetricsCardProps) => 
             {isPro ? "Ilimitado (1GB)" : `Limite: ${formatBytes(limit)}`}
           </span>
         </div>
-        
         {!isPro && (
-            <>
-                <Progress 
-                    value={Math.min(progressValue, 100)} 
-                    className="h-2" 
-                    indicatorClassName={isOverLimit ? "bg-destructive" : isNearLimit ? "bg-orange-500" : "bg-primary"}
-                />
-                {isOverLimit && (
-                    <Alert variant="destructive" className="mt-4">
-                        <Zap className="h-4 w-4" />
-                        <AlertTitle>Limite Atingido!</AlertTitle>
-                        <AlertDescription>
-                            Você excedeu o limite de 10MB. Faça upgrade para continuar fazendo uploads.
-                        </AlertDescription>
-                    </Alert>
-                )}
-                {!canUpload && !isOverLimit && (
-                    <div className="pt-2">
-                        <UpgradeButton />
-                    </div>
-                )}
-            </>
+          <>
+            <Progress value={Math.min(progressValue, 100)} className="h-2" indicatorClassName={isOverLimit ? "bg-destructive" : isNearLimit ? "bg-orange-500" : "bg-primary"} />
+            {isOverLimit && (
+              <Alert variant="destructive" className="mt-4">
+                <Zap className="h-4 w-4" />
+                <AlertTitle>Limite Atingido!</AlertTitle>
+                <AlertDescription>
+                  Você excedeu o limite de 10MB. Faça upgrade para continuar fazendo uploads.
+                </AlertDescription>
+              </Alert>
+            )}
+            {!canUpload && !isOverLimit && (
+              <div className="pt-2">
+                <UpgradeButton />
+              </div>
+            )}
+          </>
         )}
         {isPro && (
-            <div className="flex items-center gap-2 text-sm text-green-600">
-                <CheckCircle2 className="h-4 w-4" />
-                <span>Plano PRO: 1GB de armazenamento disponível.</span>
-            </div>
+          <div className="flex items-center gap-2 text-sm text-green-600">
+            <CheckCircle2 className="h-4 w-4" />
+            <span>Plano PRO: 1GB de armazenamento disponível.</span>
+          </div>
         )}
       </CardContent>
     </Card>

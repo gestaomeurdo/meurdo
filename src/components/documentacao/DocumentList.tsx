@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { showError, showSuccess } from "@/utils/toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { formatBytes } from "@/utils/file-utils";
 
 interface DocumentListProps {
   documents: DocumentFile[];
@@ -13,15 +14,6 @@ interface DocumentListProps {
   folder: string;
   isLoading: boolean;
 }
-
-const formatBytes = (bytes: number, decimals = 2) => {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-};
 
 const DocumentList = ({ documents, obraId, folder, isLoading }: DocumentListProps) => {
   const deleteMutation = useDeleteDocument();
@@ -108,3 +100,4 @@ const DocumentList = ({ documents, obraId, folder, isLoading }: DocumentListProp
 };
 
 export default DocumentList;
+export { formatBytes };
