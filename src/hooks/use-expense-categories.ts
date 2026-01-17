@@ -57,6 +57,28 @@ export const useCreateExpenseCategory = () => {
   });
 };
 
+export const useBulkCreateExpenseCategories = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation<void, Error, CategoryInput[]>({
+    mutationFn: async (categories) => {
+      if (!user) throw new Error("Usuário não autenticado.");
+
+      const categoriesWithUser = categories.map(cat => ({ ...cat, user_id: user.id }));
+
+      const { error } = await supabase
+        .from('categorias_despesa')
+        .insert(categoriesWithUser);
+
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['expenseCategories'] });
+    },
+  });
+};
+
 export const useUpdateExpenseCategory = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();

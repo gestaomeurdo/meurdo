@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2, Loader2, AlertTriangle, ArrowLeft } from "lucide-react";
-import { useExpenseCategories, useDeleteExpenseCategory, ExpenseCategory } from "@/hooks/use-expense-categories";
+import { Plus, Edit, Trash2, Loader2, AlertTriangle, ArrowLeft, Library } from "lucide-react";
+import { useExpenseCategories, useDeleteExpenseCategory, useBulkCreateExpenseCategories, ExpenseCategory } from "@/hooks/use-expense-categories";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useState } from "react";
 import CategoryForm from "./CategoryForm";
@@ -11,6 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { countEntriesInCategory } from "@/utils/category-migration";
 import { useQuery } from "@tanstack/react-query";
+import { DEFAULT_CATEGORIES } from "@/utils/default-categories";
 
 interface CategoryManagementDialogProps {
   trigger: React.ReactNode;
@@ -101,6 +102,7 @@ const DeleteCategoryButton = ({ category, deleteMutation }: { category: ExpenseC
 const CategoryManagementDialog = ({ trigger }: CategoryManagementDialogProps) => {
   const { data: categories, isLoading, error } = useExpenseCategories();
   const deleteMutation = useDeleteExpenseCategory();
+  const bulkCreateMutation = useBulkCreateExpenseCategories();
   const [open, setOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ExpenseCategory | null>(null);
@@ -118,6 +120,24 @@ const CategoryManagementDialog = ({ trigger }: CategoryManagementDialogProps) =>
   const handleEdit = (category: ExpenseCategory) => {
     setEditingCategory(category);
     setIsFormOpen(true);
+  };
+
+  const handleLoadDefaults = async () => {
+    try {
+      // Filter out categories that already exist (by name comparison, case insensitive)
+      const existingNames = categories?.map(c => c.nome.toLowerCase()) || [];
+      const newCategories = DEFAULT_CATEGORIES.filter(c => !existingNames.includes(c.nome.toLowerCase()));
+
+      if (newCategories.length === 0) {
+        showSuccess("Suas categorias já incluem as sugestões padrão.");
+        return;
+      }
+
+      await bulkCreateMutation.mutateAsync(newCategories);
+      showSuccess(`${newCategories.length} categorias padrão adicionadas.`);
+    } catch (err) {
+      showError(`Erro ao carregar padrões: ${err instanceof Error ? err.message : "Erro desconhecido"}`);
+    }
   };
 
   return (
@@ -140,7 +160,17 @@ const CategoryManagementDialog = ({ trigger }: CategoryManagementDialogProps) =>
           </>
         ) : (
           <div className="space-y-4 flex flex-col flex-grow">
-            <div className="flex justify-end">
+            <div className="flex justify-between items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleLoadDefaults} 
+                disabled={bulkCreateMutation.isPending || isLoading}
+                className="flex-1 sm:flex-none"
+              >
+                {bulkCreateMutation.isPending ? <Loader2 className="w-3 h-3 mr-2 animate-spin" /> : <Library className="w-3 h-3 mr-2" />}
+                Carregar Padrões
+              </Button>
               <Button onClick={() => setIsFormOpen(true)} size="sm">
                 <Plus className="w-4 h-4 mr-2" /> Nova Categoria
               </Button>
@@ -172,6 +202,13 @@ const CategoryManagementDialog = ({ trigger }: CategoryManagementDialogProps) =>
                           </TableCell>
                         </TableRow>
                       ))}
+                      {categories && categories.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                            Nenhuma categoria cadastrada. Use "Carregar Padrões" para começar.
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </ScrollArea>
