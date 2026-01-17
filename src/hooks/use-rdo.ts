@@ -336,17 +336,34 @@ interface RdoPaymentInput {
   equipmentDetails: { equipamento: string, horas: number, custo_hora: number }[]; // Added
 }
 
-const getManpowerCategoryId = async (): Promise<string> => {
+const getManpowerCategoryId = async (userId: string): Promise<string> => {
+  // 1. Try match by user and partial name
   const { data, error } = await supabase
     .from('categorias_despesa')
     .select('id')
-    .eq('nome', 'Mão de Obra')
+    .eq('user_id', userId)
+    .ilike('nome', '%Mão de Obra%') // Case insensitive partial match
+    .limit(1)
+    .maybeSingle();
+
+  if (data) return data.id;
+
+  // 2. Create if missing
+  const { data: newCategory, error: createError } = await supabase
+    .from('categorias_despesa')
+    .insert({ 
+      nome: 'Mão de Obra', 
+      descricao: 'Gerado automaticamente pelo RDO',
+      user_id: userId 
+    })
+    .select('id')
     .single();
 
-  if (error) {
-    throw new Error("Categoria 'Mão de Obra' não encontrada. Cadastre-a primeiro.");
+  if (createError) {
+    throw new Error(`Erro ao criar categoria automática: ${createError.message}`);
   }
-  return data.id;
+  
+  return newCategory.id;
 };
 
 export const usePayRdo = () => {
@@ -358,7 +375,7 @@ export const usePayRdo = () => {
       if (!user) throw new Error("Usuário não autenticado.");
       if (totalCost <= 0) throw new Error("Custo total deve ser maior que zero para registrar o pagamento.");
 
-      const categoryId = await getManpowerCategoryId();
+      const categoryId = await getManpowerCategoryId(user.id);
 
       let description = `Pagamento RDO ${format(new Date(rdoDate), 'dd/MM/yyyy')}.`;
       
@@ -389,7 +406,8 @@ export const usePayRdo = () => {
       }
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['financialEntries', { obraId: variables.obraId }] });
+      // Invalidate all related queries to force refresh
+      queryClient.invalidateQueries({ queryKey: ['financialEntries'] });
       queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
       queryClient.invalidateQueries({ queryKey: ['reportData'] });
     },

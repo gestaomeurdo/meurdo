@@ -169,7 +169,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
         equipamento: e.equipamento,
         horas_trabalhadas: e.horas_trabalhadas,
         horas_paradas: e.horas_paradas,
-        custo_hora: e.custo_hora || 0, // Load cost if available
+        custo_hora: e.custo_hora || 0,
       })) || [],
       materiais: initialData?.rdo_materiais?.map(m => ({
         nome_material: m.nome_material,
@@ -333,7 +333,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
         });
         showSuccess("Pagamento enviado para o Financeiro!");
     } catch (error) {
-        showError("Erro ao registrar pagamento.");
+        showError(`Erro ao registrar pagamento: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
     }
   };
 
@@ -402,7 +402,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
   const activePeriodsList = activePeriods.split(', ').filter(p => p !== '');
 
   const safetyItems = [
-    { key: "safety_nr35", label: "Treinamento / NR-35", photoKey: "safety_nr35_photo" },
+    { key: "safety_nr35", label: "Treinamentos", photoKey: "safety_nr35_photo" }, // Label atualizado
     { key: "safety_epi", label: "Utilização de EPIs", photoKey: "safety_epi_photo" },
     { key: "safety_cleaning", label: "Limpeza e Organização", photoKey: "safety_cleaning_photo" },
     { key: "safety_dds", label: "DDS Realizado", photoKey: "safety_dds_photo" },
