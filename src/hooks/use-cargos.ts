@@ -35,7 +35,7 @@ export const useCreateCargo = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  return useMutation<Cargo, Error, Omit<Cargo, 'id'>>({
+  return useMutation<Cargo, Error, Omit<Cargo, 'id' | 'user_id'>>({
     mutationFn: async (newCargo) => {
       const { data, error } = await supabase
         .from('cargos')
@@ -44,6 +44,31 @@ export const useCreateCargo = () => {
         .single();
       if (error) throw new Error(error.message);
       return data as Cargo;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cargos'] });
+    },
+  });
+};
+
+export const useBulkCreateCargos = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation<void, Error, Omit<Cargo, 'id' | 'user_id'>[]>({
+    mutationFn: async (newCargos) => {
+      if (!user) throw new Error("Usuário não autenticado.");
+      
+      const cargosToInsert = newCargos.map(cargo => ({
+        ...cargo,
+        user_id: user.id,
+      }));
+
+      const { error } = await supabase
+        .from('cargos')
+        .insert(cargosToInsert);
+
+      if (error) throw new Error(error.message);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cargos'] });

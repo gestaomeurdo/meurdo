@@ -7,7 +7,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Cargo, useCreateCargo, useUpdateCargo } from "@/hooks/use-cargos";
 import { showSuccess, showError } from "@/utils/toast";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, Zap } from "lucide-react";
+import { useCargoLimits } from "@/hooks/use-cargo-limits";
 
 const CargoSchema = z.object({
   nome: z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),
@@ -27,6 +28,7 @@ const CargoForm = ({ initialData, onSuccess }: CargoFormProps) => {
   const isEditing = !!initialData;
   const createMutation = useCreateCargo();
   const updateMutation = useUpdateCargo();
+  const { canCreateCargo, isPro, cargoCount, limit } = useCargoLimits();
 
   const form = useForm<CargoFormValues>({
     resolver: zodResolver(CargoSchema),
@@ -39,6 +41,11 @@ const CargoForm = ({ initialData, onSuccess }: CargoFormProps) => {
   });
 
   const onSubmit = async (values: CargoFormValues) => {
+    if (!isEditing && !canCreateCargo) {
+        showError(`Limite de ${limit} cargos atingido no plano gratuito.`);
+        return;
+    }
+    
     try {
       if (isEditing && initialData) {
         await updateMutation.mutateAsync({ ...values, id: initialData.id });
@@ -54,22 +61,23 @@ const CargoForm = ({ initialData, onSuccess }: CargoFormProps) => {
   };
 
   const isLoading = createMutation.isPending || updateMutation.isPending;
+  const isCreationDisabledByLimit = !isEditing && !canCreateCargo;
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField control={form.control} name="nome" render={({ field }) => (
-            <FormItem><FormLabel>Nome da Função</FormLabel><FormControl><Input placeholder="Ex: Pedreiro Especialista" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>
+            <FormItem><FormLabel>Nome da Função</FormLabel><FormControl><Input placeholder="Ex: Pedreiro Especialista" {...field} disabled={isLoading || isCreationDisabledByLimit} /></FormControl><FormMessage /></FormItem>
           )}
         />
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField control={form.control} name="tipo" render={({ field }) => (
-              <FormItem><FormLabel>Tipo de Contratação</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Próprio">Próprio (CLT/Direto)</SelectItem><SelectItem value="Empreiteiro">Empreiteiro (Terceiro)</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+              <FormItem><FormLabel>Tipo de Contratação</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading || isCreationDisabledByLimit}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Próprio">Próprio (CLT/Direto)</SelectItem><SelectItem value="Empreiteiro">Empreiteiro (Terceiro)</SelectItem></SelectContent></Select><FormMessage /></FormItem>
             )}
           />
           <FormField control={form.control} name="unidade" render={({ field }) => (
-              <FormItem><FormLabel>Unidade de Cálculo</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Diário">Custo por Dia</SelectItem><SelectItem value="Hora">Custo por Hora</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+              <FormItem><FormLabel>Unidade de Cálculo</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading || isCreationDisabledByLimit}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Diário">Custo por Dia</SelectItem><SelectItem value="Hora">Custo por Hora</SelectItem></SelectContent></Select><FormMessage /></FormItem>
             )}
           />
         </div>
@@ -77,16 +85,24 @@ const CargoForm = ({ initialData, onSuccess }: CargoFormProps) => {
         <FormField control={form.control} name="custo_diario" render={({ field }) => (
             <FormItem>
               <FormLabel>Valor do Custo Unitário (R$)</FormLabel>
-              <FormControl><Input type="number" step="0.01" {...field} disabled={isLoading} /></FormControl>
+              <FormControl><Input type="number" step="0.01" {...field} disabled={isLoading || isCreationDisabledByLimit} /></FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <Button type="submit" className="w-full bg-[#066abc] hover:bg-[#066abc]/90" disabled={isLoading}>
+        <Button type="submit" className="w-full bg-[#066abc] hover:bg-[#066abc]/90" disabled={isLoading || isCreationDisabledByLimit}>
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
           {isEditing ? "Salvar Alterações" : "Cadastrar Função"}
         </Button>
+        
+        {isCreationDisabledByLimit && (
+            <div className="text-center pt-2">
+                <p className="text-xs text-destructive flex items-center justify-center gap-1">
+                    <Zap className="w-3 h-3" /> Limite de {limit} cargos atingido.
+                </p>
+            </div>
+        )}
       </form>
     </Form>
   );
