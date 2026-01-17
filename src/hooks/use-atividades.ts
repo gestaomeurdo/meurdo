@@ -62,6 +62,35 @@ export const useCreateAtividade = () => {
   });
 };
 
+export const useBulkCreateAtividades = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation<void, Error, { obraId: string; atividades: Partial<AtividadeInput>[] }>({
+    mutationFn: async ({ obraId, atividades }) => {
+      if (!user) throw new Error("Usuário não autenticado.");
+      
+      const entries = atividades.map(atv => ({
+        ...atv,
+        obra_id: obraId,
+        user_id: user.id,
+        data_atividade: new Date().toISOString().split('T')[0],
+        status: 'Pendente',
+        progresso_atual: 0
+      }));
+
+      const { error } = await supabase
+        .from('atividades_obra')
+        .insert(entries);
+
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['atividades', variables.obraId] });
+    },
+  });
+};
+
 export const useUpdateAtividade = () => {
   const queryClient = useQueryClient();
   return useMutation<Atividade, Error, Partial<AtividadeInput> & { id: string }>({
