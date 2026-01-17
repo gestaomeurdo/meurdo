@@ -3,9 +3,9 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useObras } from "@/hooks/use-obras";
 import { useState, useEffect, useMemo } from "react";
-import { Loader2, ClipboardList, Plus, Search, ListFilter, LayoutGrid, Layers, RefreshCcw, Construction, CheckCircle2 } from "lucide-react";
+import { Loader2, ClipboardList, Plus, Search, ListFilter, LayoutGrid, Layers, RefreshCcw, Construction, Trash2, X, CheckSquare } from "lucide-react";
 import ObraSelector from "@/components/financeiro/ObraSelector";
-import { useAtividades, useDeleteAtividade, Atividade } from "@/hooks/use-atividades";
+import { useAtividades, useDeleteAtividade, useBulkDeleteAtividades, Atividade } from "@/hooks/use-atividades";
 import AtividadeCard from "@/components/atividades/AtividadeCard";
 import AtividadeDialog from "@/components/atividades/AtividadeDialog";
 import AtividadeModelSelector from "@/components/atividades/AtividadeModelSelector";
@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { showSuccess, showError } from "@/utils/toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const Atividades = () => {
   const queryClient = useQueryClient();
@@ -21,6 +22,7 @@ const Atividades = () => {
   const [selectedObraId, setSelectedObraId] = useState<string | undefined>(undefined);
   const [filterEtapa, setFilterEtapa] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   // Seleção automática da primeira obra disponível
   useEffect(() => {
@@ -29,7 +31,7 @@ const Atividades = () => {
     }
   }, [obras, selectedObraId]);
 
-  // Hook de Atividades com lógica de estado explícita
+  // Hook de Atividades
   const { 
     data: atividades, 
     isLoading: isLoadingAtividades,
@@ -38,6 +40,7 @@ const Atividades = () => {
   } = useAtividades(selectedObraId || '');
   
   const deleteMutation = useDeleteAtividade();
+  const bulkDeleteMutation = useBulkDeleteAtividades();
 
   const isObraValid = selectedObraId && selectedObraId !== '00000000-0000-0000-0000-000000000000';
 
@@ -67,8 +70,22 @@ const Atividades = () => {
     return Array.from(new Set(etapas)).sort();
   }, [atividades]);
 
+  const handleSelect = (id: string, checked: boolean) => {
+    setSelectedIds(prev => checked ? [...prev, id] : prev.filter(i => i !== id));
+  };
+
+  const handleBulkDelete = async () => {
+    if (!selectedObraId || selectedIds.length === 0) return;
+    try {
+      await bulkDeleteMutation.mutateAsync({ ids: selectedIds, obraId: selectedObraId });
+      showSuccess(`${selectedIds.length} atividades removidas.`);
+      setSelectedIds([]);
+    } catch (err) {
+      showError("Erro ao remover atividades.");
+    }
+  };
+
   const renderContent = () => {
-    // 1. Carregando lista de obras
     if (isLoadingObras) {
         return (
             <div className="flex justify-center items-center py-20">
@@ -77,7 +94,6 @@ const Atividades = () => {
         );
     }
 
-    // 2. Sem obras no sistema
     if (obras && obras.length === 0) {
         return (
             <div className="text-center py-20 border border-dashed rounded-2xl bg-muted/20">
@@ -89,7 +105,6 @@ const Atividades = () => {
         );
     }
 
-    // 3. Obra não selecionada ainda
     if (!selectedObraId) {
         return (
             <div className="text-center py-20 border border-dashed rounded-2xl bg-muted/10">
@@ -99,7 +114,6 @@ const Atividades = () => {
         );
     }
 
-    // 4. Carregando Atividades (Só mostra se for o carregamento inicial e tiver ID válido)
     if (isLoadingAtividades && isObraValid) {
         return (
             <div className="flex flex-col justify-center items-center py-20 gap-4">
@@ -109,7 +123,6 @@ const Atividades = () => {
         );
     }
 
-    // 5. Cronograma Vazio
     if (atividadesStatus === 'success' && (!atividades || atividades.length === 0)) {
         return (
             <div className="text-center py-20 border border-dashed rounded-3xl bg-accent/5">
@@ -132,10 +145,9 @@ const Atividades = () => {
         );
     }
 
-    // 6. Lista de Atividades
     return (
       <div className="space-y-8 animate-in fade-in duration-500">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-card p-4 border rounded-2xl shadow-clean">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-card p-4 border rounded-2xl shadow-clean sticky top-20 z-10">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Buscar atividade..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 bg-background" />
@@ -152,8 +164,33 @@ const Atividades = () => {
               {uniqueEtapas.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
             </SelectContent>
           </Select>
-          <div className="flex justify-end items-center px-2">
-            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{filteredAtividades.length} serviços</span>
+          
+          <div className="flex items-center justify-end gap-3">
+            {selectedIds.length > 0 ? (
+                <div className="flex items-center gap-2 animate-in slide-in-from-right-2">
+                    <span className="text-xs font-bold text-primary">{selectedIds.length} selecionados</span>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="destructive" className="rounded-xl h-9 px-4">
+                                <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="rounded-2xl">
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Excluir {selectedIds.length} atividades?</AlertDialogTitle>
+                                <AlertDialogDescription>Esta ação é irreversível e removerá as atividades selecionadas do cronograma.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive rounded-xl">Confirmar Exclusão</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                    <Button size="icon" variant="ghost" onClick={() => setSelectedIds([])} className="h-9 w-9 rounded-xl"><X className="h-4 w-4" /></Button>
+                </div>
+            ) : (
+                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{filteredAtividades.length} serviços</span>
+            )}
           </div>
         </div>
 
@@ -170,6 +207,8 @@ const Atividades = () => {
                             <AtividadeCard 
                                 key={atividade.id} 
                                 atividade={atividade} 
+                                isSelected={selectedIds.includes(atividade.id)}
+                                onSelect={handleSelect}
                                 onDelete={(id) => deleteMutation.mutateAsync({ id, obraId: selectedObraId! })} 
                             />
                         ))}

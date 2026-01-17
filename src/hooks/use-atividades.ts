@@ -8,7 +8,7 @@ export interface Atividade {
   id: string;
   user_id: string;
   obra_id: string;
-  data_atividade: string; 
+  data_activity: string; 
   data_prevista: string | null;
   descricao: string;
   responsavel_nome: string | null;
@@ -116,6 +116,22 @@ export const useDeleteAtividade = () => {
   return useMutation<void, Error, { id: string; obraId: string }>({
     mutationFn: async ({ id }) => {
       const { error } = await supabase.from('atividades_obra').delete().eq('id', id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['atividades', variables.obraId] });
+    },
+  });
+};
+
+export const useBulkDeleteAtividades = () => {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, { ids: string[]; obraId: string }>({
+    mutationFn: async ({ ids }) => {
+      const { error } = await supabase
+        .from('atividades_obra')
+        .delete()
+        .in('id', ids);
       if (error) throw new Error(error.message);
     },
     onSuccess: (_, variables) => {
