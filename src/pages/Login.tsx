@@ -1,14 +1,60 @@
-import { useState } from 'react';
-import { Auth } from '@supabase/auth-ui-react';
-import { ThemeSupa } from '@supabase/auth-ui-shared';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { showSuccess, showError } from '@/utils/toast';
+import { Loader2, Mail, Lock, User, ArrowRight } from 'lucide-react';
 
 const LOGO_URL = "https://meurdo.com.br/wp-content/uploads/2026/01/Logo-MEU-RDO-scaled.png";
 
 const Login = () => {
   const [view, setView] = useState<'sign_in' | 'sign_up' | 'forgotten_password'>('sign_in');
-  const redirectUrl = window.location.origin;
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      if (view === 'sign_in') {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      } else if (view === 'sign_up') {
+        if (!fullName) {
+          showError("O nome completo é obrigatório.");
+          setLoading(false);
+          return;
+        }
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: fullName,
+            },
+            emailRedirectTo: window.location.origin,
+          },
+        });
+        if (error) throw error;
+        showSuccess("Verifique seu e-mail para confirmar o cadastro!");
+      } else {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/update-password`,
+        });
+        if (error) throw error;
+        showSuccess("Instruções enviadas para seu e-mail!");
+      }
+    } catch (error: any) {
+      showError(error.message || "Ocorreu um erro na autenticação.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-accent/30 p-4">
@@ -23,76 +69,72 @@ const Login = () => {
                 : 'Recupere o acesso à sua conta.'}
           </p>
         </CardHeader>
-        <CardContent className="pt-6 space-y-4">
-          <Auth
-            supabaseClient={supabase}
-            view={view}
-            onViewChange={(newView) => {
-              if (newView === 'sign_in' || newView === 'sign_up' || newView === 'forgotten_password') {
-                setView(newView as any);
-              }
-            }}
-            redirectTo={redirectUrl}
-            providers={[]}
-            appearance={{
-              theme: ThemeSupa,
-              variables: {
-                default: {
-                  colors: {
-                    brand: 'hsl(var(--primary))',
-                    brandAccent: 'hsl(var(--primary))',
-                    inputBorderFocus: 'hsl(var(--primary))',
-                    defaultButtonBackground: 'hsl(var(--primary))',
-                    defaultButtonBackgroundHover: 'hsl(var(--primary))',
-                    defaultButtonBorder: 'hsl(var(--primary))',
-                    defaultButtonText: 'white',
-                    anchorTextColor: 'hsl(var(--primary))',
-                    anchorTextHoverColor: 'hsl(var(--primary))',
-                  },
-                  radii: {
-                    buttonRadius: '0.75rem',
-                    inputRadius: '0.75rem',
-                    containerRadius: '1rem',
-                  },
-                },
-              },
-            }}
-            theme="light"
-            showLinks={false}
-            localization={{
-              variables: {
-                sign_in: {
-                  email_label: 'E-mail',
-                  password_label: 'Senha',
-                  button_label: 'Entrar',
-                  loading_button_label: 'Entrando...',
-                  email_input_placeholder: 'Seu e-mail',
-                  password_input_placeholder: 'Sua senha',
-                },
-                sign_up: {
-                  email_label: 'E-mail',
-                  password_label: 'Crie uma Senha',
-                  button_label: 'Criar Minha Conta',
-                  loading_button_label: 'Criando conta...',
-                  email_input_placeholder: 'E-mail profissional',
-                  password_input_placeholder: 'Mínimo 6 caracteres',
-                  confirmation_sent_label: 'Verifique seu e-mail para o link de confirmação!',
-                },
-                forgotten_password: {
-                  email_label: 'E-mail',
-                  button_label: 'Recuperar Senha',
-                  loading_button_label: 'Enviando e-mail...',
-                  email_input_placeholder: 'Seu e-mail cadastrado',
-                  confirmation_sent_label: 'Instruções enviadas para seu e-mail!',
-                },
-              },
-            }}
-            additionalData={{
-              full_name: '',
-            }}
-          />
+        <CardContent className="pt-6">
+          <form onSubmit={handleAuth} className="space-y-4">
+            {view === 'sign_up' && (
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Nome Completo</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="fullName"
+                    placeholder="Seu nome e sobrenome"
+                    className="pl-9 rounded-xl h-11"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+            )}
 
-          <div className="pt-4 border-t text-center space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="email">E-mail</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  className="pl-9 rounded-xl h-11"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            {view !== 'forgotten_password' && (
+              <div className="space-y-2">
+                <Label htmlFor="password">
+                  {view === 'sign_up' ? 'Crie uma Senha' : 'Senha'}
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Mínimo 6 caracteres"
+                    className="pl-9 rounded-xl h-11"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
+            <Button 
+              type="submit" 
+              className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 font-bold"
+              disabled={loading}
+            >
+              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {view === 'sign_in' ? 'Entrar' : view === 'sign_up' ? 'Criar Minha Conta' : 'Recuperar Senha'}
+            </Button>
+          </form>
+
+          <div className="pt-6 mt-6 border-t text-center space-y-3">
             {view === 'sign_in' ? (
               <p className="text-sm text-muted-foreground">
                 Não tem uma conta?{' '}
