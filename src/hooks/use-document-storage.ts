@@ -23,11 +23,6 @@ export interface StorageMetrics {
 }
 
 // --- Utility to get file size in a bucket (approximation for RLS) ---
-// NOTE: Supabase RLS prevents direct aggregation of file sizes across all user files easily.
-// We will rely on listing files and summing their sizes, which is slow but necessary for RLS.
-// For a real-world app, this metric should be calculated server-side (Edge Function/DB Trigger).
-// For now, we will use a simplified approach by listing files in the user's folder.
-
 const fetchStorageMetrics = async (userId: string, isPro: boolean): Promise<StorageMetrics> => {
   const limit = isPro ? 1000 * 1024 * 1024 : FREE_STORAGE_LIMIT_BYTES; // 1GB for Pro
 
@@ -66,6 +61,10 @@ const fetchDocuments = async (obraId: string, userId: string): Promise<DocumentF
 
   if (error) {
     console.error("[fetchDocuments] Error listing files:", error);
+    // If bucket doesn't exist, return empty array
+    if (error.message.includes("Bucket not found")) {
+      return [];
+    }
     throw new Error(error.message);
   }
 
@@ -134,6 +133,10 @@ export const useUploadDocument = () => {
 
       if (uploadError) {
         console.error("[UploadDocument] Supabase upload error:", uploadError);
+        // Handle bucket not found error specifically
+        if (uploadError.message.includes("Bucket not found")) {
+          throw new Error("O bucket de armazenamento não foi configurado. Entre em contato com o suporte.");
+        }
         throw new Error(`Falha no upload: ${uploadError.message}`);
       }
 
