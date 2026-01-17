@@ -81,8 +81,8 @@ const ObraDetails = () => {
       bg: "bg-green-100",
     },
     {
-      title: "Cronograma",
-      description: "Atividades, etapas e prazos.",
+      title: "Cadastro de Atividades",
+      description: "Banco de serviços e etapas.",
       icon: ClipboardList,
       href: "/atividades",
       color: "text-purple-600",

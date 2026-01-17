@@ -246,8 +246,8 @@ const Atividades = () => {
       <div className="p-4 sm:p-6 space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-6">
           <div className="space-y-1">
-            <h1 className="text-3xl font-black tracking-tight uppercase">Cronograma de Obra</h1>
-            <p className="text-sm text-muted-foreground">Planejamento e controle de avanço físico.</p>
+            <h1 className="text-3xl font-black tracking-tight uppercase">Cadastro de Atividades</h1>
+            <p className="text-sm text-muted-foreground">Banco de serviços para uso no RDO.</p>
           </div>
           <div className="flex flex-wrap gap-3 items-center">
             <ObraSelector selectedObraId={selectedObraId} onSelectObra={setSelectedObraId} />
