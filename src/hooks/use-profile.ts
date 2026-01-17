@@ -4,11 +4,12 @@ import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import * as z from "zod";
 import { showError } from "@/utils/toast";
 
-// Schema definitivo e resiliente para o Perfil
 export const ProfileSchema = z.object({
   id: z.string(),
   first_name: z.string().nullish(),
   last_name: z.string().nullish(),
+  company_name: z.string().nullish(),
+  cnpj: z.string().nullish(),
   avatar_url: z.string().nullish(),
   role: z.enum(['administrator', 'obra_user', 'view_only']).default('obra_user'),
   subscription_status: z.enum([
@@ -30,29 +31,16 @@ export const fetchProfile = async (userId: string): Promise<Profile | null> => {
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, first_name, last_name, avatar_url, role, subscription_status, stripe_customer_id, plan_type')
+      .select('*')
       .eq('id', userId)
       .maybeSingle();
 
-    if (error) {
-      console.error("[fetchProfile] Erro ao buscar perfil:", error.message);
-      return null;
-    }
-
+    if (error) return null;
     if (!data) return null;
 
-    // Aplica a validação Zod corrigida
     const result = ProfileSchema.safeParse(data);
-    
-    if (!result.success) {
-      console.error("[fetchProfile] Falha na validação de dados:", result.error.format());
-      // Fallback para garantir que o app não quebre se houver um campo inesperado
-      return data as Profile;
-    }
-
-    return result.data;
+    return result.success ? result.data : (data as Profile);
   } catch (err) {
-    console.error("[fetchProfile] Erro inesperado:", err);
     return null;
   }
 };
@@ -63,8 +51,10 @@ export const useProfile = () => {
 };
 
 interface ProfileUpdateInput {
-  first_name: string;
-  last_name: string;
+  first_name?: string;
+  last_name?: string;
+  company_name?: string | null;
+  cnpj?: string | null;
 }
 
 export const useUpdateProfile = () => {
@@ -74,12 +64,7 @@ export const useUpdateProfile = () => {
   return useMutation<void, Error, ProfileUpdateInput>({
     mutationFn: async (updates) => {
       if (!user) throw new Error("Usuário não autenticado.");
-
-      const { error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', user.id);
-
+      const { error } = await supabase.from('profiles').update(updates).eq('id', user.id);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
@@ -88,33 +73,17 @@ export const useUpdateProfile = () => {
   });
 };
 
-// NEW HOOK: Stripe Customer Portal
 export const useStripeCustomerPortal = () => {
   const { user } = useAuth();
-
   return useMutation<void, Error, void>({
     mutationFn: async () => {
       if (!user) throw new Error("Usuário não autenticado.");
-
       const { data, error } = await supabase.functions.invoke('create-customer-portal-session', {
-        body: {
-          returnUrl: `${window.location.origin}/profile`,
-        },
+        body: { returnUrl: `${window.location.origin}/settings` },
       });
-
-      if (error) {
-        console.error("[StripePortal] Erro na Edge Function:", error);
-        throw error;
-      }
-
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error("URL do portal não retornada pela função.");
-      }
+      if (error) throw error;
+      if (data?.url) window.location.href = data.url;
     },
-    onError: (error) => {
-      showError(`Erro ao acessar o portal: ${error.message}`);
-    }
+    onError: (error) => showError(`Erro ao acessar o portal: ${error.message}`)
   });
 };

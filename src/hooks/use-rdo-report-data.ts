@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { DiarioObra, RdoAtividadeDetalhe, RdoMaoDeObra } from "./use-rdo";
+import { DiarioObra, RdoAtividadeDetalhe, RdoMaoDeObra, RdoMaterial } from "./use-rdo";
 
 export interface RdoReportMetrics {
   totalManpower: number;
   rainDays: number;
   completedActivitiesCount: number;
+  totalMaterialsReceived: number;
   occurrenceTimeline: { date: string, obraId: string, comments: string }[];
   weatherDistribution: Record<string, number>;
   allRdos: DiarioObra[];
@@ -28,7 +29,8 @@ const fetchRdoReportData = async ({ obraId, startDate, endDate }: FetchRdoReport
       impedimentos_comentarios,
       observacoes_gerais,
       rdo_mao_de_obra (quantidade),
-      rdo_atividades_detalhe (avanco_percentual)
+      rdo_atividades_detalhe (avanco_percentual),
+      rdo_materiais (quantidade_entrada)
     `)
     .eq('obra_id', obraId)
     .gte('data_rdo', startDate)
@@ -40,28 +42,36 @@ const fetchRdoReportData = async ({ obraId, startDate, endDate }: FetchRdoReport
     throw new Error(error.message);
   }
 
-  const rdos = rdosData as (DiarioObra & { rdo_mao_de_obra: RdoMaoDeObra[], rdo_atividades_detalhe: RdoAtividadeDetalhe[] })[];
+  const rdos = rdosData as (DiarioObra & { 
+    rdo_mao_de_obra: RdoMaoDeObra[], 
+    rdo_atividades_detalhe: RdoAtividadeDetalhe[],
+    rdo_materiais: RdoMaterial[]
+  })[];
 
   let totalManpower = 0;
   let rainDays = 0;
   let completedActivitiesCount = 0;
+  let totalMaterialsReceived = 0;
   const occurrenceTimeline: { date: string, obraId: string, comments: string }[] = [];
   const weatherDistribution: Record<string, number> = {};
 
   rdos.forEach(rdo => {
-    // 1. Total Manpower
-    const dailyManpower = rdo.rdo_mao_de_obra?.reduce((sum, m) => sum + m.quantidade, 0) || 0;
+    // 1. Efetivo Acumulado (Homens-Dia)
+    const dailyManpower = rdo.rdo_mao_de_obra?.reduce((sum, m) => sum + (m.quantidade || 0), 0) || 0;
     totalManpower += dailyManpower;
 
-    // 2. Rain Days
+    // 2. Dias de Chuva
     if (rdo.clima_condicoes && rdo.clima_condicoes.includes('Chuva')) {
       rainDays++;
     }
     
-    // 3. Completed Activities
+    // 3. Atividades Concluídas
     completedActivitiesCount += rdo.rdo_atividades_detalhe?.filter(a => a.avanco_percentual === 100).length || 0;
 
-    // 4. Occurrence Timeline
+    // 4. Materiais Recebidos (Soma de entradas registradas nos RDOs)
+    totalMaterialsReceived += rdo.rdo_materiais?.filter(m => (m.quantidade_entrada || 0) > 0).length || 0;
+
+    // 5. Linha do Tempo
     if (rdo.impedimentos_comentarios && rdo.impedimentos_comentarios.trim().length > 0) {
       occurrenceTimeline.push({
         date: rdo.data_rdo,
@@ -70,7 +80,6 @@ const fetchRdoReportData = async ({ obraId, startDate, endDate }: FetchRdoReport
       });
     }
     
-    // 5. Weather Distribution
     const clima = rdo.clima_condicoes || 'N/A';
     weatherDistribution[clima] = (weatherDistribution[clima] || 0) + 1;
   });
@@ -79,6 +88,7 @@ const fetchRdoReportData = async ({ obraId, startDate, endDate }: FetchRdoReport
     totalManpower,
     rainDays,
     completedActivitiesCount,
+    totalMaterialsReceived,
     occurrenceTimeline,
     weatherDistribution,
     allRdos: rdos as DiarioObra[],
