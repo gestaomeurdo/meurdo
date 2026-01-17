@@ -6,7 +6,7 @@ import { useAuth } from "@/integrations/supabase/auth-provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProfile } from "@/hooks/use-profile";
 import { useTheme } from "next-themes";
-import { Sun, Moon } from "lucide-react";
+import { Sun, Moon, Zap } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +27,7 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: SidebarProps) => {
 
   const userRole = profile?.role || "view_only";
   const isLoading = isAuthLoading || isProfileLoading;
-  const isPro = profile?.subscription_status === 'active';
+  const isPro = profile?.subscription_status === 'active' || profile?.plan_type === 'pro';
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
@@ -35,19 +35,10 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: SidebarProps) => {
 
   if (isLoading) {
     return (
-      <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-30 w-64 bg-sidebar transition-transform duration-300 ease-in-out border-r",
-          isMobile && !isOpen && "-translate-x-full",
-          !isMobile && "translate-x-0"
-        )}
-      >
-        <div className="p-4 space-y-4">
-          <Skeleton className="h-10 w-3/4 mb-6" />
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-8 w-full" />
-        </div>
+      <aside className="fixed inset-y-0 left-0 z-30 w-64 bg-sidebar border-r p-4 space-y-4">
+        <Skeleton className="h-10 w-3/4 mb-6" />
+        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-8 w-full" />
       </aside>
     );
   }
@@ -63,15 +54,22 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: SidebarProps) => {
       )}
     >
       <div className="p-4 h-full flex flex-col">
-        <div className="mb-8 flex flex-col items-start gap-2">
+        <div className="mb-6 flex flex-col items-start gap-2">
           <Link to="/dashboard" onClick={() => isMobile && setIsOpen(false)}>
             <img src={LOGO_URL} alt="MEU RDO" className="h-10 object-contain" />
           </Link>
-          {isPro && (
-            <Badge className="bg-primary hover:bg-primary/90 text-white font-bold text-[10px]">
-              MEMBRO PRO
-            </Badge>
-          )}
+          <div className="flex flex-col gap-1 w-full px-1">
+            <div className="flex items-center justify-between">
+              <Badge variant={isPro ? "default" : "secondary"} className={cn("text-[10px] font-black tracking-widest", isPro ? "bg-[#066abc]" : "bg-muted text-muted-foreground")}>
+                {isPro ? "MEMBRO PRO" : "PLANO GRÁTIS"}
+              </Badge>
+              {!isPro && (
+                <Link to="/settings" className="text-[10px] font-bold text-[#066abc] hover:underline flex items-center">
+                  <Zap className="w-2.5 h-2.5 mr-1 fill-current" /> Upgrade
+                </Link>
+              )}
+            </div>
+          </div>
         </div>
         <nav className="flex-grow">
           {filteredNavItems.map((item) => (
@@ -82,18 +80,13 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: SidebarProps) => {
                 className={cn(
                   "flex items-center p-3 rounded-xl transition-all mt-1 font-medium",
                   location.pathname === item.href
-                    ? "bg-primary text-white shadow-lg shadow-primary/20 scale-[1.02]"
-                    : "text-muted-foreground hover:bg-accent hover:text-primary"
+                    ? "bg-[#066abc] text-white shadow-lg shadow-blue-500/20 scale-[1.02]"
+                    : "text-muted-foreground hover:bg-accent hover:text-[#066abc]"
                 )}
               >
                 <item.icon className="w-5 h-5 mr-3" />
                 <span>{item.title}</span>
               </Link>
-              {(item.href === '/financeiro' || item.href === '/documentacao') && (
-                <div className="py-2 px-3">
-                  <hr className="border-sidebar-border" />
-                </div>
-              )}
             </React.Fragment>
           ))}
         </nav>
@@ -101,20 +94,12 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: SidebarProps) => {
           <div className="flex items-center justify-between px-2">
             <div className="flex items-center space-x-2">
               {theme === 'dark' ? <Moon className="w-4 h-4 text-muted-foreground" /> : <Sun className="w-4 h-4 text-muted-foreground" />}
-              <Label htmlFor="dark-mode-toggle" className="text-xs text-muted-foreground cursor-pointer">
-                Modo Escuro
-              </Label>
+              <Label htmlFor="dark-mode-toggle" className="text-xs text-muted-foreground cursor-pointer">Modo Escuro</Label>
             </div>
-            <Switch
-              id="dark-mode-toggle"
-              checked={theme === 'dark'}
-              onCheckedChange={toggleTheme}
-            />
+            <Switch id="dark-mode-toggle" checked={theme === 'dark'} onCheckedChange={toggleTheme} />
           </div>
           <div className="px-2 py-3 bg-accent/50 rounded-xl">
-            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">
-              Logado como
-            </p>
+            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Usuário</p>
             <p className="text-xs font-semibold truncate">{user?.email}</p>
           </div>
         </div>
