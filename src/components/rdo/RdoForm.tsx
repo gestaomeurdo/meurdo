@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { showSuccess, showError } from "@/utils/toast";
-import { CalendarIcon, Loader2, Save, FileDown, DollarSign, CheckCircle, Trash2, CloudRain, Clock, ShieldCheck, Zap } from "lucide-react";
+import { CalendarIcon, Loader2, Save, FileDown, DollarSign, CheckCircle, Trash2, CloudRain, Clock, ShieldCheck, Zap, UserCheck } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -73,6 +73,8 @@ const RdoSchema = z.object({
   impedimentos_comentarios: z.string().nullable().optional(),
   responsible_signature_url: z.string().nullable().optional(),
   client_signature_url: z.string().nullable().optional(),
+  signer_name: z.string().nullable().optional(),
+  signer_registration: z.string().nullable().optional(),
   work_stopped: z.boolean().default(false),
   hours_lost: z.number().min(0).max(24).default(0),
   
@@ -118,6 +120,8 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
       impedimentos_comentarios: initialData?.impedimentos_comentarios || "",
       responsible_signature_url: initialData?.responsible_signature_url || null,
       client_signature_url: initialData?.client_signature_url || null,
+      signer_name: (initialData as any)?.signer_name || `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim(),
+      signer_registration: (initialData as any)?.signer_registration || "",
       work_stopped: initialData?.work_stopped || false,
       hours_lost: initialData?.hours_lost || 0,
       safety_nr35: initialData?.safety_nr35 || false,
@@ -160,6 +164,8 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
         ...initialData,
         responsible_signature_url: methods.watch('responsible_signature_url'),
         client_signature_url: methods.watch('client_signature_url'),
+        signer_name: methods.watch('signer_name'),
+        signer_registration: methods.watch('signer_registration'),
         work_stopped: methods.watch('work_stopped'),
         hours_lost: methods.watch('hours_lost'),
         safety_nr35: methods.watch('safety_nr35'),
@@ -221,10 +227,16 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
                 <FormItem className="flex flex-col"><FormLabel>Data</FormLabel><Popover><PopoverTrigger asChild><Button variant="outline" className="w-full justify-start text-left font-normal"><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "dd/MM/yyyy") : "Selecionar"}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover></FormItem>
             )} />
             <FormField control={methods.control} name="status_dia" render={({ field }) => (
-                <FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger></FormControl><SelectContent>{statusOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></FormItem>
+                <FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl><SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger></FormControl>
+                  <SelectContent>{statusOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                </Select></FormItem>
             )} />
             <FormField control={methods.control} name="clima_condicoes" render={({ field }) => (
-                <FormItem><FormLabel>Clima</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value || undefined}><FormControl><SelectTrigger><SelectValue placeholder="Clima" /></SelectTrigger></FormControl><SelectContent>{climaOptions.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></FormItem>
+                <FormItem><FormLabel>Clima</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
+                  <FormControl><SelectTrigger><SelectValue placeholder="Clima" /></SelectTrigger></FormControl>
+                  <SelectContent>{climaOptions.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                </Select></FormItem>
             )} />
         </div>
 
@@ -310,12 +322,46 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
           </TabsContent>
         </Tabs>
         
-        <div className="pt-6 border-t">
-            <h2 className="text-xl font-bold mb-4">Assinaturas de Validação</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <RdoSignaturePad diarioId={initialData?.id || 'new'} obraId={obraId} signatureType="responsible" currentSignatureUrl={methods.watch('responsible_signature_url')} onSignatureSave={(url) => methods.setValue('responsible_signature_url', url, { shouldDirty: true })} />
-                <RdoSignaturePad diarioId={initialData?.id || 'new'} obraId={obraId} signatureType="client" currentSignatureUrl={methods.watch('client_signature_url')} onSignatureSave={(url) => methods.setValue('client_signature_url', url, { shouldDirty: true })} />
+        <div className="pt-6 border-t space-y-6">
+            <div className="flex items-center gap-2">
+                <UserCheck className="w-5 h-5 text-[#066abc]" />
+                <h2 className="text-xl font-black uppercase tracking-tight">Validação e Assinatura Digital</h2>
             </div>
+
+            {!isPro ? (
+                <Card className="border-dashed border-primary/30 bg-primary/5 py-8">
+                    <CardContent className="flex flex-col items-center text-center space-y-4">
+                        <Zap className="w-8 h-8 text-orange-500 fill-current" />
+                        <div className="space-y-1">
+                            <h4 className="font-bold">Assinaturas Digitais (Exclusivo PRO)</h4>
+                            <p className="text-xs text-muted-foreground">Assine seus diários com o dedo e gere documentos oficiais.</p>
+                        </div>
+                        <UpgradeButton />
+                    </CardContent>
+                </Card>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                        <Card className="bg-muted/30 border-none shadow-none">
+                            <CardContent className="p-4 space-y-4">
+                                <FormField control={methods.control} name="signer_name" render={({ field }) => (
+                                    <FormItem><FormLabel className="text-xs font-bold uppercase">Nome do Signatário</FormLabel><FormControl><Input placeholder="Nome Completo" {...field} value={field.value || ""} /></FormControl></FormItem>
+                                )} />
+                                <FormField control={methods.control} name="signer_registration" render={({ field }) => (
+                                    <FormItem><FormLabel className="text-xs font-bold uppercase">CPF ou Registro (CREA/CAU)</FormLabel><FormControl><Input placeholder="000.000.000-00" {...field} value={field.value || ""} /></FormControl></FormItem>
+                                )} />
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <RdoSignaturePad 
+                        diarioId={initialData?.id || 'new'} 
+                        obraId={obraId} 
+                        currentSignatureUrl={methods.watch('responsible_signature_url') || null} 
+                        onSignatureSave={(url) => methods.setValue('responsible_signature_url', url, { shouldDirty: true })} 
+                    />
+                </div>
+            )}
         </div>
       </form>
     </FormProvider>

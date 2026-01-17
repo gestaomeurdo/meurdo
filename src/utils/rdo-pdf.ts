@@ -31,7 +31,7 @@ export const generateRdoPdf = async (rdo: DiarioObra, obraNome: string, profile:
       img.src = url;
       img.onload = () => resolve(img);
       img.onerror = () => resolve(null);
-      setTimeout(() => resolve(null), 2500);
+      setTimeout(() => resolve(null), 3000);
     });
   };
 
@@ -154,22 +154,36 @@ export const generateRdoPdf = async (rdo: DiarioObra, obraNome: string, profile:
 
   y = (doc as any).lastAutoTable.finalY + 15;
 
-  // --- ASSINATURAS ---
-  const footerY = pageHeight - 40;
-  doc.setDrawColor(200);
-  doc.setLineWidth(0.5);
+  // --- ASSINATURAS (FIM DO DOCUMENTO) ---
+  const footerY = pageHeight - 50;
   
-  doc.line(margin, footerY, margin + 70, footerY);
-  doc.setFontSize(8);
-  doc.text("Assinatura do Responsável", margin + 35, footerY + 5, { align: 'center' });
-  if (rdo.responsible_signature_url) {
-    try { doc.addImage(rdo.responsible_signature_url, 'PNG', margin + 10, footerY - 22, 50, 20); } catch(e){}
-  }
-
-  doc.line(pageWidth - margin - 70, footerY, pageWidth - margin, footerY);
-  doc.text("Assinatura do Cliente / Fiscal", pageWidth - margin - 35, footerY + 5, { align: 'center' });
-  if (rdo.client_signature_url) {
-    try { doc.addImage(rdo.client_signature_url, 'PNG', pageWidth - margin - 60, footerY - 22, 50, 20); } catch(e){}
+  if (isPro && rdo.responsible_signature_url) {
+    const sigImg = await loadImg(rdo.responsible_signature_url);
+    if (sigImg) {
+        doc.addImage(sigImg, 'PNG', margin, footerY - 20, 50, 20);
+    }
+    
+    doc.setDrawColor(200);
+    doc.setLineWidth(0.5);
+    doc.line(margin, footerY, margin + 80, footerY);
+    
+    doc.setFontSize(8);
+    doc.setTextColor(50);
+    doc.setFont("helvetica", "bold");
+    doc.text((rdo as any).signer_name || "RESPONSÁVEL TÉCNICO", margin, footerY + 5);
+    
+    doc.setFont("helvetica", "normal");
+    doc.text((rdo as any).signer_registration || "", margin, footerY + 10);
+    
+    doc.setTextColor(6, 106, 188);
+    doc.setFont("helvetica", "italic");
+    doc.text(`Assinado digitalmente via Meu RDO em ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, margin, footerY + 15);
+  } else {
+    // Fallback assinado manual para Free
+    doc.setDrawColor(200);
+    doc.line(margin, footerY, margin + 70, footerY);
+    doc.setFontSize(8);
+    doc.text("Assinatura do Responsável", margin + 35, footerY + 5, { align: 'center' });
   }
 
   // --- MARCA D'ÁGUA PARA FREE ---
