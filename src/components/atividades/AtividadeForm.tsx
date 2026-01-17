@@ -77,10 +77,10 @@ const AtividadeForm = ({ obraId, initialData, onSuccess }: AtividadeFormProps) =
           ...dataToSubmit,
           id: initialData.id
         } as any);
-        showSuccess("Atividade técnica atualizada!");
+        showSuccess("Atividade atualizada com sucesso!");
       } else {
         await createMutation.mutateAsync(dataToSubmit as any);
-        showSuccess("Nova atividade cadastrada no planejamento!");
+        showSuccess("Nova atividade cadastrada!");
       }
       onSuccess();
     } catch (error) {
@@ -93,6 +93,7 @@ const AtividadeForm = ({ obraId, initialData, onSuccess }: AtividadeFormProps) =
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {/* Campos visíveis sempre (Criação e Edição) */}
         <FormField
           control={form.control}
           name="descricao"
@@ -131,8 +132,11 @@ const AtividadeForm = ({ obraId, initialData, onSuccess }: AtividadeFormProps) =
           )}
         />
 
+        {/* Campos visíveis APENAS na Edição */}
         {isEditing && (
-          <div className="space-y-4 pt-4 border-t mt-4">
+          <div className="space-y-4 pt-4 border-t mt-4 animate-in fade-in slide-in-from-top-2">
+            <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">Detalhamento Técnico</h3>
+            
             <FormField
               control={form.control}
               name="responsavel_nome"
@@ -154,6 +158,7 @@ const AtividadeForm = ({ obraId, initialData, onSuccess }: AtividadeFormProps) =
                 </FormItem>
               )}
             />
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -218,6 +223,7 @@ const AtividadeForm = ({ obraId, initialData, onSuccess }: AtividadeFormProps) =
                 )}
               />
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -259,9 +265,9 @@ const AtividadeForm = ({ obraId, initialData, onSuccess }: AtividadeFormProps) =
           </div>
         )}
 
-        <Button type="submit" disabled={isLoading} className="w-full">
+        <Button type="submit" disabled={isLoading} className="w-full font-bold">
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          {isEditing ? "Atualizar Atividade" : "Cadastrar Atividade no Cronograma"}
+          {isEditing ? "Salvar Alterações" : "Cadastrar Atividade"}
         </Button>
       </form>
     </Form>
