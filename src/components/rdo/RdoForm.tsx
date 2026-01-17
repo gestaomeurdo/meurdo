@@ -8,27 +8,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { showSuccess, showError } from "@/utils/toast";
-import { CalendarIcon, Loader2, Save, FileDown, DollarSign, Lock, Trash2, CloudRain, Clock, ShieldCheck, Zap, UserCheck, PackageOpen } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
-import { DiarioObra, RdoClima, RdoStatusDia, useCreateRdo, useUpdateRdo, usePayRdo, useDeleteRdo, WorkforceType } from "@/hooks/use-rdo";
+import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, UserCheck } from "lucide-react";
+import { DiarioObra, RdoClima, RdoStatusDia, useCreateRdo, useUpdateRdo, WorkforceType } from "@/hooks/use-rdo";
 import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
 import RdoEquipmentForm from "./RdoEquipmentForm";
 import RdoMaterialsForm from "./RdoMaterialsForm";
 import RdoSignaturePad from "./RdoSignaturePad";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useMemo, useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { formatCurrency } from "@/utils/formatters";
 import { generateRdoPdf } from "@/utils/rdo-pdf";
 import { useObras } from "@/hooks/use-obras";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/integrations/supabase/auth-provider";
-import UpgradeButton from "../subscription/UpgradeButton";
-import { useMaterialReceipts } from "@/hooks/use-material-receipts";
 import UpgradeModal from "../subscription/UpgradeModal";
+import { format } from "date-fns";
 
 const statusOptions: RdoStatusDia[] = ['Operacional', 'Parcialmente Paralisado', 'Totalmente Paralisado - Não Praticável'];
 const climaOptions: RdoClima[] = ['Sol', 'Nublado', 'Chuva Leve', 'Chuva Forte'];
@@ -93,7 +87,7 @@ interface RdoFormProps {
   previousRdoData?: DiarioObra | null;
 }
 
-const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormProps) => {
+const RdoForm = ({ obraId, initialData, onSuccess }: RdoFormProps) => {
   const { profile } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const isEditing = !!initialData;
@@ -148,9 +142,12 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
     },
   });
 
+  // Observa mudanças no array de mão de obra para recalcular o custo
+  const maoDeObra = methods.watch("mao_de_obra");
+
   const estimatedDailyCost = useMemo(() => {
-    return methods.watch("mao_de_obra")?.reduce((sum, item) => sum + (item.quantidade * (item.custo_unitario || 0)), 0) || 0;
-  }, [methods.watch("mao_de_obra")]);
+    return maoDeObra?.reduce((sum, item) => sum + (item.quantidade * (item.custo_unitario || 0)), 0) || 0;
+  }, [maoDeObra]);
 
   const handleExportPdf = () => {
     if (initialData) {
@@ -246,15 +243,13 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
               </div>
             </div>
             {!isPro ? (
-              <Card className="border-dashed border-primary/30 bg-accent/30 py-10 rounded-3xl cursor-pointer" onClick={() => setShowUpgrade(true)}>
-                <CardContent className="flex flex-col items-center text-center space-y-4">
-                  <Lock className="w-12 h-12 text-primary/40" />
-                  <div className="space-y-2">
-                    <h4 className="font-bold text-lg">Checklist PRO</h4>
-                    <p className="text-xs text-muted-foreground">Desbloqueie para salvar os itens de conformidade.</p>
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="border-dashed border-primary/30 bg-accent/30 py-10 rounded-3xl cursor-pointer flex flex-col items-center text-center space-y-4" onClick={() => setShowUpgrade(true)}>
+                <Lock className="w-12 h-12 text-primary/40" />
+                <div className="space-y-2">
+                  <h4 className="font-bold text-lg">Checklist PRO</h4>
+                  <p className="text-xs text-muted-foreground">Desbloqueie para salvar os itens de conformidade.</p>
+                </div>
+              </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
