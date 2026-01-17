@@ -43,32 +43,32 @@ const Login = () => {
               },
             }}
             theme="light"
-            view="sign_in" // Garante que a tela inicial seja Login
+            view="sign_in"
             showLinks={true}
-            onlyAllowIf={['sign_in', 'sign_up', 'forgotten_password']}
             localization={{
               variables: {
-                common: {
-                  errors: {
-                    'Invalid login credentials': 'E-mail ou senha inválidos',
-                  },
-                },
                 sign_in: {
                   email_label: 'E-mail',
                   password_label: 'Senha',
                   button_label: 'Entrar',
                   link_text: 'Não tem uma conta? Cadastre-se aqui',
                   forgotten_password_link_text: 'Esqueceu sua senha?',
-                  email_input_placeholder: 'Seu e-mail',
-                  password_input_placeholder: 'Sua senha',
+                  email_input_placeholder: 'E-mail',
+                  password_input_placeholder: 'Senha',
                 },
                 sign_up: {
                   email_label: 'E-mail',
                   password_label: 'Crie uma Senha',
                   button_label: 'Criar Minha Conta',
                   link_text: 'Já possui conta? Clique para entrar',
-                  email_input_placeholder: 'Seu e-mail profissional',
+                  email_input_placeholder: 'E-mail profissional',
                   password_input_placeholder: 'Mínimo 6 caracteres',
+                },
+                forgotten_password: {
+                  email_label: 'E-mail',
+                  button_label: 'Recuperar Senha',
+                  link_text: 'Voltar para o login',
+                  email_input_placeholder: 'Seu e-mail cadastrado',
                 },
               },
             }}
