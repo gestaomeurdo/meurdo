@@ -8,8 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { showSuccess, showError } from "@/utils/toast";
-import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, UserCheck, CalendarIcon, Sun, AlertOctagon, Clock, Copy, RefreshCw, Upload, Image as ImageIcon, X, Handshake } from "lucide-react";
-import { DiarioObra, RdoClima, RdoStatusDia, useCreateRdo, useUpdateRdo, WorkforceType, RdoPeriodo } from "@/hooks/use-rdo";
+import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, UserCheck, CalendarIcon, Sun, AlertOctagon, Clock, Copy, Upload, Image as ImageIcon, X, Handshake, Moon, SunMedium, Sunset } from "lucide-react";
+import { DiarioObra, RdoClima, RdoStatusDia, useCreateRdo, useUpdateRdo, WorkforceType } from "@/hooks/use-rdo";
 import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
 import RdoEquipmentForm from "./RdoEquipmentForm";
@@ -31,7 +31,6 @@ import { Label } from "@/components/ui/label";
 
 const statusOptions: RdoStatusDia[] = ['Operacional', 'Parcialmente Paralisado', 'Totalmente Paralisado - Não Praticável'];
 const climaOptions: RdoClima[] = ['Sol', 'Nublado', 'Chuva Leve', 'Chuva Forte'];
-const periodoOptions: RdoPeriodo[] = ['Integral', 'Manhã', 'Tarde', 'Noite'];
 const workforceTypes: WorkforceType[] = ['Própria', 'Terceirizada'];
 
 const RdoDetailSchema = z.object({
@@ -64,7 +63,7 @@ const MaterialSchema = z.object({
 const RdoSchema = z.object({
   obra_id: z.string().uuid("Obra inválida."),
   data_rdo: z.date({ required_error: "A data é obrigatória." }),
-  periodo: z.enum(periodoOptions).default('Integral'),
+  periodo: z.string().min(1, "Selecione pelo menos um período."),
   clima_condicoes: z.enum(climaOptions).nullable().optional(),
   status_dia: z.enum(statusOptions, { required_error: "O status do dia é obrigatório." }),
   observacoes_gerais: z.string().nullable().optional(),
@@ -107,6 +106,13 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
   const obraNome = obras?.find(o => o.id === obraId)?.nome || "Obra";
   const [isUploadingSafety, setIsUploadingSafety] = useState(false);
 
+  // Helper para normalizar o período inicial
+  const getInitialPeriod = () => {
+    if (!initialData?.periodo) return "Manhã, Tarde";
+    if (initialData.periodo === 'Integral') return "Manhã, Tarde";
+    return initialData.periodo;
+  };
+
   const methods = useForm<RdoFormValues>({
     resolver: zodResolver(RdoSchema),
     defaultValues: {
@@ -114,7 +120,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
       data_rdo: initialData?.data_rdo 
         ? new Date(initialData.data_rdo + 'T12:00:00') 
         : (selectedDate || new Date()),
-      periodo: initialData?.periodo || 'Integral',
+      periodo: getInitialPeriod(),
       clima_condicoes: initialData?.clima_condicoes || undefined,
       status_dia: initialData?.status_dia || 'Operacional',
       observacoes_gerais: initialData?.observacoes_gerais || "",
@@ -270,7 +276,23 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
     }
   };
 
-  const displayDate = selectedDate || initialData?.data_rdo ? new Date((initialData?.data_rdo || selectedDate) as any) : new Date();
+  // Helper para lidar com a seleção múltipla de períodos
+  const handlePeriodToggle = (period: string, currentPeriods: string) => {
+    const periods = currentPeriods.split(', ').filter(p => p !== '');
+    
+    if (periods.includes(period)) {
+      // Remove
+      const newPeriods = periods.filter(p => p !== period);
+      return newPeriods.join(', ');
+    } else {
+      // Adiciona
+      const newPeriods = [...periods, period];
+      // Ordena para manter consistência: Manhã, Tarde, Noite
+      const order = ['Manhã', 'Tarde', 'Noite'];
+      newPeriods.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+      return newPeriods.join(', ');
+    }
+  };
 
   return (
     <FormProvider {...methods}>
@@ -323,35 +345,38 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
 
         {/* Informações Gerais */}
         <Card className="border-none shadow-clean bg-accent/20">
-          <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Display Date as Read-only */}
-            <div className="flex flex-col space-y-2">
-                <Label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-                    <CalendarIcon className="w-3 h-3" /> Data do Registro
-                </Label>
-                <div className="flex items-center h-10 px-3 rounded-xl bg-white border border-transparent shadow-sm font-bold text-foreground">
-                    {format(displayDate, "dd 'de' MMMM, yyyy", { locale: ptBR })}
-                </div>
-            </div>
-
+          <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={methods.control}
               name="periodo"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Período</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger className="rounded-xl bg-white border-none shadow-sm">
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {periodoOptions.map(option => (
-                        <SelectItem key={option} value={option}>{option}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Períodos Ativos</FormLabel>
+                  <FormControl>
+                    <div className="flex gap-2">
+                        {['Manhã', 'Tarde', 'Noite'].map((p) => {
+                            const isSelected = field.value.includes(p);
+                            return (
+                                <button
+                                    key={p}
+                                    type="button"
+                                    onClick={() => field.onChange(handlePeriodToggle(p, field.value))}
+                                    className={cn(
+                                        "flex-1 px-3 py-2 rounded-xl border text-xs font-bold uppercase transition-all flex items-center justify-center gap-2",
+                                        isSelected 
+                                            ? "bg-primary text-white border-primary shadow-sm" 
+                                            : "bg-white text-muted-foreground border-border hover:bg-gray-50"
+                                    )}
+                                >
+                                    {p === 'Manhã' && <SunMedium className="w-3 h-3" />}
+                                    {p === 'Tarde' && <Sun className="w-3 h-3" />}
+                                    {p === 'Noite' && <Moon className="w-3 h-3" />}
+                                    {p}
+                                </button>
+                            );
+                        })}
+                    </div>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -365,7 +390,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                   <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1"><Sun className="w-3 h-3" /> Condições Climáticas</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
                     <FormControl>
-                      <SelectTrigger className="rounded-xl bg-white border-none shadow-sm">
+                      <SelectTrigger className="rounded-xl bg-white border-none shadow-sm h-10">
                         <SelectValue placeholder="Selecione o clima" />
                       </SelectTrigger>
                     </FormControl>

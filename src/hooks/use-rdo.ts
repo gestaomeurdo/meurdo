@@ -46,7 +46,8 @@ export interface RdoMaterial {
 // --- Main RDO Type ---
 export type RdoStatusDia = 'Operacional' | 'Parcialmente Paralisado' | 'Totalmente Paralisado - Não Praticável';
 export type RdoClima = 'Sol' | 'Nublado' | 'Chuva Leve' | 'Chuva Forte';
-export type RdoPeriodo = 'Integral' | 'Manhã' | 'Tarde' | 'Noite';
+// Alterado para string para aceitar combinações como "Manhã, Tarde"
+export type RdoPeriodo = string; 
 
 export interface DiarioObra {
   id: string;
