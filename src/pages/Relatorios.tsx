@@ -20,7 +20,7 @@ import { useRdoReportData } from "@/hooks/use-rdo-report-data";
 import RdoOccurrenceTimeline from "@/components/relatorios/RdoOccurrenceTimeline";
 import RdoSummaryCards from "@/components/relatorios/RdoSummaryCards";
 import RdoActivityProgressChart from "@/components/relatorios/RdoActivityProgressChart";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const Relatorios = () => {
   const { profile } = useAuth();
