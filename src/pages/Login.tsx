@@ -3,6 +3,7 @@ import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 const LOGO_URL = "https://meurdo.com.br/wp-content/uploads/2026/01/Logo-MEU-RDO-scaled.png";
 
@@ -21,13 +22,13 @@ const Login = () => {
               : 'Comece agora a profissionalizar seus diários de obra.'}
           </p>
         </CardHeader>
-        <CardContent className="pt-6">
+        <CardContent className="pt-6 space-y-4">
           <Auth
             supabaseClient={supabase}
             view={view}
             onViewChange={(newView) => {
-              if (newView === 'sign_in' || newView === 'sign_up') {
-                setView(newView);
+              if (newView === 'sign_in' || newView === 'sign_up' || newView === 'forgotten_password') {
+                setView(newView as any);
               }
             }}
             providers={[]}
@@ -55,35 +56,73 @@ const Login = () => {
               },
             }}
             theme="light"
-            showLinks={true}
+            showLinks={false} // Desativamos os links internos para usar o nosso manual e garantido
             localization={{
               variables: {
                 sign_in: {
                   email_label: 'E-mail',
                   password_label: 'Senha',
                   button_label: 'Entrar',
-                  link_text: 'Não tem uma conta? Cadastre-se aqui',
-                  forgotten_password_link_text: 'Esqueceu sua senha?',
-                  email_input_placeholder: 'E-mail',
-                  password_input_placeholder: 'Senha',
+                  email_input_placeholder: 'Seu e-mail',
+                  password_input_placeholder: 'Sua senha',
                 },
                 sign_up: {
                   email_label: 'E-mail',
                   password_label: 'Crie uma Senha',
                   button_label: 'Criar Minha Conta',
-                  link_text: 'Já possui conta? Clique para entrar',
                   email_input_placeholder: 'E-mail profissional',
                   password_input_placeholder: 'Mínimo 6 caracteres',
                 },
                 forgotten_password: {
                   email_label: 'E-mail',
                   button_label: 'Recuperar Senha',
-                  link_text: 'Voltar para o login',
                   email_input_placeholder: 'Seu e-mail cadastrado',
                 },
               },
             }}
           />
+
+          <div className="pt-4 border-t text-center">
+            {view === 'sign_in' ? (
+              <p className="text-sm text-muted-foreground">
+                Não tem uma conta?{' '}
+                <button
+                  onClick={() => setView('sign_up')}
+                  className="text-primary font-bold hover:underline"
+                >
+                  Cadastre-se aqui
+                </button>
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Já possui conta?{' '}
+                <button
+                  onClick={() => setView('sign_in')}
+                  className="text-primary font-bold hover:underline"
+                >
+                  Clique para entrar
+                </button>
+              </p>
+            )}
+            
+            {view === 'sign_in' && (
+              <button
+                onClick={() => setView('forgotten_password' as any)}
+                className="block w-full text-xs text-muted-foreground mt-4 hover:underline"
+              >
+                Esqueceu sua senha?
+              </button>
+            )}
+
+            {view === 'forgotten_password' && (
+              <button
+                onClick={() => setView('sign_in')}
+                className="text-primary font-bold hover:underline text-sm"
+              >
+                Voltar para o login
+              </button>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
