@@ -80,7 +80,7 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities: rdoList, isLo
       doc.setFontSize(18);
       doc.setTextColor(6, 106, 188); // Azul Corporativo
       doc.setFont("helvetica", "bold");
-      doc.text("RELATÓRIO CONSOLIDADO DE RDO", pageWidth - margin, y - 5, { align: 'right' });
+      doc.text("RELATÓRIO SIMPLIFICADO DE OBRA", pageWidth - margin, y - 5, { align: 'right' });
       
       y += 10;
       doc.setDrawColor(6, 106, 188);
@@ -109,10 +109,10 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities: rdoList, isLo
       
       y += 10;
 
-      // --- Métricas Técnicas ---
+      // --- Métricas Técnicas (Resumo) ---
       doc.setFontSize(14);
       doc.setTextColor(6, 106, 188);
-      doc.text("Métricas de Progresso e Condições", margin, y);
+      doc.text("Resumo de Progresso", margin, y);
       y += 5;
       doc.setDrawColor(200);
       doc.line(margin, y, pageWidth - margin, y);
@@ -125,7 +125,7 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities: rdoList, isLo
       const totalRdos = rdoList.length;
       const avgManpower = totalRdos > 0 ? Math.round(reportData.totalManpower / totalRdos) : 0;
       
-      doc.text(`Total de RDOs Registrados:`, margin, y);
+      doc.text(`Dias Trabalhados (RDOs):`, margin, y);
       doc.setFont("helvetica", "normal");
       doc.text(`${totalRdos}`, margin + 50, y);
       y += lineHeight;
@@ -137,13 +137,7 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities: rdoList, isLo
       y += lineHeight;
       
       doc.setFont("helvetica", "bold");
-      doc.text(`Média Diária de Efetivo:`, margin, y);
-      doc.setFont("helvetica", "normal");
-      doc.text(`${avgManpower} funcionários`, margin + 50, y);
-      y += lineHeight;
-      
-      doc.setFont("helvetica", "bold");
-      doc.text(`Dias de Chuva (Paralisação):`, margin, y);
+      doc.text(`Dias de Chuva/Paralisação:`, margin, y);
       doc.setFont("helvetica", "normal");
       doc.text(`${reportData.rainDays}`, margin + 50, y);
       y += lineHeight;
@@ -154,44 +148,24 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities: rdoList, isLo
       doc.text(`${reportData.completedActivitiesCount}`, margin + 50, y);
       y += lineHeight * 2;
 
-      // --- Distribuição Climática (Tabela Simples) ---
+      // --- Linha do Tempo de Ocorrências (Top 5) ---
       doc.setFontSize(14);
       doc.setTextColor(6, 106, 188);
-      doc.text("Distribuição Climática", margin, y);
+      doc.text("Ocorrências e Observações Recentes", margin, y);
       y += 5;
       doc.setDrawColor(200);
       doc.line(margin, y, pageWidth - margin, y);
       y += 5;
       
-      const weatherTableData = Object.entries(reportData.weatherDistribution)
-        .map(([clima, count]) => [clima, `${count} dias`]);
-
-      doc.autoTable({
-        startY: y,
-        head: [['CONDIÇÃO', 'DIAS']],
-        body: weatherTableData,
-        theme: 'grid',
-        headStyles: { fillColor: [60, 60, 60] },
-        styles: { fontSize: 8, cellPadding: 2 }
-      });
-      y = (doc as any).lastAutoTable.finalY + 10;
-
-      // --- Linha do Tempo de Ocorrências ---
-      doc.setFontSize(14);
-      doc.setTextColor(6, 106, 188);
-      doc.text("Linha do Tempo de Ocorrências", margin, y);
-      y += 5;
-      doc.setDrawColor(200);
-      doc.line(margin, y, pageWidth - margin, y);
-      y += 5;
+      const topOccurrences = reportData.occurrenceTimeline.slice(0, 5);
       
-      if (reportData.occurrenceTimeline.length === 0) {
+      if (topOccurrences.length === 0) {
         doc.setFontSize(10);
         doc.setTextColor(100);
-        doc.text("Nenhuma ocorrência registrada no período.", margin, y);
+        doc.text("Nenhuma ocorrência importante registrada no período.", margin, y);
         y += lineHeight;
       } else {
-        reportData.occurrenceTimeline.forEach((item, index) => {
+        topOccurrences.forEach((item, index) => {
           if (y > pageHeight - margin * 2) {
             doc.addPage();
             y = margin;
@@ -205,6 +179,71 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities: rdoList, isLo
           y += doc.splitTextToSize(item.comments, pageWidth - margin - 30).length * lineHeight;
           y += 2;
         });
+      }
+      
+      // --- Galeria de Fotos ---
+      doc.addPage();
+      y = margin;
+      doc.setFontSize(18);
+      doc.setTextColor(6, 106, 188);
+      doc.setFont("helvetica", "bold");
+      doc.text("GALERIA DE FOTOS DO PERÍODO", pageWidth / 2, y, { align: 'center' });
+      y += 5;
+      doc.setDrawColor(6, 106, 188);
+      doc.setLineWidth(1);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 10;
+      
+      const allPhotos = rdoList.flatMap(rdo => 
+        rdo.rdo_atividades_detalhe?.filter(a => a.foto_anexo_url).map(a => ({
+          url: a.foto_anexo_url!,
+          date: rdo.data_rdo,
+          description: a.descricao_servico,
+        })) || []
+      );
+      
+      if (allPhotos.length === 0) {
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text("Nenhuma foto anexada aos RDOs neste período.", pageWidth / 2, y + 10, { align: 'center' });
+      } else {
+        const imgWidth = 80;
+        const imgHeight = 60;
+        const padding = 10;
+        const cols = 2;
+        let x = margin;
+        
+        for (const photo of allPhotos) {
+          if (y + imgHeight + lineHeight * 3 > pageHeight - margin) {
+            doc.addPage();
+            y = margin;
+            x = margin;
+          }
+          
+          try {
+            const img = await loadImg(photo.url);
+            if (img) {
+              doc.addImage(img, 'PNG', x, y, imgWidth, imgHeight);
+              
+              doc.setFontSize(8);
+              doc.setTextColor(50);
+              doc.setFont("helvetica", "bold");
+              doc.text(formatDate(photo.date), x, y + imgHeight + 4);
+              doc.setFont("helvetica", "normal");
+              
+              const descriptionLines = doc.splitTextToSize(photo.description, imgWidth);
+              doc.text(descriptionLines, x, y + imgHeight + 8);
+              
+              x += imgWidth + padding;
+              if (x > pageWidth - margin - imgWidth) {
+                x = margin;
+                y += imgHeight + lineHeight * 3 + padding;
+              }
+            }
+          } catch (e) {
+            console.error("Failed to add image to PDF:", e);
+          }
+        }
       }
 
       // --- Footer Branding ---
@@ -224,10 +263,10 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities: rdoList, isLo
       }
 
       // Save the PDF
-      const filename = `Relatorio_RDO_Consolidado_${obraNome.replace(/\s/g, '_')}_${periodo.replace(/\s/g, '')}.pdf`;
+      const filename = `Relatorio_Simplificado_${obraNome.replace(/\s/g, '_')}_${periodo.replace(/\s/g, '')}.pdf`;
       doc.save(filename);
 
-      showSuccess("Relatório Consolidado de RDO gerado e baixado com sucesso!");
+      showSuccess("Relatório Simplificado de Obra gerado e baixado com sucesso!");
 
     } catch (error) {
       console.error("PDF generation error:", error);
@@ -249,28 +288,28 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities: rdoList, isLo
           ) : (
             <FileText className="w-4 h-4 mr-2" />
           )}
-          {isLoading ? "Carregando Dados..." : "Exportar Relatório PDF (Consolidado)"}
+          {isLoading ? "Carregando Dados..." : "Gerar Relatório PDF (Simplificado)"}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Exportar Relatório Consolidado de RDO</DialogTitle>
+          <DialogTitle>Exportar Relatório Simplificado de Obra</DialogTitle>
           <DialogDescription>
-            Gere o relatório técnico de {obraNome} para o período de {periodo}.
+            Gere o relatório de progresso de {obraNome} para o período de {periodo}.
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
           <div className="border rounded-lg p-4 h-48 bg-muted/50 flex flex-col items-center justify-center">
             <FileText className="w-16 h-16 text-muted-foreground mb-4" />
-            <h3 className="font-semibold">Relatório Técnico Consolidado</h3>
+            <h3 className="font-semibold">Relatório Técnico Simplificado</h3>
             <p className="text-sm text-muted-foreground text-center">
-              Inclui métricas de efetivo, clima e ocorrências dos RDOs.
+              Inclui resumo de métricas e galeria de fotos do período.
             </p>
           </div>
           <div className="mt-6 space-y-4">
             <div className="space-y-2">
               <Label htmlFor="filename">Nome do Arquivo</Label>
-              <Input id="filename" defaultValue={`Relatorio_RDO_Consolidado_${obraNome.replace(/\s/g, '_')}_${periodo.replace(/\s/g, '')}.pdf`} readOnly />
+              <Input id="filename" defaultValue={`Relatorio_Simplificado_${obraNome.replace(/\s/g, '_')}_${periodo.replace(/\s/g, '')}.pdf`} readOnly />
             </div>
           </div>
         </div>
@@ -289,7 +328,7 @@ const ExportDialog = ({ obraNome, periodo, reportData, activities: rdoList, isLo
             {isExporting ? "Gerando PDF..." : "Gerar e Baixar PDF"}
           </Button>
         </DialogFooter>
-      </DialogContent>
+      </Dialog>
     </Dialog>
   );
 };

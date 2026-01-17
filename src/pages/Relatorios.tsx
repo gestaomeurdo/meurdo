@@ -1,7 +1,7 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useObras } from "@/hooks/use-obras";
 import { useState, useEffect, useMemo } from "react";
-import { Loader2, DollarSign, ClipboardCheck, Route, AlertTriangle, Clock, TrendingUp, Zap, Users, CloudRain } from "lucide-react";
+import { Loader2, DollarSign, ClipboardCheck, Route, AlertTriangle, Clock, TrendingUp, Zap, Users, CloudRain, FileText } from "lucide-react";
 import ObraSelector from "@/components/financeiro/ObraSelector";
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarIcon } from "lucide-react";
@@ -10,17 +10,17 @@ import { format, differenceInDays, differenceInMonths } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import KpiCard from "@/components/relatorios/KpiCard";
 import ExportDialog from "@/components/relatorios/ExportDialog";
-import { formatCurrency } from "@/utils/formatters";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ptBR } from "date-fns/locale";
 import { useAuth } from "@/integrations/supabase/auth-provider";
 import UpgradeButton from "@/components/subscription/UpgradeButton";
 import { useRdoReportData } from "@/hooks/use-rdo-report-data";
-import RdoWeatherChart from "@/components/relatorios/RdoWeatherChart";
 import RdoOccurrenceTimeline from "@/components/relatorios/RdoOccurrenceTimeline";
+import RdoSummaryCards from "@/components/relatorios/RdoSummaryCards";
+import RdoActivityProgressChart from "@/components/relatorios/RdoActivityProgressChart";
+import { Card, CardContent } from "@/components/ui/card";
 
 const Relatorios = () => {
   const { profile } = useAuth();
@@ -61,17 +61,6 @@ const Relatorios = () => {
     ? `${format(date.from, "dd/MM/yy")} a ${format(date.to, "dd/MM/yy")}`
     : "N/A";
     
-  const timeRemaining = useMemo(() => {
-    if (!selectedObra || !selectedObra.previsao_entrega) return "N/A";
-    const today = new Date();
-    const deliveryDate = new Date(selectedObra.previsao_entrega);
-    if (selectedObra.status === 'concluida') return "Concluída";
-    if (deliveryDate < today) return "Atrasada";
-    const diffDays = differenceInDays(deliveryDate, today);
-    if (diffDays > 60) return `${differenceInMonths(deliveryDate, today)} meses`;
-    return `${diffDays} dias`;
-  }, [selectedObra]);
-
   const renderContent = () => {
     if (isLoadingObras) {
       return (
@@ -99,87 +88,30 @@ const Relatorios = () => {
         );
     }
     
-    if (isLoadingRdoMetrics) {
-        return (
-            <div className="flex justify-center items-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-        );
-    }
-    
-    const totalRdos = rdoMetrics?.allRdos.length || 0;
-    const avgManpower = totalRdos > 0 ? Math.round((rdoMetrics?.totalManpower || 0) / totalRdos) : 0;
-
     return (
       <div className="space-y-6">
-        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-          <KpiCard
-            title="Status da Obra"
-            value={selectedObra!.status.charAt(0).toUpperCase() + selectedObra!.status.slice(1)}
-            description={`Início: ${format(new Date(selectedObra!.data_inicio), 'dd/MM/yy')}`}
-            icon={Clock}
-            isLoading={false}
-          />
-          <KpiCard
-            title="Tempo Restante"
-            value={timeRemaining}
-            description="Até a entrega prevista."
-            icon={Clock}
-            isLoading={false}
-          />
-          <KpiCard
-            title="Total de Efetivo"
-            value={rdoMetrics?.totalManpower ?? 0}
-            description={`Média diária: ${avgManpower} funcionários`}
-            icon={Users}
-            isLoading={isLoadingRdoMetrics}
-          />
-          <KpiCard
-            title="Atividades Concluídas"
-            value={rdoMetrics?.completedActivitiesCount ?? 0}
-            description={`Em ${totalRdos} RDOs no período.`}
-            icon={ClipboardCheck}
-            isLoading={isLoadingRdoMetrics}
-          />
-        </div>
+        {/* 1. Cards de Resumo */}
+        <RdoSummaryCards metrics={rdoMetrics} isLoading={isLoadingRdoMetrics} />
         
-        <div className="space-y-4">
-            <h2 className="text-xl font-semibold">Métricas de Progresso e Condições</h2>
-            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-                <KpiCard
-                    title="Dias de Chuva"
-                    value={rdoMetrics?.rainDays ?? 0}
-                    description="Dias com Chuva Leve ou Forte."
-                    icon={CloudRain}
-                    isLoading={isLoadingRdoMetrics}
-                />
-                <KpiCard
-                    title="RDOs Registrados"
-                    value={totalRdos}
-                    description={`No período de ${periodoString}`}
-                    icon={FileText}
-                    isLoading={isLoadingRdoMetrics}
-                />
-                <KpiCard
-                    title="Ocorrências Registradas"
-                    value={rdoMetrics?.occurrenceTimeline.length ?? 0}
-                    description="Impedimentos ou comentários."
-                    icon={AlertTriangle}
-                    isLoading={isLoadingRdoMetrics}
-                />
-                <KpiCard
-                    title="Uso Orçamento"
-                    value={`N/A`}
-                    description={`Filtre em Financeiro para ver custos.`}
-                    icon={DollarSign}
-                    isLoading={isLoadingRdoMetrics}
-                />
-            </div>
-        </div>
-        
+        {/* 2. Gráfico de Progresso e Linha do Tempo */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <RdoWeatherChart metrics={rdoMetrics} isLoading={isLoadingRdoMetrics} />
-            <RdoOccurrenceTimeline metrics={rdoMetrics} isLoading={isLoadingRdoMetrics} />
+            <RdoActivityProgressChart metrics={rdoMetrics} isLoading={isLoadingRdoMetrics} />
+            
+            {/* Linha do Tempo de Ocorrências (Top 5) */}
+            <Card className="col-span-full lg:col-span-1">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <AlertTriangle className="w-5 h-5 text-destructive" />
+                        Ocorrências Recentes
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="h-[350px] p-0">
+                    <RdoOccurrenceTimeline metrics={{ 
+                        ...rdoMetrics!, 
+                        occurrenceTimeline: (rdoMetrics?.occurrenceTimeline || []).slice(0, 5) 
+                    }} isLoading={isLoadingRdoMetrics} />
+                </CardContent>
+            </Card>
         </div>
 
         <div className="flex justify-end pt-4">
@@ -187,9 +119,9 @@ const Relatorios = () => {
             <ExportDialog 
               obraNome={selectedObra!.nome} 
               periodo={periodoString} 
-              reportData={rdoMetrics} // Passando os novos dados
-              activities={rdoMetrics?.allRdos} // Reutilizando o campo activities para passar todos os RDOs
-              kmCost={0} // Não é mais relevante aqui, mas mantemos a prop
+              reportData={rdoMetrics} 
+              activities={rdoMetrics?.allRdos} 
+              kmCost={0} 
               isLoading={isLoadingRdoMetrics}
               selectedObra={selectedObra}
             />
@@ -213,8 +145,8 @@ const Relatorios = () => {
       <div className="p-4 sm:p-6 space-y-6 animate-in fade-in duration-500">
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-1">
-            <h1 className="text-2xl sm:text-3xl font-bold">Relatórios de Progresso</h1>
-            <p className="text-sm text-muted-foreground">Análise técnica e de condições da obra via RDO.</p>
+            <h1 className="text-2xl sm:text-3xl font-bold">Relatório Técnico Simplificado</h1>
+            <p className="text-sm text-muted-foreground">Resumo de progresso e condições da obra.</p>
           </div>
           <div className="flex flex-col gap-4">
             <div className="w-full sm:max-w-sm">
