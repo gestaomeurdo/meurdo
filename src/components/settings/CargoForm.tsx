@@ -59,33 +59,33 @@ const CargoForm = ({ initialData, onSuccess }: CargoFormProps) => {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField control={form.control} name="nome" render={({ field }) => (
-            <FormItem><FormLabel>Nome do Cargo</FormLabel><FormControl><Input placeholder="Ex: Pedreiro" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>
+            <FormItem><FormLabel>Nome da Função</FormLabel><FormControl><Input placeholder="Ex: Pedreiro Especialista" {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>
           )}
         />
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField control={form.control} name="tipo" render={({ field }) => (
-              <FormItem><FormLabel>Tipo de Contratação</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Próprio">Próprio</SelectItem><SelectItem value="Empreiteiro">Empreiteiro</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+              <FormItem><FormLabel>Tipo de Contratação</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Próprio">Próprio (CLT/Direto)</SelectItem><SelectItem value="Empreiteiro">Empreiteiro (Terceiro)</SelectItem></SelectContent></Select><FormMessage /></FormItem>
             )}
           />
           <FormField control={form.control} name="unidade" render={({ field }) => (
-              <FormItem><FormLabel>Unidade de Cobrança</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Diário">Diário (Dia)</SelectItem><SelectItem value="Hora">Por Hora</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+              <FormItem><FormLabel>Unidade de Cálculo</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Diário">Custo por Dia</SelectItem><SelectItem value="Hora">Custo por Hora</SelectItem></SelectContent></Select><FormMessage /></FormItem>
             )}
           />
         </div>
 
         <FormField control={form.control} name="custo_diario" render={({ field }) => (
             <FormItem>
-              <FormLabel>Custo ({form.watch("unidade")}) (R$)</FormLabel>
+              <FormLabel>Valor do Custo Unitário (R$)</FormLabel>
               <FormControl><Input type="number" step="0.01" {...field} disabled={isLoading} /></FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <Button type="submit" className="w-full" disabled={isLoading}>
+        <Button type="submit" className="w-full bg-[#066abc] hover:bg-[#066abc]/90" disabled={isLoading}>
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-          {isEditing ? "Salvar Alterações" : "Cadastrar Cargo"}
+          {isEditing ? "Salvar Alterações" : "Cadastrar Função"}
         </Button>
       </form>
     </Form>
