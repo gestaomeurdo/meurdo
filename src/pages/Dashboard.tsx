@@ -1,22 +1,25 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/integrations/supabase/auth-provider";
-import { Loader2, CheckCircle, Zap } from "lucide-react";
+import { Loader2, CheckCircle, Zap, MapPin, Calendar, DollarSign, ArrowRight } from "lucide-react";
 import { useRdoDashboardMetrics } from "@/hooks/use-rdo-dashboard-metrics";
 import RecentRdoList from "@/components/dashboard/RecentRdoList";
 import { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useCanCreateObra } from "@/hooks/use-subscription-limits";
 import LimitReachedModal from "@/components/subscription/LimitReachedModal";
 import WelcomeFreeModal from "@/components/subscription/WelcomeFreeModal";
 import { cn } from "@/lib/utils";
+import { useObras } from "@/hooks/use-obras";
+import { formatCurrency, formatDate } from "@/utils/formatters";
 
 const Dashboard = () => {
   const { user, isLoading: authLoading, profile, isPro } = useAuth();
   const { data: rdoMetrics, isLoading: isLoadingRdoMetrics } = useRdoDashboardMetrics();
   const { isLoading: isLoadingLimits } = useCanCreateObra();
+  const { data: obras, isLoading: isLoadingObras } = useObras();
   const location = useLocation();
   const queryClient = useQueryClient();
   const [showWelcomePro, setShowWelcomePro] = useState(false);
@@ -34,7 +37,7 @@ const Dashboard = () => {
     }
   }, [location.search, queryClient]);
 
-  if (authLoading || isLoadingLimits) {
+  if (authLoading || isLoadingLimits || isLoadingObras) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -48,7 +51,7 @@ const Dashboard = () => {
   return (
     <DashboardLayout>
       {!isPro && <WelcomeFreeModal />}
-      <div className="p-4 sm:p-6 space-y-6">
+      <div className="p-4 sm:p-6 space-y-8">
         <div className="flex justify-between items-center">
           <div className="space-y-1">
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground truncate">
@@ -89,6 +92,58 @@ const Dashboard = () => {
                 </CardContent>
             </Card>
           ))}
+        </div>
+
+        <div className="space-y-4">
+            <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold tracking-tight">Minhas Obras</h2>
+                <Link to="/obras" className="text-sm text-primary font-medium hover:underline flex items-center">
+                    Gerenciar Obras <ArrowRight className="w-3 h-3 ml-1" />
+                </Link>
+            </div>
+            
+            {obras && obras.length > 0 ? (
+                <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                    {obras.slice(0, 3).map((obra) => (
+                        <Link to="/gestao-rdo" key={obra.id}>
+                            <Card className="shadow-sm hover:shadow-md transition-all cursor-pointer border-l-4 border-l-primary group">
+                                <CardContent className="p-4">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <h3 className="font-bold text-lg truncate pr-2 group-hover:text-primary transition-colors">{obra.nome}</h3>
+                                        {obra.status === 'ativa' && <div className="h-2 w-2 rounded-full bg-green-500 shrink-0 mt-1.5 shadow-sm" title="Ativa" />}
+                                        {obra.status !== 'ativa' && <div className="h-2 w-2 rounded-full bg-muted-foreground shrink-0 mt-1.5" title={obra.status} />}
+                                    </div>
+                                    
+                                    <div className="space-y-3">
+                                        <div className="flex items-center text-xs text-muted-foreground">
+                                            <MapPin className="w-3.5 h-3.5 mr-1.5 text-primary/70 shrink-0" />
+                                            <span className="truncate">{obra.endereco || "Local não informado"}</span>
+                                        </div>
+                                        
+                                        <div className="flex items-center justify-between pt-3 mt-1 border-t border-dashed">
+                                            <div className="flex items-center text-xs font-medium text-muted-foreground">
+                                                <Calendar className="w-3.5 h-3.5 mr-1.5" />
+                                                {formatDate(obra.data_inicio)}
+                                            </div>
+                                            <div className="flex items-center text-xs font-bold text-foreground">
+                                                <DollarSign className="w-3.5 h-3.5 mr-0.5 text-primary" />
+                                                {formatCurrency(obra.orcamento_inicial)}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </Link>
+                    ))}
+                </div>
+            ) : (
+                <div className="text-center py-10 border-2 border-dashed rounded-xl bg-muted/20">
+                    <p className="text-muted-foreground text-sm font-medium">Nenhuma obra cadastrada.</p>
+                    <Link to="/obras" className="text-primary font-bold text-sm mt-2 inline-block hover:underline">
+                        Cadastrar Primeira Obra
+                    </Link>
+                </div>
+            )}
         </div>
 
         <Card className="shadow-clean border-none rounded-3xl overflow-hidden">
