@@ -10,6 +10,7 @@ import { supabase } from "./client";
 import { useNavigate } from "react-router-dom";
 import { Profile, fetchProfile } from "@/hooks/use-profile";
 import { Loader2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query"; // Import useQueryClient
 
 interface AuthContextType {
   session: Session | null;
@@ -34,6 +35,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
   });
   
   const navigate = useNavigate();
+  const queryClient = useQueryClient(); // Get queryClient instance
 
   const updateProStatus = (p: Profile | null) => {
     const status = p?.subscription_status === 'active' || p?.plan_type === 'pro';
@@ -54,6 +56,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
           const userProfile = await fetchProfile(currentUser.id);
           setProfile(userProfile);
           updateProStatus(userProfile);
+          queryClient.invalidateQueries({ queryKey: ['profile'] }); // Invalidate on initial load if user exists
         }
       } catch (err) {
         console.error("Auth init error:", err);
@@ -71,9 +74,11 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
             const userProfile = await fetchProfile(currentUser.id);
             setProfile(userProfile);
             updateProStatus(userProfile);
+            queryClient.invalidateQueries({ queryKey: ['profile'] }); // Invalidate on auth state change
           } else {
             setProfile(null);
             updateProStatus(null);
+            queryClient.invalidateQueries({ queryKey: ['profile'] }); // Invalidate on sign out
           }
 
           if (event === 'SIGNED_IN') {
@@ -97,13 +102,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
     return () => {
       listenerPromise.then(res => res?.subscription.unsubscribe());
     };
-  }, [navigate]);
-
-  const signOut = async () => {
-    localStorage.removeItem(PRO_CACHE_KEY);
-    await supabase.auth.signOut();
-    navigate("/login", { replace: true });
-  };
+  }, [navigate, queryClient]); // Add queryClient to dependency array
 
   // Substituído o erro crítico por uma tela de carregamento elegante
   if (isLoading) {
