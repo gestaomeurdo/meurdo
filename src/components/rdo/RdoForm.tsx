@@ -158,7 +158,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
     },
   });
 
-  // Use useWatch for real-time updates of nested arrays
   const maoDeObra = useWatch({
     control: methods.control,
     name: "mao_de_obra",
@@ -288,16 +287,17 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
 
         {/* Custo e Botões de Ação */}
         <div className="flex flex-col gap-4">
-            {!isEditing && previousRdoData && (
+            {!isEditing && (
                 <div className="flex justify-center bg-accent/20 p-2 rounded-xl">
                     <Button 
                         type="button" 
                         variant="outline" 
                         onClick={handleCopyPrevious} 
+                        disabled={!previousRdoData}
                         className="w-full sm:w-auto border-primary/30 text-primary hover:bg-primary/5"
                     >
                         <Copy className="w-4 h-4 mr-2" />
-                        Copiar Equipe e Máquinas do Último RDO
+                        {previousRdoData ? "Copiar Equipe e Máquinas do Último RDO" : "Nenhum RDO anterior encontrado"}
                     </Button>
                 </div>
             )}
