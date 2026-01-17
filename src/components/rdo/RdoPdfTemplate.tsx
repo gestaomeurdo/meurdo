@@ -5,9 +5,6 @@ import { Profile } from "@/hooks/use-profile";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-// Register fonts if needed, otherwise use standard Helvetica
-// Font.register({ family: 'Open Sans', src: '...' }); 
-
 const styles = StyleSheet.create({
   page: {
     padding: 30,
@@ -89,11 +86,11 @@ const styles = StyleSheet.create({
   },
   weatherItem: {
     flexDirection: 'column',
-    alignItems: 'center',
-    paddingHorizontal: 15,
+    alignItems: 'flex-start',
+    flex: 2,
   },
   weatherIconText: {
-    fontSize: 14,
+    fontSize: 9,
     fontFamily: 'Helvetica-Bold',
     color: '#066abc',
   },
@@ -104,26 +101,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#e6fffa', // Greenish light
     borderWidth: 1,
     borderColor: '#b2f5ea',
+    maxWidth: 200,
   },
   statusText: {
     color: '#2c7a7b',
     fontSize: 8,
     fontFamily: 'Helvetica-Bold',
     textTransform: 'uppercase',
-  },
-  statusBadgeWarning: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 10,
-    backgroundColor: '#fffaf0',
-    borderWidth: 1,
-    borderColor: '#fbd38d',
-  },
-  statusTextWarning: {
-    color: '#c05621',
-    fontSize: 8,
-    fontFamily: 'Helvetica-Bold',
-    textTransform: 'uppercase',
+    textAlign: 'center',
   },
   statusBadgeDanger: {
     paddingVertical: 4,
@@ -132,12 +117,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff5f5',
     borderWidth: 1,
     borderColor: '#feb2b2',
+    maxWidth: 200,
   },
   statusTextDanger: {
     color: '#c53030',
     fontSize: 8,
     fontFamily: 'Helvetica-Bold',
     textTransform: 'uppercase',
+    textAlign: 'center',
   },
   sectionTitle: {
     fontSize: 11,
@@ -191,13 +178,6 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'left',
     paddingLeft: 4,
-  },
-  activityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    paddingVertical: 6,
   },
   statusDot: {
     width: 8,
@@ -284,15 +264,13 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile }: RdoPdfTemplateProps) 
   } catch (e) {}
 
   const getStatusStyle = (status: string) => {
-    if (status === 'Operacional') return styles.statusBadge;
-    if (status.includes('Parcialmente')) return styles.statusBadgeWarning;
-    return styles.statusBadgeDanger;
+    if (status.includes('Não Praticável')) return styles.statusBadgeDanger;
+    return styles.statusBadge;
   };
 
   const getStatusTextStyle = (status: string) => {
-    if (status === 'Operacional') return styles.statusText;
-    if (status.includes('Parcialmente')) return styles.statusTextWarning;
-    return styles.statusTextDanger;
+    if (status.includes('Não Praticável')) return styles.statusTextDanger;
+    return styles.statusText;
   };
 
   return (
@@ -326,13 +304,11 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile }: RdoPdfTemplateProps) 
           </View>
         </View>
 
-        {/* Weather Section */}
+        {/* Weather & Status Section */}
         <View style={styles.weatherSection}>
-          <View style={{flexDirection: 'row', gap: 20}}>
-            <View style={styles.weatherItem}>
-              <Text style={styles.label}>Condições Climáticas</Text>
-              <Text style={styles.weatherIconText}>{rdo.clima_condicoes || 'N/A'}</Text>
-            </View>
+          <View style={styles.weatherItem}>
+            <Text style={styles.label}>Clima / Condições</Text>
+            <Text style={styles.weatherIconText}>{rdo.clima_condicoes || 'N/A'}</Text>
           </View>
           
           <View style={getStatusStyle(rdo.status_dia)}>

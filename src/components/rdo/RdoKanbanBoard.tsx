@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { DiarioObra } from "@/hooks/use-rdo";
 import { format, parseISO } from "date-fns";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Sun, Cloud, CloudRain, CloudLightning, Users, Calendar, AlertTriangle } from "lucide-react";
+import { Sun, Cloud, CloudRain, CloudLightning, Calendar, AlertTriangle } from "lucide-react";
 import RdoDialog from "./RdoDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -20,10 +20,20 @@ const climaIconMap: Record<string, React.ElementType> = {
   'Chuva Forte': CloudLightning,
 };
 
-const statusMap: Record<string, string> = {
-  'Operacional': 'Em Aberto',
-  'Parcialmente Paralisado': 'Em Revisão',
-  'Totalmente Paralisado - Não Praticável': 'Finalizado',
+const getClimaIcon = (climaString: string | null) => {
+    if (!climaString) return Cloud;
+    if (climaString.includes('Chuva Forte')) return CloudLightning;
+    if (climaString.includes('Chuva')) return CloudRain;
+    if (climaString.includes('Nublado')) return Cloud;
+    if (climaString.includes('Sol')) return Sun;
+    return Cloud;
+};
+
+// Simplified groups based on string content
+const getStatusGroup = (status: string) => {
+    if (status.includes("Não Praticável")) return "Finalizado"; // Using Finalizado for "Problematic/Stopped"
+    if (status.includes("Operacional")) return "Em Aberto";
+    return "Em Revisão"; // Fallback
 };
 
 const RdoKanbanBoard = ({ rdoList, obraId, isLoading }: RdoKanbanBoardProps) => {
@@ -38,8 +48,8 @@ const RdoKanbanBoard = ({ rdoList, obraId, isLoading }: RdoKanbanBoardProps) => 
     };
 
     rdoList.forEach(rdo => {
-      const status = statusMap[rdo.status_dia] || 'Em Aberto';
-      groups[status].push(rdo);
+      const group = getStatusGroup(rdo.status_dia);
+      groups[group].push(rdo);
     });
 
     return groups;
@@ -93,7 +103,7 @@ const RdoKanbanBoard = ({ rdoList, obraId, isLoading }: RdoKanbanBoardProps) => 
           {groupedRdos[activeTab].map(rdo => {
             const photoUrl = getPhotoUrl(rdo);
             const totalWorkforce = getTotalWorkforce(rdo);
-            const ClimaIcon = rdo.clima_condicoes ? climaIconMap[rdo.clima_condicoes] : Cloud;
+            const ClimaIcon = getClimaIcon(rdo.clima_condicoes);
             const rdoDate = parseISO(rdo.data_rdo);
 
             return (
@@ -127,7 +137,7 @@ const RdoKanbanBoard = ({ rdoList, obraId, isLoading }: RdoKanbanBoardProps) => 
                           </div>
                           <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                             <ClimaIcon className="w-4 h-4" />
-                            <span>{rdo.clima_condicoes || 'N/A'}</span>
+                            <span className="truncate max-w-[100px]">{rdo.clima_condicoes?.split(',')[0] || 'N/A'}</span>
                             <span>•</span>
                             <span>{(rdo as any).responsavel || 'N/A'}</span>
                           </div>
@@ -150,9 +160,9 @@ const RdoKanbanBoard = ({ rdoList, obraId, isLoading }: RdoKanbanBoardProps) => 
         <div key={status} className="space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold flex items-center gap-2">
-              {status === 'Em Aberto' && <AlertTriangle className="w-4 h-4 text-yellow-500" />}
-              {status === 'Em Revisão' && <AlertTriangle className="w-4 h-4 text-blue-500" />}
-              {status === 'Finalizado' && <AlertTriangle className="w-4 h-4 text-green-500" />}
+              {status === 'Em Aberto' && <AlertTriangle className="w-4 h-4 text-green-500" />}
+              {status === 'Em Revisão' && <AlertTriangle className="w-4 h-4 text-yellow-500" />}
+              {status === 'Finalizado' && <AlertTriangle className="w-4 h-4 text-red-500" />}
               {status}
             </h3>
             <Badge variant="secondary">{groupedRdos[status].length}</Badge>
@@ -162,7 +172,7 @@ const RdoKanbanBoard = ({ rdoList, obraId, isLoading }: RdoKanbanBoardProps) => 
             {groupedRdos[status].map(rdo => {
               const photoUrl = getPhotoUrl(rdo);
               const totalWorkforce = getTotalWorkforce(rdo);
-              const ClimaIcon = rdo.clima_condicoes ? climaIconMap[rdo.clima_condicoes] : Cloud;
+              const ClimaIcon = getClimaIcon(rdo.clima_condicoes);
               const rdoDate = parseISO(rdo.data_rdo);
 
               return (
@@ -189,7 +199,7 @@ const RdoKanbanBoard = ({ rdoList, obraId, isLoading }: RdoKanbanBoardProps) => 
                             </CardTitle>
                             <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                               <ClimaIcon className="w-4 h-4" />
-                              <span>{rdo.clima_condicoes || 'N/A'}</span>
+                              <span className="truncate max-w-[120px]">{rdo.clima_condicoes?.split(',')[0] || 'N/A'}</span>
                               <span>•</span>
                               <span>{(rdo as any).responsavel || 'N/A'}</span>
                             </div>

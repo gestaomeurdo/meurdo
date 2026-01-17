@@ -1,8 +1,7 @@
 import { DiarioObra } from "@/hooks/use-rdo";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { format, parseISO } from "date-fns";
 import { Eye, Loader2, ClipboardList, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -16,10 +15,18 @@ interface RecentRdoListProps {
   isLoading: boolean;
 }
 
-const statusColorMap: Record<DiarioObra['status_dia'], "default" | "secondary" | "destructive" | "outline"> = {
-  'Operacional': "default",
-  'Parcialmente Paralisado': "secondary",
-  'Totalmente Paralisado - Não Praticável': "destructive",
+const getStatusColor = (status: string): "default" | "secondary" | "destructive" | "outline" => {
+    if (status === 'Operacional' || (status.includes('Operacional') && !status.includes('Não Praticável'))) return "default";
+    if (status.includes('Não Praticável')) return "destructive";
+    return "secondary";
+};
+
+const formatStatusText = (status: string) => {
+    if (status.length > 25) {
+        if (status.includes("Não Praticável")) return "Com Paralisação";
+        return "Operacional";
+    }
+    return status;
 };
 
 const RecentRdoList = ({ recentRdos, obraId, isLoading }: RecentRdoListProps) => {
@@ -62,8 +69,8 @@ const RecentRdoList = ({ recentRdos, obraId, isLoading }: RecentRdoListProps) =>
                     <div className="space-y-1">
                       <p className="text-[10px] font-black text-primary uppercase tracking-widest">{rdo.obra_nome}</p>
                       <p className="text-lg font-bold">{formatDate(rdo.data_rdo)}</p>
-                      <Badge variant={statusColorMap[rdo.status_dia]} className="text-[9px] uppercase font-black">
-                        {rdo.status_dia}
+                      <Badge variant={getStatusColor(rdo.status_dia)} className="text-[9px] uppercase font-black">
+                        {formatStatusText(rdo.status_dia)}
                       </Badge>
                     </div>
                     <Eye className="w-5 h-5 text-primary/40" />
@@ -96,8 +103,8 @@ const RecentRdoList = ({ recentRdos, obraId, isLoading }: RecentRdoListProps) =>
                 <TableCell className="font-bold">{formatDate(rdo.data_rdo)}</TableCell>
                 <TableCell className="font-medium">{rdo.obra_nome}</TableCell>
                 <TableCell>
-                  <Badge variant={statusColorMap[rdo.status_dia]} className="text-[10px] uppercase font-bold">
-                    {rdo.status_dia}
+                  <Badge variant={getStatusColor(rdo.status_dia)} className="text-[10px] uppercase font-bold">
+                    {formatStatusText(rdo.status_dia)}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">

@@ -1,14 +1,13 @@
 import { DiarioObra, useDeleteRdo } from "@/hooks/use-rdo";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Trash2, Sun, Cloud, CloudRain, CloudLightning, AlertTriangle, Loader2, FileSearch } from "lucide-react";
+import { Trash2, Sun, Cloud, CloudRain, CloudLightning, AlertTriangle, Loader2 } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import RdoDialog from "./RdoDialog";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
 
 interface RdoListTableProps {
   rdoList: DiarioObra[];
@@ -23,22 +22,38 @@ const climaIconMap: Record<string, React.ElementType> = {
   'Chuva Forte': CloudLightning,
 };
 
-const statusColorMap: Record<DiarioObra['status_dia'], "default" | "secondary" | "destructive" | "outline"> = {
-  'Operacional': "default",
-  'Parcialmente Paralisado': "secondary",
-  'Totalmente Paralisado - Não Praticável': "destructive",
+const getClimaIcon = (climaString: string | null) => {
+    if (!climaString) return Cloud;
+    if (climaString.includes('Chuva Forte')) return CloudLightning;
+    if (climaString.includes('Chuva')) return CloudRain;
+    if (climaString.includes('Nublado')) return Cloud;
+    if (climaString.includes('Sol')) return Sun;
+    return Cloud;
+};
+
+const getStatusColor = (status: string): "default" | "secondary" | "destructive" | "outline" => {
+    if (status === 'Operacional' || (status.includes('Operacional') && !status.includes('Não Praticável'))) return "default";
+    if (status.includes('Não Praticável')) return "destructive";
+    return "secondary";
+};
+
+const formatStatusText = (status: string) => {
+    if (status.length > 30) {
+        if (status.includes("Não Praticável")) return "Com Paralisação";
+        if (status.includes("Operacional")) return "Operacional";
+    }
+    return status;
 };
 
 const RdoListTable = ({ rdoList, obraId, isLoading }: RdoListTableProps) => {
   const deleteMutation = useDeleteRdo();
-  const [selectedRdoDate, setSelectedRdoDate] = useState<Date | null>(null);
 
   const handleDelete = async (id: string, date: string) => {
     try {
       await deleteMutation.mutateAsync({ id, obraId });
       showSuccess(`RDO de ${format(parseISO(date), 'dd/MM/yyyy')} excluído com sucesso.`);
     } catch (err) {
-      showError(`Erro ao excluir RDO: ${err instanceof Error ? error.message : "Erro desconhecido"}`);
+      showError(`Erro ao excluir RDO: ${err instanceof Error ? err.message : "Erro desconhecido"}`);
     }
   };
 
@@ -78,10 +93,10 @@ const RdoListTable = ({ rdoList, obraId, isLoading }: RdoListTableProps) => {
           {rdoList.map((rdo) => {
             const dateObj = parseISO(rdo.data_rdo);
             const dayOfWeek = format(dateObj, 'EEEE', { locale: ptBR });
-            const ClimaIcon = rdo.clima_condicoes ? climaIconMap[rdo.clima_condicoes] : Cloud;
-            const statusColor = statusColorMap[rdo.status_dia];
+            const ClimaIcon = getClimaIcon(rdo.clima_condicoes);
+            const statusColor = getStatusColor(rdo.status_dia);
+            const statusText = formatStatusText(rdo.status_dia);
 
-            // Fix: Create date at noon to avoid UTC/Local shifts
             const rdoDate = new Date(rdo.data_rdo + 'T12:00:00');
 
             return (
@@ -118,7 +133,7 @@ const RdoListTable = ({ rdoList, obraId, isLoading }: RdoListTableProps) => {
                     trigger={
                       <div className="w-full h-full p-4 flex items-center gap-2">
                         <ClimaIcon className="w-4 h-4 text-primary" />
-                        <span className="text-sm">{rdo.clima_condicoes || 'N/A'}</span>
+                        <span className="text-xs truncate max-w-[100px]">{rdo.clima_condicoes?.split(',')[0] || 'N/A'}</span>
                       </div>
                     }
                   />
@@ -129,8 +144,8 @@ const RdoListTable = ({ rdoList, obraId, isLoading }: RdoListTableProps) => {
                     date={rdoDate}
                     trigger={
                       <div className="w-full h-full p-4 flex items-center">
-                        <Badge variant={statusColor} className="text-[10px] md:text-xs">
-                          {rdo.status_dia}
+                        <Badge variant={statusColor} className="text-[10px] md:text-xs whitespace-normal text-center">
+                          {statusText}
                         </Badge>
                       </div>
                     }

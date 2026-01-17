@@ -3,13 +3,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { showSuccess, showError } from "@/utils/toast";
-import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, UserCheck, Sun, AlertOctagon, Clock, Copy, Upload, Image as ImageIcon, X, Handshake, Moon, SunMedium, CheckCircle } from "lucide-react";
-import { DiarioObra, RdoStatusDia, useCreateRdo, useUpdateRdo, WorkforceType, usePayRdo } from "@/hooks/use-rdo";
+import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, UserCheck, Sun, Clock, Copy, Upload, Image as ImageIcon, X, Handshake, Moon, SunMedium, CheckCircle } from "lucide-react";
+import { DiarioObra, useCreateRdo, useUpdateRdo, WorkforceType, usePayRdo } from "@/hooks/use-rdo";
 import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
 import RdoEquipmentForm from "./RdoEquipmentForm";
@@ -29,9 +29,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
-// Simple status options
-const statusOptions = ['Operacional', 'Parcialmente Paralisado', 'Totalmente Paralisado - Não Praticável'];
-// Clima as string options
+// Opções de status simplificadas
+const statusOptions = ['Operacional', 'Não Praticável'];
 const climaOptions = ['Sol', 'Nublado', 'Chuva Leve', 'Chuva Forte'];
 const workforceTypes: WorkforceType[] = ['Própria', 'Terceirizada'];
 
@@ -67,7 +66,7 @@ const RdoSchema = z.object({
   data_rdo: z.date({ required_error: "A data é obrigatória." }),
   periodo: z.string().min(1, "Selecione pelo menos um período."),
   clima_condicoes: z.string().nullable().optional(),
-  status_dia: z.string(), // Changed to string to support "Manhã: Op, Tarde: Parado"
+  status_dia: z.string(), 
   observacoes_gerais: z.string().nullable().optional(),
   impedimentos_comentarios: z.string().nullable().optional(),
   responsible_signature_url: z.string().nullable().optional(),
@@ -76,16 +75,14 @@ const RdoSchema = z.object({
   work_stopped: z.boolean().default(false),
   hours_lost: z.number().min(0).max(24).default(0),
   
-  // Safety items renamed in UI but keeping internal names for DB compatibility
-  safety_nr35: z.boolean().default(false), // Treinamento
-  safety_epi: z.boolean().default(false), // Utilização EPI
-  safety_cleaning: z.boolean().default(false), // Limpeza
-  safety_dds: z.boolean().default(false), // DDS
+  safety_nr35: z.boolean().default(false),
+  safety_epi: z.boolean().default(false),
+  safety_cleaning: z.boolean().default(false),
+  safety_dds: z.boolean().default(false),
   
   safety_comments: z.string().nullable().optional(),
-  safety_photo_url: z.string().nullable().optional(), // General photo (deprecated in UI favor of specific ones)
+  safety_photo_url: z.string().nullable().optional(),
   
-  // Specific Safety Photos (mapped to custom fields or handled via side effects)
   safety_nr35_photo: z.string().nullable().optional(),
   safety_epi_photo: z.string().nullable().optional(),
   safety_cleaning_photo: z.string().nullable().optional(),
@@ -118,14 +115,10 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
   const { data: obras } = useObras();
   const obraNome = obras?.find(o => o.id === obraId)?.nome || "Obra";
   
-  // Upload states
   const [uploadingState, setUploadingState] = useState<Record<string, boolean>>({});
-  
-  // State for weather per period
   const [weatherMap, setWeatherMap] = useState<Record<string, string>>({});
   const [statusMap, setStatusMap] = useState<Record<string, string>>({});
 
-  // Helper para normalizar o período inicial
   const getInitialPeriod = () => {
     if (!initialData?.periodo) return "Manhã, Tarde";
     if (initialData.periodo === 'Integral') return "Manhã, Tarde";
@@ -155,7 +148,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
       safety_dds: initialData?.safety_dds || false,
       safety_comments: initialData?.safety_comments || "",
       
-      // Map extra columns (checking if they exist in initialData, otherwise null)
       safety_nr35_photo: (initialData as any)?.safety_nr35_photo || null,
       safety_epi_photo: (initialData as any)?.safety_epi_photo || null,
       safety_cleaning_photo: (initialData as any)?.safety_cleaning_photo || null,
@@ -193,9 +185,8 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
   });
   const activePeriods = methods.watch("periodo");
 
-  // Parse initial weather & status strings
   useEffect(() => {
-    // Weather
+    // Restaurar Clima
     if (initialData?.clima_condicoes) {
       const weatherString = initialData.clima_condicoes;
       if (weatherString.includes(':')) {
@@ -213,7 +204,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
       }
     }
 
-    // Status
+    // Restaurar Status
     if (initialData?.status_dia) {
         const statusString = initialData.status_dia as string;
         if (statusString.includes(':')) {
@@ -232,7 +223,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
     }
   }, [initialData]);
 
-  // Update hidden fields
+  // Atualizar campos hidden
   useEffect(() => {
     const selectedPeriods = activePeriods.split(', ').filter(p => p !== '');
     
@@ -406,7 +397,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
             description="Assinaturas digitais e checklist de segurança estão disponíveis apenas para assinantes."
         />
 
-        {/* Custo e Botões de Ação */}
         <div className="flex flex-col gap-4">
             {!isEditing && (
                 <div className="flex justify-center bg-accent/20 p-2 rounded-xl">
@@ -465,10 +455,8 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
             </div>
         </div>
 
-        {/* Informações Gerais (Local e Clima) */}
         <Card className="border-none shadow-clean bg-accent/20">
           <CardContent className="p-4 grid grid-cols-1 gap-6">
-            {/* Seletor de Períodos */}
             <FormField
               control={methods.control}
               name="periodo"
@@ -507,13 +495,11 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
               )}
             />
 
-            {/* Clima e Status por Período */}
             <div className="space-y-4">
                 {activePeriodsList.length > 0 ? activePeriodsList.map(period => (
                     <div key={period} className="flex flex-col sm:flex-row items-center gap-3 bg-white p-3 rounded-xl border shadow-sm">
                         <span className="text-xs font-black uppercase text-primary w-full sm:w-16 text-center bg-primary/10 rounded-md py-1">{period}</span>
                         
-                        {/* Weather */}
                         <div className="flex-1 w-full">
                             <Label className="text-[9px] uppercase text-muted-foreground font-bold mb-1 block">Clima</Label>
                             <Select 
@@ -529,7 +515,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                             </Select>
                         </div>
 
-                        {/* Status */}
                         <div className="flex-1 w-full">
                             <Label className="text-[9px] uppercase text-muted-foreground font-bold mb-1 block">Status Operacional</Label>
                             <Select 
@@ -552,7 +537,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
           </CardContent>
         </Card>
 
-        {/* Tabs */}
         <Tabs defaultValue="atividades" className="w-full">
           <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 h-auto bg-muted/50 p-1 rounded-xl gap-1">
             <TabsTrigger value="atividades" className="rounded-lg text-[10px] uppercase font-black py-2">Serviços</TabsTrigger>
@@ -567,7 +551,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
           <TabsContent value="equipamentos" className="pt-4"><RdoEquipmentForm /></TabsContent>
           <TabsContent value="materiais" className="pt-4"><RdoMaterialsForm /></TabsContent>
           
-          {/* Nova Aba de Segurança */}
           <TabsContent value="seguranca" className="pt-4">
             <Card className="border-l-4 border-l-primary shadow-sm bg-white">
                 <CardHeader className="bg-primary/5 pb-2 py-3">
@@ -656,7 +639,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
           ) : (
             <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {/* Responsável */}
                     <div className="space-y-4 p-4 border rounded-2xl bg-slate-50">
                         <div className="flex items-center gap-2 mb-2">
                             <UserCheck className="w-5 h-5 text-primary" />
@@ -672,7 +654,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                         </div>
                     </div>
 
-                    {/* Cliente */}
                     <div className="space-y-4 p-4 border rounded-2xl bg-slate-50">
                         <div className="flex items-center gap-2 mb-2">
                             <Handshake className="w-5 h-5 text-primary" />
