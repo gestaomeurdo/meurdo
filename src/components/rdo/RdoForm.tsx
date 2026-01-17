@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { showSuccess, showError } from "@/utils/toast";
-import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, UserCheck } from "lucide-react";
+import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, UserCheck, CalendarIcon, Sun, AlertOctagon, Clock } from "lucide-react";
 import { DiarioObra, RdoClima, RdoStatusDia, useCreateRdo, useUpdateRdo, WorkforceType } from "@/hooks/use-rdo";
 import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
@@ -23,6 +23,11 @@ import { useObras } from "@/hooks/use-obras";
 import { useAuth } from "@/integrations/supabase/auth-provider";
 import UpgradeModal from "../subscription/UpgradeModal";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { Card, CardContent } from "@/components/ui/card";
 
 const statusOptions: RdoStatusDia[] = ['Operacional', 'Parcialmente Paralisado', 'Totalmente Paralisado - Não Praticável'];
 const climaOptions: RdoClima[] = ['Sol', 'Nublado', 'Chuva Leve', 'Chuva Forte'];
@@ -143,6 +148,7 @@ const RdoForm = ({ obraId, initialData, onSuccess }: RdoFormProps) => {
   });
 
   const maoDeObra = methods.watch("mao_de_obra");
+  const workStopped = methods.watch("work_stopped");
 
   const estimatedDailyCost = useMemo(() => {
     return maoDeObra?.reduce((sum, item) => sum + (item.quantidade * (item.custo_unitario || 0)), 0) || 0;
@@ -152,13 +158,7 @@ const RdoForm = ({ obraId, initialData, onSuccess }: RdoFormProps) => {
     if (initialData) {
       const currentData: DiarioObra = {
         ...initialData,
-        responsible_signature_url: methods.watch('responsible_signature_url'),
-        signer_name: methods.watch('signer_name'),
-        signer_registration: methods.watch('signer_registration'),
-        safety_nr35: methods.watch('safety_nr35'),
-        safety_epi: methods.watch('safety_epi'),
-        safety_cleaning: methods.watch('safety_cleaning'),
-        safety_dds: methods.watch('safety_dds'),
+        ...methods.getValues() as any, // Pega os valores atuais do form
         rdo_mao_de_obra: methods.getValues('mao_de_obra') as any,
         rdo_materiais: methods.getValues('materiais') as any,
         rdo_atividades_detalhe: methods.getValues('atividades') as any,
@@ -174,7 +174,6 @@ const RdoForm = ({ obraId, initialData, onSuccess }: RdoFormProps) => {
     if (errors.atividades) {
       const atividadesErrors = errors.atividades;
       if (Array.isArray(atividadesErrors)) {
-         // Verifica se o erro é no primeiro item
          if(atividadesErrors[0]?.descricao_servico) {
              showError("Preencha a descrição da atividade (mínimo 5 letras).");
              return;
@@ -216,6 +215,7 @@ const RdoForm = ({ obraId, initialData, onSuccess }: RdoFormProps) => {
             description="Assinaturas digitais e checklist de segurança estão disponíveis apenas para assinantes."
         />
 
+        {/* Custo e Botões de Ação */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-primary/10 rounded-2xl border border-primary/20 gap-4">
           <div className="flex items-center gap-3">
             <div className="bg-primary p-2 rounded-lg text-primary-foreground"><DollarSign className="w-5 h-5" /></div>
@@ -232,19 +232,132 @@ const RdoForm = ({ obraId, initialData, onSuccess }: RdoFormProps) => {
             )}
             <Button type="submit" disabled={updateMutation.isPending || createMutation.isPending} className="flex-1 sm:flex-none rounded-xl bg-primary hover:bg-primary/90 font-bold uppercase text-xs">
               {(updateMutation.isPending || createMutation.isPending) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-              Salvar Registro
+              Salvar
             </Button>
           </div>
         </div>
 
+        {/* Informações Gerais (Data, Clima, Status) */}
+        <Card className="border-none shadow-clean bg-accent/20">
+          <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <FormField
+              control={methods.control}
+              name="data_rdo"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1"><CalendarIcon className="w-3 h-3" /> Data do RDO</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn("w-full pl-3 text-left font-normal rounded-xl bg-white border-none shadow-sm", !field.value && "text-muted-foreground")}
+                        >
+                          {field.value ? format(field.value, "dd 'de' MMMM, yyyy", { locale: ptBR }) : <span>Selecione</span>}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={methods.control}
+              name="status_dia"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1"><AlertOctagon className="w-3 h-3" /> Status Operacional</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="rounded-xl bg-white border-none shadow-sm">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {statusOptions.map(option => (
+                        <SelectItem key={option} value={option}>{option}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={methods.control}
+              name="clima_condicoes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1"><Sun className="w-3 h-3" /> Condições Climáticas</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
+                    <FormControl>
+                      <SelectTrigger className="rounded-xl bg-white border-none shadow-sm">
+                        <SelectValue placeholder="Selecione o clima" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {climaOptions.map(option => (
+                        <SelectItem key={option} value={option}>{option}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+          {/* Paralisação */}
+          <div className="px-4 pb-4 border-t border-muted-foreground/10 pt-3 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+             <FormField
+                control={methods.control}
+                name="work_stopped"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                    <FormLabel className="font-medium text-sm cursor-pointer text-muted-foreground">Houve paralisação?</FormLabel>
+                  </FormItem>
+                )}
+              />
+              {workStopped && (
+                <FormField
+                  control={methods.control}
+                  name="hours_lost"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center gap-2 space-y-0 animate-in fade-in slide-in-from-left-2">
+                      <FormLabel className="whitespace-nowrap text-xs font-bold uppercase text-destructive flex items-center gap-1"><Clock className="w-3 h-3" /> Horas Perdidas</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} className="w-20 h-8 rounded-lg bg-white border-destructive/30" />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              )}
+          </div>
+        </Card>
+
         <Tabs defaultValue="atividades" className="w-full">
-          <TabsList className="grid w-full grid-cols-6 h-12 bg-muted/50 p-1 rounded-xl">
-            <TabsTrigger value="atividades" className="rounded-lg text-[10px] uppercase font-black">Serviços</TabsTrigger>
-            <TabsTrigger value="mao_de_obra" className="rounded-lg text-[10px] uppercase font-black">Equipe</TabsTrigger>
-            <TabsTrigger value="seguranca" className="rounded-lg text-[10px] uppercase font-black text-primary">Segur.</TabsTrigger>
-            <TabsTrigger value="equipamentos" className="rounded-lg text-[10px] uppercase font-black">Máq.</TabsTrigger>
-            <TabsTrigger value="materiais" className="rounded-lg text-[10px] uppercase font-black">Mat.</TabsTrigger>
-            <TabsTrigger value="ocorrencias" className="rounded-lg text-[10px] uppercase font-black">Notas</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 h-auto bg-muted/50 p-1 rounded-xl gap-1">
+            <TabsTrigger value="atividades" className="rounded-lg text-[10px] uppercase font-black py-2">Serviços</TabsTrigger>
+            <TabsTrigger value="mao_de_obra" className="rounded-lg text-[10px] uppercase font-black py-2">Equipe</TabsTrigger>
+            <TabsTrigger value="seguranca" className="rounded-lg text-[10px] uppercase font-black text-primary py-2">Segur.</TabsTrigger>
+            <TabsTrigger value="equipamentos" className="rounded-lg text-[10px] uppercase font-black py-2">Máq.</TabsTrigger>
+            <TabsTrigger value="materiais" className="rounded-lg text-[10px] uppercase font-black py-2">Mat.</TabsTrigger>
+            <TabsTrigger value="ocorrencias" className="rounded-lg text-[10px] uppercase font-black py-2">Notas</TabsTrigger>
           </TabsList>
           
           <TabsContent value="atividades" className="pt-4"><RdoActivitiesForm obraId={obraId} /></TabsContent>
