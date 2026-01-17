@@ -2,8 +2,9 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import ProfileForm from "@/components/profile/ProfileForm";
 import { useProfile } from "@/hooks/use-profile";
-import { Loader2, UserCircle, AlertTriangle } from "lucide-react";
+import { Loader2, UserCircle, AlertTriangle, CreditCard } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import SubscriptionInfo from "@/components/profile/SubscriptionInfo";
 
 const Profile = () => {
   const { data: profile, isLoading } = useProfile();
@@ -53,6 +54,21 @@ const Profile = () => {
           </CardHeader>
           <CardContent>
             <ProfileForm initialData={profile} />
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5" />
+              Assinatura e Plano
+            </CardTitle>
+            <CardDescription>
+              Detalhes do seu plano de acesso.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SubscriptionInfo />
           </CardContent>
         </Card>
       </div>

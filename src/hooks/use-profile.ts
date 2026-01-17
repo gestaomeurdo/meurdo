@@ -1,7 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/integrations/supabase/auth-provider";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import * as z from "zod";
+import { showError } from "@/utils/toast";
 
 // Schema definitivo e resiliente para o Perfil
 export const ProfileSchema = z.object({
@@ -84,5 +85,36 @@ export const useUpdateProfile = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile'] });
     },
+  });
+};
+
+// NEW HOOK: Stripe Customer Portal
+export const useStripeCustomerPortal = () => {
+  const { user } = useAuth();
+
+  return useMutation<void, Error, void>({
+    mutationFn: async () => {
+      if (!user) throw new Error("Usuário não autenticado.");
+
+      const { data, error } = await supabase.functions.invoke('create-customer-portal-session', {
+        body: {
+          returnUrl: `${window.location.origin}/profile`,
+        },
+      });
+
+      if (error) {
+        console.error("[StripePortal] Erro na Edge Function:", error);
+        throw error;
+      }
+
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error("URL do portal não retornada pela função.");
+      }
+    },
+    onError: (error) => {
+      showError(`Erro ao acessar o portal: ${error.message}`);
+    }
   });
 };

@@ -6,10 +6,31 @@ import { useRdoDashboardMetrics } from "@/hooks/use-rdo-dashboard-metrics";
 import RecentRdoList from "@/components/dashboard/RecentRdoList";
 import RdoDialog from "@/components/rdo/RdoDialog";
 import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { showSuccess } from "@/utils/toast";
 
 const Dashboard = () => {
   const { user, isLoading: authLoading, profile } = useAuth();
   const { data: rdoMetrics, isLoading: isLoadingRdoMetrics } = useRdoDashboardMetrics();
+  const location = useLocation();
+  const queryClient = useQueryClient();
+
+  // Efeito para verificar o retorno do Stripe e forçar a atualização do perfil
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const sessionId = params.get('session_id');
+
+    if (sessionId) {
+      // Limpa o parâmetro da URL
+      window.history.replaceState({}, document.title, location.pathname);
+      
+      // Invalida a query do perfil para forçar o SessionContextProvider a buscar os dados atualizados
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      showSuccess("Pagamento confirmado! Seu plano PRO está ativo.");
+    }
+  }, [location.search, queryClient]);
 
   if (authLoading) {
     return (

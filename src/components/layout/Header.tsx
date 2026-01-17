@@ -5,6 +5,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useProfile } from "@/hooks/use-profile";
 import { Link } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 
 interface HeaderProps {
   setSidebarOpen: (isOpen: boolean) => void;
@@ -12,10 +13,12 @@ interface HeaderProps {
 
 const Header = ({ setSidebarOpen }: HeaderProps) => {
   const { signOut, user } = useAuth();
-  const { data: profile } = useProfile();
+  const { data: profile, isLoading: isLoadingProfile } = useProfile();
   const isMobile = useIsMobile();
   
   const userName = profile?.first_name || user?.email?.split('@')[0] || "Usuário";
+  const isPro = profile?.subscription_status === 'active';
+  const planLabel = isPro ? 'PRO' : 'FREE';
 
   return (
     <header className="sticky top-0 z-20 flex items-center justify-between h-16 px-4 bg-background border-b shadow-sm">
@@ -30,8 +33,13 @@ const Header = ({ setSidebarOpen }: HeaderProps) => {
             <Menu className="h-6 w-6" />
           </Button>
         )}
-        <h1 className="text-xl font-semibold text-foreground">
+        <h1 className="text-xl font-semibold text-foreground flex items-center gap-2">
           MEU RDO
+          {!isLoadingProfile && (
+            <Badge variant={isPro ? "default" : "outline"} className="text-[10px] py-0.5 px-2">
+              {planLabel}
+            </Badge>
+          )}
         </h1>
       </div>
       
