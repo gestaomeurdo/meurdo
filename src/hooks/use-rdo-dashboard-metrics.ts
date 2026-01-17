@@ -7,6 +7,7 @@ import { DiarioObra } from "./use-rdo";
 interface RdoMetrics {
   rdosTodayCount: number;
   totalManpowerToday: number;
+  totalEquipmentToday: number;
   pendingRdosCount: number;
   openOccurrencesCount: number;
   recentRdos: DiarioObra[];
@@ -26,6 +27,7 @@ const fetchRdoMetrics = async (userId: string): Promise<RdoMetrics> => {
       status_dia,
       impedimentos_comentarios,
       rdo_mao_de_obra (quantidade),
+      rdo_equipamentos (id),
       obras!inner (nome)
     `)
     .eq('user_id', userId)
@@ -37,8 +39,8 @@ const fetchRdoMetrics = async (userId: string): Promise<RdoMetrics> => {
     throw new Error(error.message);
   }
 
-  // We cast the result to include the joined 'obras' data
-  const rdos = rdosData as (DiarioObra & { obras: { nome: string } })[];
+  // We cast the result to include the joined 'obras' and 'equipamentos' data
+  const rdos = rdosData as any[];
 
   // 1. RDOs Today
   const rdosToday = rdos.filter(rdo => rdo.data_rdo === today);
@@ -46,16 +48,22 @@ const fetchRdoMetrics = async (userId: string): Promise<RdoMetrics> => {
 
   // 2. Total Manpower Today
   const totalManpowerToday = rdosToday.reduce((sum, rdo) => {
-    const dailyManpower = rdo.rdo_mao_de_obra?.reduce((mSum, m) => mSum + m.quantidade, 0) || 0;
+    const dailyManpower = rdo.rdo_mao_de_obra?.reduce((mSum: number, m: any) => mSum + m.quantidade, 0) || 0;
     return sum + dailyManpower;
   }, 0);
 
-  // 3. Pending RDOs (Not Operational in the last 7 days)
+  // 3. Total Equipment Today
+  const totalEquipmentToday = rdosToday.reduce((sum, rdo) => {
+    const dailyEquipment = rdo.rdo_equipamentos?.length || 0;
+    return sum + dailyEquipment;
+  }, 0);
+
+  // 4. Pending RDOs (Not Operational in the last 7 days)
   const pendingRdosCount = rdos.filter(rdo => 
     rdo.status_dia !== 'Operacional'
   ).length;
 
-  // 4. Open Occurrences (RDOs with comments/impediments in the last 7 days)
+  // 5. Open Occurrences (RDOs with comments/impediments in the last 7 days)
   const openOccurrencesCount = rdos.filter(rdo => 
     !!rdo.impedimentos_comentarios && rdo.impedimentos_comentarios.trim().length > 0
   ).length;
@@ -69,6 +77,7 @@ const fetchRdoMetrics = async (userId: string): Promise<RdoMetrics> => {
   return {
     rdosTodayCount,
     totalManpowerToday,
+    totalEquipmentToday,
     pendingRdosCount,
     openOccurrencesCount,
     recentRdos: recentRdos as DiarioObra[],

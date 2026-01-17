@@ -1,9 +1,8 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/integrations/supabase/auth-provider";
-import { Loader2, CheckCircle, Zap, MapPin, Calendar, DollarSign, ArrowRight, ImageIcon } from "lucide-react";
+import { Loader2, CheckCircle, Zap, MapPin, Calendar, ArrowRight, ImageIcon, HardHat, Truck, FileStack, Building2 } from "lucide-react";
 import { useRdoDashboardMetrics } from "@/hooks/use-rdo-dashboard-metrics";
-import RecentRdoList from "@/components/dashboard/RecentRdoList";
 import { useEffect, useState } from "react";
 import { useLocation, Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -13,13 +12,16 @@ import LimitReachedModal from "@/components/subscription/LimitReachedModal";
 import WelcomeFreeModal from "@/components/subscription/WelcomeFreeModal";
 import { cn } from "@/lib/utils";
 import { useObras } from "@/hooks/use-obras";
-import { formatCurrency, formatDate } from "@/utils/formatters";
+import { formatDate } from "@/utils/formatters";
+import { useRdoLimits } from "@/hooks/use-rdo-limits";
 
 const Dashboard = () => {
   const { user, isLoading: authLoading, profile, isPro } = useAuth();
   const { data: rdoMetrics, isLoading: isLoadingRdoMetrics } = useRdoDashboardMetrics();
   const { isLoading: isLoadingLimits } = useCanCreateObra();
   const { data: obras, isLoading: isLoadingObras } = useObras();
+  const { rdoCount: totalRdosLifetime, isLoading: isLoadingRdoCount } = useRdoLimits();
+  
   const location = useLocation();
   const queryClient = useQueryClient();
   const [showWelcomePro, setShowWelcomePro] = useState(false);
@@ -37,7 +39,7 @@ const Dashboard = () => {
     }
   }, [location.search, queryClient]);
 
-  if (authLoading || isLoadingLimits || isLoadingObras) {
+  if (authLoading || isLoadingLimits || isLoadingObras || isLoadingRdoCount) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -46,7 +48,6 @@ const Dashboard = () => {
   }
 
   const firstName = profile?.first_name || user?.email?.split('@')[0] || "Usuário";
-  const dummyObraId = '00000000-0000-0000-0000-000000000000';
 
   return (
     <DashboardLayout>
@@ -57,7 +58,7 @@ const Dashboard = () => {
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground truncate">
               Olá, {firstName}!
             </h1>
-            <p className="text-sm text-muted-foreground font-medium">Resumo operacional da sua construtora.</p>
+            <p className="text-sm text-muted-foreground font-medium">Visão geral do seu portfólio de obras.</p>
           </div>
           {!isPro && (
             <div className="hidden sm:flex items-center gap-2 bg-orange-500/10 px-3 py-1.5 rounded-full border border-orange-500/20">
@@ -77,18 +78,52 @@ const Dashboard = () => {
 
         <LimitReachedModal open={limitModalOpen} onOpenChange={setLimitModalOpen} />
 
-        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        {/* Big Stats Cards */}
+        <div className="grid gap-6 grid-cols-2 lg:grid-cols-4">
           {[
-            { label: "RDOs Hoje", value: rdoMetrics?.rdosTodayCount, color: "bg-blue-500" },
-            { label: "Mão de Obra", value: rdoMetrics?.totalManpowerToday, color: "bg-green-500" },
-            { label: "Pendentes", value: rdoMetrics?.pendingRdosCount, color: "bg-orange-500" },
-            { label: "Ocorrências", value: rdoMetrics?.openOccurrencesCount, color: "bg-red-500" },
+            { 
+              label: "Total de Obras", 
+              value: obras?.length || 0, 
+              icon: Building2, 
+              color: "bg-blue-500", 
+              textColor: "text-blue-600",
+              bgColor: "bg-blue-50"
+            },
+            { 
+              label: "Total de RDOs", 
+              value: totalRdosLifetime, 
+              icon: FileStack, 
+              color: "bg-purple-500",
+              textColor: "text-purple-600",
+              bgColor: "bg-purple-50"
+            },
+            { 
+              label: "Mão de Obra (Hoje)", 
+              value: rdoMetrics?.totalManpowerToday ?? 0, 
+              icon: HardHat, 
+              color: "bg-green-500",
+              textColor: "text-green-600",
+              bgColor: "bg-green-50"
+            },
+            { 
+              label: "Máquinas (Hoje)", 
+              value: rdoMetrics?.totalEquipmentToday ?? 0, 
+              icon: Truck, 
+              color: "bg-orange-500",
+              textColor: "text-orange-600",
+              bgColor: "bg-orange-50"
+            },
           ].map((stat, i) => (
-            <Card key={i} className="shadow-sm border-none bg-card overflow-hidden">
-                <div className={cn("h-1 w-full", stat.color)}></div>
-                <CardContent className="p-4">
-                    <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{stat.label}</p>
-                    <div className="text-2xl font-black mt-1">{stat.value ?? 0}</div>
+            <Card key={i} className="shadow-md border-none bg-card overflow-hidden hover:shadow-lg transition-all">
+                <div className={cn("h-2 w-full", stat.color)}></div>
+                <CardContent className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className={cn("p-3 rounded-2xl", stat.bgColor)}>
+                            <stat.icon className={cn("w-6 h-6", stat.textColor)} />
+                        </div>
+                    </div>
+                    <div className="text-4xl font-black tracking-tight">{stat.value}</div>
+                    <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mt-2">{stat.label}</p>
                 </CardContent>
             </Card>
           ))}
@@ -96,48 +131,52 @@ const Dashboard = () => {
 
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold tracking-tight">Minhas Obras</h2>
-                <Link to="/obras" className="text-sm text-primary font-medium hover:underline flex items-center">
-                    Gerenciar Obras <ArrowRight className="w-3 h-3 ml-1" />
+                <h2 className="text-2xl font-bold tracking-tight">Meus Projetos</h2>
+                <Link to="/obras" className="text-sm text-primary font-bold hover:underline flex items-center bg-primary/10 px-4 py-2 rounded-xl">
+                    Ver Todas <ArrowRight className="w-4 h-4 ml-2" />
                 </Link>
             </div>
             
             {obras && obras.length > 0 ? (
-                <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                    {obras.slice(0, 3).map((obra) => (
+                <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                    {obras.slice(0, 6).map((obra) => (
                         <Link to="/gestao-rdo" key={obra.id}>
-                            <Card className="shadow-sm hover:shadow-md transition-all cursor-pointer border-none overflow-hidden group h-full flex flex-col">
-                                <div className="h-24 w-full bg-muted relative overflow-hidden">
+                            <Card className="shadow-sm hover:shadow-xl transition-all cursor-pointer border-none overflow-hidden group h-full flex flex-col rounded-3xl ring-1 ring-border/50">
+                                <div className="h-32 w-full bg-muted relative overflow-hidden">
                                     {obra.foto_url ? (
-                                        <img src={obra.foto_url} alt={obra.nome} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                        <img src={obra.foto_url} alt={obra.nome} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center bg-accent/30">
-                                            <ImageIcon className="w-6 h-6 text-muted-foreground/30" />
+                                            <ImageIcon className="w-8 h-8 text-muted-foreground/30" />
                                         </div>
                                     )}
-                                    <div className="absolute top-2 right-2">
-                                        {obra.status === 'ativa' && <div className="h-2 w-2 rounded-full bg-green-500 shadow-sm ring-2 ring-white" />}
-                                        {obra.status !== 'ativa' && <div className="h-2 w-2 rounded-full bg-muted-foreground shadow-sm ring-2 ring-white" />}
+                                    <div className="absolute top-3 right-3">
+                                        {obra.status === 'ativa' && <div className="px-3 py-1 rounded-full bg-green-500/90 backdrop-blur-sm text-white text-[10px] font-black uppercase tracking-wider shadow-lg">Ativa</div>}
+                                        {obra.status === 'pausada' && <div className="px-3 py-1 rounded-full bg-yellow-500/90 backdrop-blur-sm text-white text-[10px] font-black uppercase tracking-wider shadow-lg">Pausada</div>}
+                                        {obra.status === 'concluida' && <div className="px-3 py-1 rounded-full bg-blue-500/90 backdrop-blur-sm text-white text-[10px] font-black uppercase tracking-wider shadow-lg">Concluída</div>}
                                     </div>
-                                    <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-black/60 to-transparent"></div>
-                                </div>
-                                <CardContent className="p-4 flex-1 flex flex-col">
-                                    <div className="mb-2">
-                                        <h3 className="font-bold text-lg truncate group-hover:text-primary transition-colors">{obra.nome}</h3>
-                                        <div className="flex items-center text-xs text-muted-foreground mt-1">
-                                            <MapPin className="w-3.5 h-3.5 mr-1.5 text-primary/70 shrink-0" />
+                                    <div className="absolute bottom-0 left-0 w-full h-20 bg-gradient-to-t from-black/80 to-transparent"></div>
+                                    <div className="absolute bottom-3 left-4 right-4">
+                                        <h3 className="font-bold text-xl text-white truncate shadow-black drop-shadow-md">{obra.nome}</h3>
+                                        <div className="flex items-center text-xs text-white/80 mt-0.5 truncate">
+                                            <MapPin className="w-3.5 h-3.5 mr-1 shrink-0" />
                                             <span className="truncate">{obra.endereco || "Local não informado"}</span>
                                         </div>
                                     </div>
-                                    
-                                    <div className="mt-auto pt-3 border-t border-dashed flex items-center justify-between">
-                                        <div className="flex items-center text-xs font-medium text-muted-foreground">
-                                            <Calendar className="w-3.5 h-3.5 mr-1.5" />
-                                            {formatDate(obra.data_inicio)}
+                                </div>
+                                <CardContent className="p-5 flex-1 flex flex-col gap-4 bg-card">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1">
+                                            <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                                                <Calendar className="w-3 h-3" /> Início
+                                            </span>
+                                            <p className="text-sm font-semibold">{formatDate(obra.data_inicio)}</p>
                                         </div>
-                                        <div className="flex items-center text-xs font-bold text-foreground">
-                                            <DollarSign className="w-3.5 h-3.5 mr-0.5 text-primary" />
-                                            {formatCurrency(obra.orcamento_inicial)}
+                                        <div className="space-y-1">
+                                            <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                                                <Calendar className="w-3 h-3" /> Previsão
+                                            </span>
+                                            <p className="text-sm font-semibold">{obra.previsao_entrega ? formatDate(obra.previsao_entrega) : 'Indefinido'}</p>
                                         </div>
                                     </div>
                                 </CardContent>
@@ -146,27 +185,18 @@ const Dashboard = () => {
                     ))}
                 </div>
             ) : (
-                <div className="text-center py-10 border-2 border-dashed rounded-xl bg-muted/20">
-                    <p className="text-muted-foreground text-sm font-medium">Nenhuma obra cadastrada.</p>
-                    <Link to="/obras" className="text-primary font-bold text-sm mt-2 inline-block hover:underline">
-                        Cadastrar Primeira Obra
+                <div className="text-center py-16 border-2 border-dashed rounded-3xl bg-muted/20">
+                    <Building2 className="w-16 h-16 mx-auto text-muted-foreground/30 mb-4" />
+                    <p className="text-muted-foreground text-lg font-medium">Nenhuma obra cadastrada.</p>
+                    <p className="text-sm text-muted-foreground/70 mb-6">Comece criando seu primeiro projeto para gerenciar.</p>
+                    <Link to="/obras">
+                        <span className="bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
+                            Cadastrar Primeira Obra
+                        </span>
                     </Link>
                 </div>
             )}
         </div>
-
-        <Card className="shadow-clean border-none rounded-3xl overflow-hidden">
-          <CardHeader className="border-b bg-muted/30">
-            <CardTitle className="text-xl font-bold">Diários de Obra Recentes</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <RecentRdoList
-              recentRdos={rdoMetrics?.recentRdos || []}
-              obraId={dummyObraId}
-              isLoading={isLoadingRdoMetrics}
-            />
-          </CardContent>
-        </Card>
       </div>
     </DashboardLayout>
   );
