@@ -1,19 +1,21 @@
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+
+const LOGO_URL = "https://meurdo.com.br/wp-content/uploads/2026/01/Logo-MEU-RDO-scaled.png";
 
 const Login = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="items-center">
-          <h1 className="text-3xl font-bold text-primary">MEU RDO</h1>
-          <CardTitle className="text-xl text-center pt-2 text-foreground">
-            Acesse sua conta
-          </CardTitle>
+    <div className="min-h-screen flex items-center justify-center bg-accent/30 p-4">
+      <Card className="w-full max-w-md shadow-2xl border-t-4 border-t-primary rounded-2xl">
+        <CardHeader className="items-center pb-2 pt-8">
+          <img src={LOGO_URL} alt="MEU RDO" className="h-16 object-contain mb-4" />
+          <p className="text-sm text-muted-foreground text-center px-4">
+            Gestão de Diários de Obra inteligente e profissional.
+          </p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <Auth
             supabaseClient={supabase}
             providers={[]}
@@ -22,44 +24,36 @@ const Login = () => {
               variables: {
                 default: {
                   colors: {
-                    brand: 'hsl(var(--primary))', // Blue
-                    brandAccent: 'hsl(var(--primary-foreground))',
-                    defaultButtonBackground: 'hsl(var(--secondary))',
-                    defaultButtonBackgroundHover: 'hsl(var(--secondary-foreground))',
-                    inputBackground: 'hsl(var(--background))',
-                    inputBorder: 'hsl(var(--border))',
-                    inputBorderHover: 'hsl(var(--primary))',
+                    brand: 'hsl(var(--primary))',
+                    brandAccent: 'hsl(var(--primary))',
                     inputBorderFocus: 'hsl(var(--primary))',
-                    inputText: 'hsl(var(--foreground))',
+                    defaultButtonBackground: 'white',
+                    defaultButtonBackgroundHover: 'hsl(var(--accent))',
+                  },
+                  radii: {
+                    buttonRadius: '12px',
+                    inputRadius: '12px',
+                    containerRadius: '16px',
                   },
                 },
               },
             }}
-            theme="light" // Set theme explicitly to light
+            theme="light"
             view="sign_in"
-            // Permitir sign_in, sign_up e forgotten_password
             onlyAllowIf={['sign_in', 'sign_up', 'forgotten_password']} 
             localization={{
               variables: {
                 sign_in: {
-                  email_label: 'Email',
-                  password_label: 'Senha',
-                  email_input_placeholder: 'Seu email',
-                  password_input_placeholder: 'Sua senha',
-                  button_label: 'Entrar',
-                  social_provider_text: 'Ou entre com',
-                  link_text: 'Não tem uma conta? Cadastre-se', // Adiciona o link de cadastro
+                  email_label: 'Seu E-mail',
+                  password_label: 'Sua Senha',
+                  button_label: 'Entrar agora',
+                  link_text: 'Não tem conta? Cadastre-se grátis',
                 },
                 sign_up: {
-                  email_label: 'Email',
+                  email_label: 'E-mail profissional',
                   password_label: 'Criar Senha',
-                  email_input_placeholder: 'Seu email',
-                  password_input_placeholder: 'Sua senha segura',
-                  button_label: 'Cadastrar',
-                  link_text: 'Já tem uma conta? Faça login',
-                },
-                forgotten_password: {
-                  link_text: 'Esqueceu sua senha?',
+                  button_label: 'Criar Minha Conta',
+                  link_text: 'Já tem uma conta? Entrar',
                 },
               },
             }}

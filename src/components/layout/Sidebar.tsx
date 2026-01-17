@@ -9,7 +9,9 @@ import { useTheme } from "next-themes";
 import { Sun, Moon } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge"; // Import Badge
+import { Badge } from "@/components/ui/badge";
+
+const LOGO_URL = "https://meurdo.com.br/wp-content/uploads/2026/01/Logo-MEU-RDO-scaled.png";
 
 interface SidebarProps {
   isMobile: boolean;
@@ -39,7 +41,7 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: SidebarProps) => {
         !isMobile && "translate-x-0"
       )}>
         <div className="p-4 space-y-4">
-          <Skeleton className="h-8 w-3/4 mb-6" />
+          <Skeleton className="h-10 w-3/4 mb-6" />
           <Skeleton className="h-8 w-full" />
           <Skeleton className="h-8 w-full" />
           <Skeleton className="h-8 w-full" />
@@ -61,14 +63,17 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: SidebarProps) => {
       )}
     >
       <div className="p-4 h-full flex flex-col">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-primary">MEU RDO</h1>
+        <div className="mb-8 flex flex-col items-start gap-2">
+          <Link to="/dashboard" onClick={() => isMobile && setIsOpen(false)}>
+            <img src={LOGO_URL} alt="MEU RDO" className="h-10 object-contain" />
+          </Link>
           {isPro && (
-            <Badge className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold">
-              PRO
+            <Badge className="bg-primary hover:bg-primary/90 text-white font-bold text-[10px]">
+              MEMBRO PRO
             </Badge>
           )}
         </div>
+        
         <nav className="flex-grow">
           {filteredNavItems.map((item) => (
             <React.Fragment key={item.href}>
@@ -76,28 +81,29 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: SidebarProps) => {
                 to={item.href}
                 onClick={() => isMobile && setIsOpen(false)}
                 className={cn(
-                  "flex items-center p-3 rounded-lg transition-colors mt-1",
+                  "flex items-center p-3 rounded-xl transition-all mt-1 font-medium",
                   location.pathname === item.href
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    ? "bg-primary text-white shadow-lg shadow-primary/20 scale-[1.02]"
+                    : "text-muted-foreground hover:bg-accent hover:text-primary"
                 )}
               >
                 <item.icon className="w-5 h-5 mr-3" />
-                <span className="font-medium">{item.title}</span>
+                <span>{item.title}</span>
               </Link>
               {(item.href === '/financeiro' || item.href === '/documentacao') && (
-                <div className="py-2">
+                <div className="py-2 px-3">
                   <hr className="border-sidebar-border" />
                 </div>
               )}
             </React.Fragment>
           ))}
         </nav>
-        <div className="mt-auto pt-4 border-t border-sidebar-border space-y-3">
-          <div className="flex items-center justify-between">
+
+        <div className="mt-auto pt-4 border-t border-sidebar-border space-y-4">
+          <div className="flex items-center justify-between px-2">
             <div className="flex items-center space-x-2">
-              {theme === 'dark' ? <Moon className="w-5 h-5 text-sidebar-foreground" /> : <Sun className="w-5 h-5 text-sidebar-foreground" />}
-              <Label htmlFor="dark-mode-toggle" className="text-sm text-sidebar-foreground">Modo Escuro</Label>
+              {theme === 'dark' ? <Moon className="w-4 h-4 text-muted-foreground" /> : <Sun className="w-4 h-4 text-muted-foreground" />}
+              <Label htmlFor="dark-mode-toggle" className="text-xs text-muted-foreground cursor-pointer">Modo Escuro</Label>
             </div>
             <Switch
               id="dark-mode-toggle"
@@ -105,12 +111,10 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: SidebarProps) => {
               onCheckedChange={toggleTheme}
             />
           </div>
-          <p className="text-sm text-sidebar-foreground/70 truncate">
-            Usuário: {user?.email}
-          </p>
-          <p className="text-sm text-sidebar-foreground/70 capitalize">
-            Função: {userRole.replace('_', ' ')}
-          </p>
+          <div className="px-2 py-3 bg-accent/50 rounded-xl">
+            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Logado como</p>
+            <p className="text-xs font-semibold truncate">{user?.email}</p>
+          </div>
         </div>
       </div>
     </aside>
