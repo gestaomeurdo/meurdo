@@ -32,7 +32,7 @@ const SubscriptionInfo = () => {
             </CardTitle>
             <CardDescription>
               {isPro 
-                ? "Sua assinatura PRO está ativa. Gerencie seus detalhes de pagamento." 
+                ? "Seu plano está ativo e renova automaticamente."
                 : "Você está no plano gratuito. Faça upgrade para obras ilimitadas."}
             </CardDescription>
           </div>

@@ -5,6 +5,8 @@ import { useProfile } from "@/hooks/use-profile";
 import { Loader2, UserCircle, AlertTriangle, CreditCard } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import SubscriptionInfo from "@/components/profile/SubscriptionInfo";
+import { Badge } from "@/components/ui/badge";
+import UpgradeButton from "@/components/subscription/UpgradeButton";
 
 const Profile = () => {
   const { data: profile, isLoading } = useProfile();
@@ -33,15 +35,36 @@ const Profile = () => {
       </DashboardLayout>
     );
   }
+  
+  const isPro = profile.subscription_status === 'active';
+  const planType = profile.plan_type || 'free';
+  const firstName = profile.first_name || "Usuário";
 
   return (
     <DashboardLayout>
       <div className="p-6 space-y-6">
         <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-bold">Meu Perfil</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold">Olá, {firstName}</h1>
+            <Badge variant={isPro ? "default" : "outline"} className={isPro ? "bg-primary hover:bg-primary/90 text-primary-foreground" : "text-orange-600 border-orange-200 bg-orange-50"}>
+              Plano {planType.toUpperCase()}
+            </Badge>
+          </div>
           <p className="text-muted-foreground">Gerencie suas informações pessoais e de conta.</p>
         </div>
         
+        {!isPro && (
+          <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <p className="font-semibold text-yellow-800 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 shrink-0" />
+              Você está no plano limitado. Mude para o PRO para obras ilimitadas!
+            </p>
+            <div className="w-full sm:w-auto">
+              <UpgradeButton />
+            </div>
+          </div>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
