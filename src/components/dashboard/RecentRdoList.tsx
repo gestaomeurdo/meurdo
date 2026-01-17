@@ -42,7 +42,7 @@ const RecentRdoList = ({ recentRdos, obraId, isLoading }: RecentRdoListProps) =>
           Você ainda não registrou nenhum diário de obra. Comece agora para manter o histórico.
         </p>
         <Button variant="link" className="mt-4 text-primary font-bold" asChild>
-          <Link to="/gestao-rdo">Ir para Gestão de RDO <ArrowRight className="ml-2 w-4 h-4" /></Link>
+          <Link to="/gestao-rdo">Ir para Gestão de Obra <ArrowRight className="ml-2 w-4 h-4" /></Link>
         </Button>
       </div>
     );

@@ -33,7 +33,7 @@ export const navItems: NavItem[] = [
     roles: ["administrator", "obra_user", "view_only"],
   },
   {
-    title: "Gestão de RDO",
+    title: "Gestão de Obra",
     href: "/gestao-rdo",
     icon: FileText,
     roles: ["administrator", "obra_user", "view_only"],

@@ -192,7 +192,7 @@ const GestaoRdo = () => {
       <div className="p-4 sm:p-6 space-y-6">
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-1">
-            <h1 className="text-2xl sm:text-3xl font-bold">Gestão de RDO</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">Gestão de Obra</h1>
             <p className="text-sm text-muted-foreground">Controle diário de atividades e equipe.</p>
           </div>
           <div className="w-full sm:max-w-sm">
