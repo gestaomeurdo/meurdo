@@ -1,11 +1,9 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/integrations/supabase/auth-provider";
-import { Loader2, Plus, CheckCircle, AlertTriangle, Zap } from "lucide-react";
+import { Loader2, CheckCircle, Zap } from "lucide-react";
 import { useRdoDashboardMetrics } from "@/hooks/use-rdo-dashboard-metrics";
 import RecentRdoList from "@/components/dashboard/RecentRdoList";
-import RdoDialog from "@/components/rdo/RdoDialog";
-import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -18,7 +16,7 @@ import { cn } from "@/lib/utils";
 const Dashboard = () => {
   const { user, isLoading: authLoading, profile, isPro } = useAuth();
   const { data: rdoMetrics, isLoading: isLoadingRdoMetrics } = useRdoDashboardMetrics();
-  const { canCreate, isLoading: isLoadingLimits, obraCount } = useCanCreateObra();
+  const { isLoading: isLoadingLimits } = useCanCreateObra();
   const location = useLocation();
   const queryClient = useQueryClient();
   const [showWelcomePro, setShowWelcomePro] = useState(false);
@@ -73,24 +71,6 @@ const Dashboard = () => {
             <AlertDescription>Sua assinatura foi ativada. Você agora tem acesso ilimitado.</AlertDescription>
           </Alert>
         )}
-
-        <div className="grid grid-cols-1 gap-4">
-          {canCreate ? (
-            <RdoDialog
-              obraId={dummyObraId}
-              date={new Date()}
-              trigger={
-                <Button size="lg" className="w-full bg-[#066abc] hover:bg-[#066abc]/90 py-8 text-lg font-black uppercase tracking-wider shadow-xl rounded-2xl">
-                  <Plus className="mr-3 h-6 w-6" /> Lançar RDO Hoje
-                </Button>
-              }
-            />
-          ) : (
-            <Button size="lg" className="w-full bg-orange-500 hover:bg-orange-600 py-8 text-lg font-black uppercase tracking-wider shadow-xl rounded-2xl" onClick={() => setLimitModalOpen(true)}>
-              <Zap className="mr-3 h-6 w-6 fill-current" /> Liberar RDOs Ilimitados
-            </Button>
-          )}
-        </div>
 
         <LimitReachedModal open={limitModalOpen} onOpenChange={setLimitModalOpen} />
 
