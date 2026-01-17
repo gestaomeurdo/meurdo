@@ -43,8 +43,8 @@ const Login = () => {
               },
             }}
             theme="light"
-            view="sign_in"
             showLinks={true}
+            view="sign_in"
             localization={{
               variables: {
                 sign_in: {
