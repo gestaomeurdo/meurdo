@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, Upload, Loader2, Image as ImageIcon, FileText, X, CheckSquare } from "lucide-react";
+import { Plus, Trash2, Upload, Loader2, Image as ImageIcon, CheckSquare, X } from "lucide-react";
 import { RdoInput } from "@/hooks/use-rdo";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +17,7 @@ interface RdoActivitiesFormProps {
 }
 
 const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
-  const { control, watch, setValue } = useFormContext<RdoInput>();
+  const { control, watch, setValue, register } = useFormContext<RdoInput>();
   const { fields, append, remove } = useFieldArray({
     control,
     name: "atividades",
@@ -54,7 +54,8 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
   };
 
   const handleSelectActivity = (index: number, value: string) => {
-    setValue(`atividades.${index}.descricao_servico`, value);
+    // Ensuring the field gets dirty and validated properly
+    setValue(`atividades.${index}.descricao_servico`, value, { shouldValidate: true, shouldDirty: true });
   };
 
   return (
@@ -69,7 +70,7 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
 
       {fields.map((field, index) => {
         const photoUrl = watch(`atividades.${index}.foto_anexo_url`);
-        const isImage = photoUrl && photoUrl.match(/\.(jpeg|jpg|png|gif)$/i);
+        const currentDesc = watch(`atividades.${index}.descricao_servico`);
 
         return (
           <div key={field.id} className="p-4 border rounded-xl space-y-4 bg-secondary/5">
@@ -83,10 +84,13 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
               <div className="md:col-span-8 space-y-2">
                 <Label className="text-[10px] uppercase font-bold text-muted-foreground">O que foi trabalhado?</Label>
-                {atividadesCronograma && atividadesCronograma.length > 0 ? (
-                    <Select onValueChange={(val) => handleSelectActivity(index, val)}>
-                        <SelectTrigger className="bg-background">
-                            <SelectValue placeholder="Selecione do cronograma ou descreva..." />
+                {atividadesCronograma && atividadesCronograma.length > 0 && (
+                    <Select 
+                        value={atividadesCronograma.some(a => a.descricao === currentDesc) ? currentDesc : undefined}
+                        onValueChange={(val) => handleSelectActivity(index, val)}
+                    >
+                        <SelectTrigger className="bg-background h-10">
+                            <SelectValue placeholder="Selecione do cronograma..." />
                         </SelectTrigger>
                         <SelectContent>
                             {atividadesCronograma.map(atv => (
@@ -96,10 +100,10 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
                             ))}
                         </SelectContent>
                     </Select>
-                ) : null}
+                )}
                 <Textarea
-                  placeholder="Detalhes adicionais sobre o serviço..."
-                  {...control.register(`atividades.${index}.descricao_servico`)}
+                  placeholder="Ou descreva o serviço manualmente..."
+                  {...register(`atividades.${index}.descricao_servico`)}
                   rows={2}
                   className="bg-background mt-2"
                 />
@@ -110,8 +114,8 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
                     <Input
                         type="number"
                         placeholder="0-100"
-                        {...control.register(`atividades.${index}.avanco_percentual`, { valueAsNumber: true })}
-                        className="bg-background text-lg font-bold text-primary"
+                        {...register(`atividades.${index}.avanco_percentual`, { valueAsNumber: true })}
+                        className="bg-background text-lg font-bold text-primary h-12"
                         min={0}
                         max={100}
                     />
@@ -122,7 +126,7 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
 
             <div className="flex items-center gap-3 pt-2">
                 <Label htmlFor={`foto-${index}`} className={cn(
-                    "flex items-center justify-center px-4 py-2 border rounded-xl cursor-pointer transition-all text-xs font-bold uppercase tracking-wider",
+                    "flex items-center justify-center px-4 py-2 border rounded-xl cursor-pointer transition-all text-xs font-bold uppercase tracking-wider h-10",
                     uploadingIndex === index ? "bg-muted cursor-not-allowed" : "hover:bg-accent border-dashed border-primary/30 text-primary"
                 )}>
                     {uploadingIndex === index ? <Loader2 className="w-3 h-3 mr-2 animate-spin" /> : <Upload className="w-3 h-3 mr-2" />}

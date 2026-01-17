@@ -45,100 +45,108 @@ const RdoEquipmentForm = () => {
         </div>
       )}
 
-      {fields.map((field, index) => {
-        const hours = equipamentos?.[index]?.horas_trabalhadas || 0;
-        const costPerHour = equipamentos?.[index]?.custo_hora || 0;
-        const subtotal = hours * costPerHour;
+      <div className="space-y-4">
+        {fields.map((field, index) => {
+            const hours = equipamentos?.[index]?.horas_trabalhadas || 0;
+            const costPerHour = equipamentos?.[index]?.custo_hora || 0;
+            const subtotal = hours * costPerHour;
 
-        return (
-            <div key={field.id} className="p-4 border rounded-xl space-y-4 bg-secondary/5 relative group transition-all hover:border-primary/40 hover:shadow-sm">
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-2 right-2 text-destructive hover:bg-destructive/10 h-8 w-8"
-                    onClick={() => remove(index)}
-                    title="Remover Equipamento"
-                >
-                    <Trash2 className="w-4 h-4" />
-                </Button>
+            return (
+                <div key={field.id} className="p-4 border rounded-2xl bg-white shadow-sm space-y-4 relative group">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-2 right-2 text-destructive hover:bg-destructive/10 h-8 w-8"
+                        onClick={() => remove(index)}
+                        title="Remover Equipamento"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </Button>
 
-                <div className="grid grid-cols-2 md:grid-cols-12 gap-3 items-end">
-                    {/* Seletor - 6 Colunas (Expandido para cobrir a remoção da descrição) */}
-                    <div className="col-span-2 md:col-span-6 space-y-1">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-1">
+                    <div className="pr-10">
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-1 mb-1.5">
                             <Search className="w-3 h-3" /> Máquina / Equipamento
                         </Label>
-                        <Select 
-                            value={equipamentos?.[index]?.equipamento} 
-                            onValueChange={(val) => handleMachineSelect(index, val)}
-                        >
-                            <SelectTrigger className="bg-background rounded-xl border-muted-foreground/20 h-9 text-xs">
-                                <SelectValue placeholder="Selecione do banco..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {maquinas?.map(m => (
-                                    <SelectItem key={m.id} value={m.nome} className="text-xs">
-                                        {m.nome} ({formatCurrency(m.custo_hora)}/h)
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    
-                    {/* Horas Trabalhadas - 1.5 Colunas */}
-                    <div className="col-span-1 md:col-span-1 space-y-1">
-                        <Label className="text-[9px] md:text-[10px] font-black uppercase text-muted-foreground truncate" title="Horas Trabalhadas">
-                            H. Trab.
-                        </Label>
-                        <Input
-                            type="number"
-                            placeholder="0.0"
-                            step="0.5"
-                            {...register(`equipamentos.${index}.horas_trabalhadas`, { valueAsNumber: true })}
-                            min={0}
-                            className="bg-background rounded-xl border-muted-foreground/20 h-9 text-center font-bold text-sm"
-                        />
+                        <div className="flex gap-2">
+                            <Select 
+                                value={equipamentos?.[index]?.equipamento} 
+                                onValueChange={(val) => handleMachineSelect(index, val)}
+                            >
+                                <SelectTrigger className="bg-secondary/20 rounded-xl border-transparent hover:border-border h-10 text-xs w-1/3 min-w-[120px]">
+                                    <SelectValue placeholder="Buscar..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {maquinas?.map(m => (
+                                        <SelectItem key={m.id} value={m.nome} className="text-xs">
+                                            {m.nome} ({formatCurrency(m.custo_hora)}/h)
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Input
+                                placeholder="Ou digite o nome do equipamento..."
+                                {...register(`equipamentos.${index}.equipamento`)}
+                                className="bg-secondary/10 rounded-xl h-10 border-transparent hover:border-input focus:bg-background transition-all flex-1 text-sm"
+                            />
+                        </div>
                     </div>
 
-                    {/* Horas Paradas - 1.5 Colunas */}
-                    <div className="col-span-1 md:col-span-1 space-y-1">
-                        <Label className="text-[9px] md:text-[10px] font-black uppercase text-muted-foreground truncate" title="Horas Paradas">
-                            H. Parada
-                        </Label>
-                        <Input
-                            type="number"
-                            placeholder="0.0"
-                            step="0.5"
-                            {...register(`equipamentos.${index}.horas_paradas`, { valueAsNumber: true })}
-                            min={0}
-                            className="bg-yellow-50 rounded-xl border-yellow-200 h-9 text-center text-sm"
-                        />
-                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {/* Horas Trabalhadas */}
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] font-black uppercase text-muted-foreground block text-center" title="Horas Trabalhadas">
+                                H. Trabalhadas
+                            </Label>
+                            <Input
+                                type="number"
+                                placeholder="0.0"
+                                step="0.5"
+                                {...register(`equipamentos.${index}.horas_trabalhadas`, { valueAsNumber: true })}
+                                min={0}
+                                className="bg-secondary/10 rounded-xl h-10 text-center font-bold text-sm border-transparent hover:border-input"
+                            />
+                        </div>
 
-                    {/* Custo Hora - 1.5 Colunas */}
-                    <div className="col-span-1 md:col-span-2 space-y-1">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground">R$/Hora</Label>
-                        <Input
-                            type="number"
-                            step="0.01"
-                            {...register(`equipamentos.${index}.custo_hora`, { valueAsNumber: true })}
-                            className="bg-background rounded-xl border-muted-foreground/20 h-9 text-xs"
-                            placeholder="0.00"
-                        />
-                    </div>
+                        {/* Horas Paradas */}
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] font-black uppercase text-muted-foreground block text-center" title="Horas Paradas">
+                                H. Paradas
+                            </Label>
+                            <Input
+                                type="number"
+                                placeholder="0.0"
+                                step="0.5"
+                                {...register(`equipamentos.${index}.horas_paradas`, { valueAsNumber: true })}
+                                min={0}
+                                className="bg-yellow-50 rounded-xl border-yellow-200 h-10 text-center text-sm"
+                            />
+                        </div>
 
-                    {/* Total - 1.5 Colunas */}
-                    <div className="col-span-1 md:col-span-2 space-y-1">
-                        <Label className="text-[10px] font-black uppercase text-primary">Subtotal</Label>
-                        <div className="h-9 flex items-center justify-center px-2 bg-primary/10 border border-primary/20 rounded-xl font-black text-primary text-xs whitespace-nowrap overflow-hidden">
-                            {formatCurrency(subtotal)}
+                        {/* Custo Hora */}
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] font-black uppercase text-muted-foreground block text-center">R$/Hora</Label>
+                            <Input
+                                type="number"
+                                step="0.01"
+                                {...register(`equipamentos.${index}.custo_hora`, { valueAsNumber: true })}
+                                className="bg-secondary/10 rounded-xl h-10 text-center text-xs border-transparent hover:border-input"
+                                placeholder="0.00"
+                            />
+                        </div>
+
+                        {/* Total */}
+                        <div className="space-y-1.5">
+                            <Label className="text-[10px] font-black uppercase text-primary block text-center">Subtotal</Label>
+                            <div className="h-10 flex items-center justify-center px-2 bg-primary/10 border border-primary/20 rounded-xl font-black text-primary text-xs whitespace-nowrap overflow-hidden">
+                                {formatCurrency(subtotal)}
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        );
-      })}
+            );
+        })}
+      </div>
       
       <Button type="button" variant="outline" className="w-full border-dashed border-primary/40 py-6 rounded-2xl hover:bg-primary/5 hover:text-primary transition-all font-bold uppercase text-xs tracking-widest mt-4" onClick={() => append({ equipamento: "", horas_trabalhadas: 0, horas_paradas: 0, custo_hora: 0 })}>
         <Plus className="w-4 h-4 mr-2" /> Adicionar Equipamento

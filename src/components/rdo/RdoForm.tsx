@@ -35,30 +35,30 @@ const climaOptions = ['Sol', 'Nublado', 'Chuva Leve', 'Chuva Forte'];
 const workforceTypes: WorkforceType[] = ['Própria', 'Terceirizada'];
 
 const RdoDetailSchema = z.object({
-  descricao_servico: z.string().min(5, "Descrição do serviço deve ter no mínimo 5 letras."),
-  avanco_percentual: z.number().min(0).max(100),
+  descricao_servico: z.string().min(2, "Descrição obrigatória."),
+  avanco_percentual: z.coerce.number().min(0).max(100),
   foto_anexo_url: z.string().nullable().optional(),
 });
 
 const ManpowerSchema = z.object({
-  funcao: z.string().min(3, "Função é obrigatória."),
-  quantidade: z.number().min(0),
-  custo_unitario: z.number().min(0).optional(),
+  funcao: z.string().min(2, "Função obrigatória."),
+  quantidade: z.coerce.number().min(0),
+  custo_unitario: z.coerce.number().min(0).optional(),
   tipo: z.enum(workforceTypes),
 });
 
 const EquipmentSchema = z.object({
-  equipamento: z.string().min(3, "Equipamento é obrigatório."),
-  horas_trabalhadas: z.number().min(0),
-  horas_paradas: z.number().min(0),
-  custo_hora: z.number().min(0).optional(),
+  equipamento: z.string().min(2, "Equipamento obrigatório."),
+  horas_trabalhadas: z.coerce.number().min(0),
+  horas_paradas: z.coerce.number().min(0),
+  custo_hora: z.coerce.number().min(0).optional(),
 });
 
 const MaterialSchema = z.object({
-  nome_material: z.string().min(3, "Nome é obrigatório."),
-  unidade: z.string().min(1, "Unidade é obrigatória."),
-  quantidade_entrada: z.number().min(0).optional(),
-  quantidade_consumida: z.number().min(0).optional(),
+  nome_material: z.string().min(2, "Nome obrigatório."),
+  unidade: z.string().min(1, "Unidade obrigatória."),
+  quantidade_entrada: z.coerce.number().min(0).optional(),
+  quantidade_consumida: z.coerce.number().min(0).optional(),
   observacao: z.string().nullable().optional(),
 });
 
@@ -74,7 +74,7 @@ const RdoSchema = z.object({
   client_signature_url: z.string().nullable().optional(),
   signer_name: z.string().nullable().optional(),
   work_stopped: z.boolean().default(false),
-  hours_lost: z.number().min(0).max(24).default(0),
+  hours_lost: z.coerce.number().min(0).max(24).default(0),
   
   safety_nr35: z.boolean().default(false),
   safety_epi: z.boolean().default(false),
@@ -422,7 +422,10 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
 
   return (
     <FormProvider {...methods}>
-      <form onSubmit={methods.handleSubmit(onSubmit, (e) => console.log(e))} className="space-y-6">
+      <form onSubmit={methods.handleSubmit(onSubmit, (e) => {
+        console.error("Erro na validação do formulário:", e);
+        showError("Verifique os campos obrigatórios em vermelho.");
+      })} className="space-y-6">
         <UpgradeModal 
             open={showUpgrade} 
             onOpenChange={setShowUpgrade} 
