@@ -1,7 +1,7 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useObras } from "@/hooks/use-obras";
 import { useState, useEffect, useMemo } from "react";
-import { Loader2, DollarSign, ClipboardCheck, Route, AlertTriangle, Clock, TrendingUp, Zap } from "lucide-react";
+import { Loader2, DollarSign, ClipboardCheck, Route, AlertTriangle, Clock, TrendingUp, Zap, Users, CloudRain } from "lucide-react";
 import ObraSelector from "@/components/financeiro/ObraSelector";
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarIcon } from "lucide-react";
@@ -10,25 +10,23 @@ import { format, differenceInDays, differenceInMonths } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { useReportData, ReportData } from "@/hooks/use-report-data";
 import KpiCard from "@/components/relatorios/KpiCard";
 import ExportDialog from "@/components/relatorios/ExportDialog";
-import { useActivitiesInPeriod, AtividadeWithProfile } from "@/hooks/use-activities-in-period";
-import ActivityCostChart from "@/components/relatorios/ActivityCostChart";
 import { formatCurrency } from "@/utils/formatters";
-import { useKmCost } from "@/hooks/use-km-cost";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ptBR } from "date-fns/locale";
 import { useAuth } from "@/integrations/supabase/auth-provider";
 import UpgradeButton from "@/components/subscription/UpgradeButton";
+import { useRdoReportData } from "@/hooks/use-rdo-report-data";
+import RdoWeatherChart from "@/components/relatorios/RdoWeatherChart";
+import RdoOccurrenceTimeline from "@/components/relatorios/RdoOccurrenceTimeline";
 
 const Relatorios = () => {
   const { profile } = useAuth();
   const isPro = profile?.subscription_status === 'active';
   
   const { data: obras, isLoading: isLoadingObras } = useObras();
-  const { data: kmCost, isLoading: isLoadingKmCost } = useKmCost();
   const [selectedObraId, setSelectedObraId] = useState<string | undefined>(undefined);
   const isMobile = useIsMobile();
   const [date, setDate] = useState<DateRange | undefined>(undefined); 
@@ -53,22 +51,11 @@ const Relatorios = () => {
   const startDateString = date?.from ? format(date.from, 'yyyy-MM-dd') : '';
   const endDateString = date?.to ? format(date.to, 'yyyy-MM-dd') : '';
 
-  const { data: reportData, isLoading: isLoadingReport, error: reportError } = useReportData(
+  const { data: rdoMetrics, isLoading: isLoadingRdoMetrics, error: rdoError } = useRdoReportData(
     selectedObraId || '',
     startDateString,
     endDateString
   );
-
-  const { data: activitiesRaw, isLoading: isLoadingActivities, error: activitiesError } = useActivitiesInPeriod(
-    selectedObraId || '',
-    startDateString,
-    endDateString
-  );
-  
-  const activities: AtividadeWithProfile[] = activitiesRaw || [];
-
-  const totalKmCost = (reportData?.totalMileagePeriod || 0) * (kmCost || 1.50);
-  const totalActivityCost = (reportData?.totalTollsPeriod || 0) + totalKmCost;
 
   const periodoString = date?.from && date?.to 
     ? `${format(date.from, "dd/MM/yy")} a ${format(date.to, "dd/MM/yy")}`
@@ -86,7 +73,7 @@ const Relatorios = () => {
   }, [selectedObra]);
 
   const renderContent = () => {
-    if (isLoadingObras || isLoadingKmCost) {
+    if (isLoadingObras) {
       return (
         <div className="flex justify-center items-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -102,29 +89,32 @@ const Relatorios = () => {
       );
     }
     
-    if (reportError || activitiesError) {
+    if (rdoError) {
         return (
             <Alert variant="destructive" className="mt-6">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Erro ao carregar relatório</AlertTitle>
-                <AlertDescription>Falha ao buscar dados.</AlertDescription>
+                <AlertDescription>Falha ao buscar dados dos RDOs.</AlertDescription>
             </Alert>
         );
     }
     
-    if (isLoadingReport || isLoadingActivities) {
+    if (isLoadingRdoMetrics) {
         return (
             <div className="flex justify-center items-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
         );
     }
+    
+    const totalRdos = rdoMetrics?.allRdos.length || 0;
+    const avgManpower = totalRdos > 0 ? Math.round((rdoMetrics?.totalManpower || 0) / totalRdos) : 0;
 
     return (
       <div className="space-y-6">
         <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard
-            title="Status"
+            title="Status da Obra"
             value={selectedObra!.status.charAt(0).toUpperCase() + selectedObra!.status.slice(1)}
             description={`Início: ${format(new Date(selectedObra!.data_inicio), 'dd/MM/yy')}`}
             icon={Clock}
@@ -138,66 +128,69 @@ const Relatorios = () => {
             isLoading={false}
           />
           <KpiCard
-            title="Gasto Total (Obra)"
-            value={formatCurrency(reportData?.totalSpentObra)}
-            description={`Orçamento: ${formatCurrency(reportData?.initialBudget)}`}
-            icon={TrendingUp}
-            isLoading={isLoadingReport}
+            title="Total de Efetivo"
+            value={rdoMetrics?.totalManpower ?? 0}
+            description={`Média diária: ${avgManpower} funcionários`}
+            icon={Users}
+            isLoading={isLoadingRdoMetrics}
           />
           <KpiCard
-            title="Uso Orçamento"
-            value={`${(reportData?.budgetUsedPercent || 0).toFixed(1)}%`}
-            description={`Saldo: ${formatCurrency(reportData!.initialBudget - reportData!.totalSpentObra)}`}
-            icon={DollarSign}
-            isLoading={isLoadingReport}
+            title="Atividades Concluídas"
+            value={rdoMetrics?.completedActivitiesCount ?? 0}
+            description={`Em ${totalRdos} RDOs no período.`}
+            icon={ClipboardCheck}
+            isLoading={isLoadingRdoMetrics}
           />
         </div>
         
         <div className="space-y-4">
-            <h2 className="text-xl font-semibold">Métricas do Período</h2>
+            <h2 className="text-xl font-semibold">Métricas de Progresso e Condições</h2>
             <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                 <KpiCard
-                    title="Custo Atividades"
-                    value={formatCurrency(totalActivityCost)}
-                    description="Pedágio + KM rodado."
+                    title="Dias de Chuva"
+                    value={rdoMetrics?.rainDays ?? 0}
+                    description="Dias com Chuva Leve ou Forte."
+                    icon={CloudRain}
+                    isLoading={isLoadingRdoMetrics}
+                />
+                <KpiCard
+                    title="RDOs Registrados"
+                    value={totalRdos}
+                    description={`No período de ${periodoString}`}
+                    icon={FileText}
+                    isLoading={isLoadingRdoMetrics}
+                />
+                <KpiCard
+                    title="Ocorrências Registradas"
+                    value={rdoMetrics?.occurrenceTimeline.length ?? 0}
+                    description="Impedimentos ou comentários."
+                    icon={AlertTriangle}
+                    isLoading={isLoadingRdoMetrics}
+                />
+                <KpiCard
+                    title="Uso Orçamento"
+                    value={`N/A`}
+                    description={`Filtre em Financeiro para ver custos.`}
                     icon={DollarSign}
-                    isLoading={isLoadingReport}
-                />
-                <KpiCard
-                    title="Pedágios"
-                    value={formatCurrency(reportData?.totalTollsPeriod)}
-                    description="Total no período."
-                    icon={DollarSign}
-                    isLoading={isLoadingReport}
-                />
-                <KpiCard
-                    title="KM Rodado"
-                    value={`${(reportData?.totalMileagePeriod || 0).toFixed(0)} km`}
-                    description={`Custo: ${formatCurrency(totalKmCost)}`}
-                    icon={Route}
-                    isLoading={isLoadingReport}
-                />
-                <KpiCard
-                    title="Concluídas"
-                    value={reportData?.activitiesCompleted ?? 0}
-                    description="No período selecionado."
-                    icon={ClipboardCheck}
-                    isLoading={isLoadingReport}
+                    isLoading={isLoadingRdoMetrics}
                 />
             </div>
         </div>
         
-        <ActivityCostChart activities={activities} isLoading={isLoadingActivities} />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <RdoWeatherChart metrics={rdoMetrics} isLoading={isLoadingRdoMetrics} />
+            <RdoOccurrenceTimeline metrics={rdoMetrics} isLoading={isLoadingRdoMetrics} />
+        </div>
 
         <div className="flex justify-end pt-4">
           {isPro ? (
             <ExportDialog 
               obraNome={selectedObra!.nome} 
               periodo={periodoString} 
-              reportData={reportData}
-              activities={activities}
-              kmCost={kmCost}
-              isLoading={isLoadingReport || isLoadingActivities}
+              reportData={rdoMetrics} // Passando os novos dados
+              activities={rdoMetrics?.allRdos} // Reutilizando o campo activities para passar todos os RDOs
+              kmCost={0} // Não é mais relevante aqui, mas mantemos a prop
+              isLoading={isLoadingRdoMetrics}
               selectedObra={selectedObra}
             />
           ) : (
@@ -220,8 +213,8 @@ const Relatorios = () => {
       <div className="p-4 sm:p-6 space-y-6 animate-in fade-in duration-500">
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-1">
-            <h1 className="text-2xl sm:text-3xl font-bold">Relatórios</h1>
-            <p className="text-sm text-muted-foreground">Análise de progresso e custos.</p>
+            <h1 className="text-2xl sm:text-3xl font-bold">Relatórios de Progresso</h1>
+            <p className="text-sm text-muted-foreground">Análise técnica e de condições da obra via RDO.</p>
           </div>
           <div className="flex flex-col gap-4">
             <div className="w-full sm:max-w-sm">

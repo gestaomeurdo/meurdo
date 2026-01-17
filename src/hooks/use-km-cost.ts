@@ -57,8 +57,8 @@ export const useUpdateKmCost = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kmCost'] });
-      // Invalidate report data as the calculation depends on this cost
-      queryClient.invalidateQueries({ queryKey: ['reportData'] }); 
+      // Invalidate RDO report data as the calculation depends on this cost
+      queryClient.invalidateQueries({ queryKey: ['rdoReportData'] }); 
     },
   });
 };
