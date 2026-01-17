@@ -25,7 +25,7 @@ import UpgradeModal from "../subscription/UpgradeModal";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { Label } from "@/components/ui/label";
 
@@ -276,18 +276,13 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
     }
   };
 
-  // Helper para lidar com a seleção múltipla de períodos
   const handlePeriodToggle = (period: string, currentPeriods: string) => {
     const periods = currentPeriods.split(', ').filter(p => p !== '');
-    
     if (periods.includes(period)) {
-      // Remove
       const newPeriods = periods.filter(p => p !== period);
       return newPeriods.join(', ');
     } else {
-      // Adiciona
       const newPeriods = [...periods, period];
-      // Ordena para manter consistência: Manhã, Tarde, Noite
       const order = ['Manhã', 'Tarde', 'Noite'];
       newPeriods.sort((a, b) => order.indexOf(a) - order.indexOf(b));
       return newPeriods.join(', ');
@@ -343,7 +338,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
             </div>
         </div>
 
-        {/* Informações Gerais */}
+        {/* Informações Gerais (Local e Clima) */}
         <Card className="border-none shadow-clean bg-accent/20">
           <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
@@ -406,7 +401,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
             />
           </CardContent>
           
-          {/* Paralisação */}
           <div className="px-4 pb-4 pt-0 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
              <FormField
                 control={methods.control}
@@ -460,11 +454,86 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
           </div>
         </Card>
 
+        {/* Segurança do Trabalho (Moved Here) */}
+        <Card className="border-l-4 border-l-primary shadow-sm overflow-hidden bg-white">
+            <CardHeader className="bg-primary/5 pb-2">
+                <CardTitle className="text-sm font-black uppercase text-primary flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4" /> Segurança e EPIs
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-6">
+                {!isPro ? (
+                    <div className="flex items-center justify-between gap-4 p-2 bg-accent/20 rounded-xl cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => setShowUpgrade(true)}>
+                        <div className="flex items-center gap-3">
+                            <Lock className="w-5 h-5 text-muted-foreground" />
+                            <p className="text-xs text-muted-foreground font-medium">Checklist e fotos de segurança são exclusivos do plano PRO.</p>
+                        </div>
+                        <Button size="sm" variant="outline" className="text-xs h-8">Liberar</Button>
+                    </div>
+                ) : (
+                    <>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {[
+                                { name: "safety_nr35", label: "NR-35 (Altura)" },
+                                { name: "safety_epi", label: "EPIs Completo" },
+                                { name: "safety_cleaning", label: "Limpeza" },
+                                { name: "safety_dds", label: "DDS" },
+                            ].map((item) => (
+                                <FormField key={item.name} control={methods.control} name={item.name as any} render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center justify-between rounded-xl border p-2 bg-slate-50">
+                                        <FormLabel className="text-[10px] font-bold uppercase cursor-pointer">{item.label}</FormLabel>
+                                        <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} className="scale-75" /></FormControl>
+                                    </FormItem>
+                                )} />
+                            ))}
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label className="text-xs uppercase font-bold text-muted-foreground">Foto de Comprovação (EPIs / DDS)</Label>
+                                <div className="flex items-center gap-4">
+                                    {safetyPhotoUrl ? (
+                                        <div className="relative w-full h-24 rounded-xl overflow-hidden border bg-muted group">
+                                            <img src={safetyPhotoUrl} alt="Safety" className="w-full h-full object-cover" />
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                <a href={safetyPhotoUrl} target="_blank" rel="noreferrer" className="p-2 bg-white/20 rounded-full text-white hover:bg-white/40"><ImageIcon className="w-4 h-4" /></a>
+                                                <button type="button" onClick={() => methods.setValue('safety_photo_url', null, { shouldDirty: true })} className="p-2 bg-red-500/80 rounded-full text-white hover:bg-red-600"><X className="w-4 h-4" /></button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-xl cursor-pointer hover:bg-accent/50 transition-colors bg-muted/10">
+                                            {isUploadingSafety ? (
+                                                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                                            ) : (
+                                                <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                                                    <Upload className="w-5 h-5" />
+                                                    <span className="text-[10px] font-bold uppercase">Anexar Foto</span>
+                                                </div>
+                                            )}
+                                            <input type="file" className="hidden" accept="image/*" onChange={handleSafetyFileUpload} disabled={isUploadingSafety} />
+                                        </label>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            <FormField control={methods.control} name="safety_comments" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-xs uppercase font-bold text-muted-foreground">Observações de Segurança</FormLabel>
+                                    <FormControl>
+                                        <Textarea {...field} value={field.value || ""} rows={3} className="rounded-xl resize-none text-xs" placeholder="Ex: DDS realizado sobre riscos elétricos..." />
+                                    </FormControl>
+                                </FormItem>
+                            )} />
+                        </div>
+                    </>
+                )}
+            </CardContent>
+        </Card>
+
         <Tabs defaultValue="atividades" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 h-auto bg-muted/50 p-1 rounded-xl gap-1">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto bg-muted/50 p-1 rounded-xl gap-1">
             <TabsTrigger value="atividades" className="rounded-lg text-[10px] uppercase font-black py-2">Serviços</TabsTrigger>
             <TabsTrigger value="mao_de_obra" className="rounded-lg text-[10px] uppercase font-black py-2">Equipe</TabsTrigger>
-            <TabsTrigger value="seguranca" className="rounded-lg text-[10px] uppercase font-black text-primary py-2">Segur.</TabsTrigger>
             <TabsTrigger value="equipamentos" className="rounded-lg text-[10px] uppercase font-black py-2">Máq.</TabsTrigger>
             <TabsTrigger value="materiais" className="rounded-lg text-[10px] uppercase font-black py-2">Mat.</TabsTrigger>
             <TabsTrigger value="ocorrencias" className="rounded-lg text-[10px] uppercase font-black py-2">Notas</TabsTrigger>
@@ -472,85 +541,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
           
           <TabsContent value="atividades" className="pt-4"><RdoActivitiesForm obraId={obraId} /></TabsContent>
           <TabsContent value="mao_de_obra" className="pt-4"><RdoManpowerForm /></TabsContent>
-          
-          <TabsContent value="seguranca" className="pt-4 space-y-6">
-            <div className="flex items-center gap-3 border-b pb-4 mb-4">
-              <ShieldCheck className="h-8 w-8 text-primary" />
-              <div>
-                <h3 className="text-xl font-black text-primary uppercase tracking-tight">Segurança do Trabalho</h3>
-                <p className="text-xs text-muted-foreground font-medium">Proteção e conformidade técnica.</p>
-              </div>
-            </div>
-            {!isPro ? (
-              <div className="border-dashed border-primary/30 bg-accent/30 py-10 rounded-3xl cursor-pointer flex flex-col items-center text-center space-y-4" onClick={() => setShowUpgrade(true)}>
-                <Lock className="w-12 h-12 text-primary/40" />
-                <div className="space-y-2">
-                  <h4 className="font-bold text-lg">Checklist PRO</h4>
-                  <p className="text-xs text-muted-foreground">Desbloqueie para salvar os itens de conformidade.</p>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[
-                    { name: "safety_nr35", label: "Treinamentos", desc: "Equipe treinada e orientada." },
-                    { name: "safety_epi", label: "Uso de EPIs", desc: "Equipe 100% protegida." },
-                    { name: "safety_cleaning", label: "Organização", desc: "Canteiro limpo." },
-                    { name: "safety_dds", label: "DDS Realizado", desc: "Instrução matinal feita." },
-                  ].map((item) => (
-                    <FormField key={item.name} control={methods.control} name={item.name as any} render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-2xl border p-4 bg-white transition-all hover:border-primary/50">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-sm font-bold uppercase">{item.label}</FormLabel>
-                          <FormDescription className="text-[10px]">{item.desc}</FormDescription>
-                        </div>
-                        <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                      </FormItem>
-                    )} />
-                  ))}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField control={methods.control} name="safety_comments" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel className="text-xs uppercase font-bold text-muted-foreground">Observações de Segurança</FormLabel>
-                            <FormControl>
-                                <Textarea {...field} value={field.value || ""} rows={4} className="rounded-xl resize-none" placeholder="Registro de ocorrências, faltas de EPI ou observações do técnico de segurança..." />
-                            </FormControl>
-                        </FormItem>
-                    )} />
-
-                    <div className="space-y-3">
-                        <Label className="text-xs uppercase font-bold text-muted-foreground">Foto de Segurança / DDS</Label>
-                        <div className="flex items-center gap-4">
-                            {safetyPhotoUrl ? (
-                                <div className="relative w-full h-32 rounded-xl overflow-hidden border bg-muted group">
-                                    <img src={safetyPhotoUrl} alt="Safety" className="w-full h-full object-cover" />
-                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                        <a href={safetyPhotoUrl} target="_blank" rel="noreferrer" className="p-2 bg-white/20 rounded-full text-white hover:bg-white/40"><ImageIcon className="w-4 h-4" /></a>
-                                        <button type="button" onClick={() => methods.setValue('safety_photo_url', null, { shouldDirty: true })} className="p-2 bg-red-500/80 rounded-full text-white hover:bg-red-600"><X className="w-4 h-4" /></button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer hover:bg-accent/50 transition-colors bg-muted/10">
-                                    {isUploadingSafety ? (
-                                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                                    ) : (
-                                        <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                                            <Upload className="w-6 h-6" />
-                                            <span className="text-xs font-bold uppercase">Upload Foto</span>
-                                        </div>
-                                    )}
-                                    <input type="file" className="hidden" accept="image/*" onChange={handleSafetyFileUpload} disabled={isUploadingSafety} />
-                                </label>
-                            )}
-                        </div>
-                    </div>
-                </div>
-              </div>
-            )}
-          </TabsContent>
-
           <TabsContent value="equipamentos" className="pt-4"><RdoEquipmentForm /></TabsContent>
           <TabsContent value="materiais" className="pt-4"><RdoMaterialsForm /></TabsContent>
           <TabsContent value="ocorrencias" className="pt-4 space-y-4">
