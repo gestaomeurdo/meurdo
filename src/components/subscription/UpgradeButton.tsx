@@ -13,6 +13,8 @@ const UpgradeButton = () => {
   const handleUpgrade = async () => {
     setIsLoading(true);
     try {
+      console.log("[Upgrade] Iniciando checkout para o preço:", STRIPE_PRICE_ID);
+      
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
         body: {
           priceId: STRIPE_PRICE_ID,
@@ -21,13 +23,21 @@ const UpgradeButton = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("[Upgrade] Erro na Edge Function:", error);
+        throw error;
+      }
+
       if (data?.url) {
         window.location.href = data.url;
+      } else {
+        throw new Error("URL de checkout não retornada pela função.");
       }
-    } catch (error) {
-      console.error("Upgrade error:", error);
-      showError("Erro ao iniciar o pagamento. Tente novamente.");
+    } catch (error: any) {
+      console.error("Upgrade error details:", error);
+      // Se for um erro de função, extrai a mensagem se possível
+      const message = error.context?.message || error.message || "Erro desconhecido";
+      showError(`Erro ao iniciar o pagamento: ${message}. Verifique as chaves da Stripe.`);
     } finally {
       setIsLoading(false);
     }
