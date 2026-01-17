@@ -3,13 +3,11 @@ import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 
 const LOGO_URL = "https://meurdo.com.br/wp-content/uploads/2026/01/Logo-MEU-RDO-scaled.png";
 
 const Login = () => {
-  // Estado para controlar se estamos no Login ou no Cadastro
-  const [view, setView] = useState<'sign_in' | 'sign_up'>('sign_in');
+  const [view, setView] = useState<'sign_in' | 'sign_up' | 'forgotten_password'>('sign_in');
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-accent/30 p-4">
@@ -19,7 +17,9 @@ const Login = () => {
           <p className="text-sm text-muted-foreground text-center px-4 font-medium">
             {view === 'sign_in' 
               ? 'Gestão de Diários de Obra inteligente e profissional.' 
-              : 'Comece agora a profissionalizar seus diários de obra.'}
+              : view === 'sign_up' 
+                ? 'Comece agora a profissionalizar seus diários de obra.'
+                : 'Recupere o acesso à sua conta.'}
           </p>
         </CardHeader>
         <CardContent className="pt-6 space-y-4">
@@ -56,13 +56,14 @@ const Login = () => {
               },
             }}
             theme="light"
-            showLinks={false} // Desativamos os links internos para usar o nosso manual e garantido
+            showLinks={false}
             localization={{
               variables: {
                 sign_in: {
                   email_label: 'E-mail',
                   password_label: 'Senha',
                   button_label: 'Entrar',
+                  loading_button_label: 'Entrando...',
                   email_input_placeholder: 'Seu e-mail',
                   password_input_placeholder: 'Sua senha',
                 },
@@ -70,19 +71,23 @@ const Login = () => {
                   email_label: 'E-mail',
                   password_label: 'Crie uma Senha',
                   button_label: 'Criar Minha Conta',
+                  loading_button_label: 'Criando conta...',
                   email_input_placeholder: 'E-mail profissional',
                   password_input_placeholder: 'Mínimo 6 caracteres',
+                  confirmation_sent_label: 'Verifique seu e-mail para o link de confirmação!',
                 },
                 forgotten_password: {
                   email_label: 'E-mail',
                   button_label: 'Recuperar Senha',
+                  loading_button_label: 'Enviando e-mail...',
                   email_input_placeholder: 'Seu e-mail cadastrado',
+                  confirmation_sent_label: 'Instruções enviadas para seu e-mail!',
                 },
               },
             }}
           />
 
-          <div className="pt-4 border-t text-center">
+          <div className="pt-4 border-t text-center space-y-3">
             {view === 'sign_in' ? (
               <p className="text-sm text-muted-foreground">
                 Não tem uma conta?{' '}
@@ -107,8 +112,8 @@ const Login = () => {
             
             {view === 'sign_in' && (
               <button
-                onClick={() => setView('forgotten_password' as any)}
-                className="block w-full text-xs text-muted-foreground mt-4 hover:underline"
+                onClick={() => setView('forgotten_password')}
+                className="block w-full text-xs text-muted-foreground hover:underline"
               >
                 Esqueceu sua senha?
               </button>
