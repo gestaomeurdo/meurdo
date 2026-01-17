@@ -63,6 +63,7 @@ serve(async (req) => {
       mode: 'subscription',
       success_url: successUrl,
       cancel_url: cancelUrl,
+      client_reference_id: user.id, // Envia ID explicitamente para o webhook recuperar
       subscription_data: {
         metadata: { supabase_user_id: user.id }
       }
