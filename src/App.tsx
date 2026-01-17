@@ -9,6 +9,7 @@ import { SessionContextProvider } from "./integrations/supabase/auth-provider";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Obras from "./pages/Obras";
+import ObraDetails from "./pages/ObraDetails";
 import Financeiro from "./pages/Financeiro";
 import Atividades from "./pages/Atividades";
 import Materiais from "./pages/Materiais";
@@ -38,6 +39,7 @@ const App = () => (
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/obras" element={<Obras />} />
+              <Route path="/obras/:id" element={<ObraDetails />} />
               <Route path="/financeiro" element={<Financeiro />} />
               <Route path="/relatorios" element={<Relatorios />} />
               <Route path="/atividades" element={<Atividades />} />

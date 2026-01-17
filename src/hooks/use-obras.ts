@@ -28,6 +28,17 @@ const fetchObras = async (userId: string): Promise<Obra[]> => {
   return data as Obra[];
 };
 
+const fetchObra = async (id: string): Promise<Obra> => {
+  const { data, error } = await supabase
+    .from('obras')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data as Obra;
+};
+
 export const useObras = () => {
   const { user } = useAuth();
   const userId = user?.id;
@@ -36,6 +47,15 @@ export const useObras = () => {
     queryKey: ['obras', userId],
     queryFn: () => fetchObras(userId!),
     enabled: !!userId,
+    staleTime: 1000 * 60,
+  });
+};
+
+export const useObra = (id: string | undefined) => {
+  return useQuery<Obra, Error>({
+    queryKey: ['obra', id],
+    queryFn: () => fetchObra(id!),
+    enabled: !!id,
     staleTime: 1000 * 60,
   });
 };
@@ -129,8 +149,9 @@ export const useUpdateObra = () => {
 
       if (error) throw new Error(error.message);
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['obras'] });
+      queryClient.invalidateQueries({ queryKey: ['obra', variables.id] });
       queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
     },
   });

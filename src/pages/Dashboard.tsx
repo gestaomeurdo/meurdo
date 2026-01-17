@@ -140,7 +140,7 @@ const Dashboard = () => {
             {obras && obras.length > 0 ? (
                 <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                     {obras.slice(0, 6).map((obra) => (
-                        <Link to="/gestao-rdo" key={obra.id}>
+                        <Link to={`/obras/${obra.id}`} key={obra.id}>
                             <Card className="shadow-sm hover:shadow-xl transition-all cursor-pointer border-none overflow-hidden group h-full flex flex-col rounded-3xl ring-1 ring-border/50">
                                 <div className="h-32 w-full bg-muted relative overflow-hidden">
                                     {obra.foto_url ? (

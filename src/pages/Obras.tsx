@@ -12,6 +12,7 @@ import { useCanCreateObra } from "@/hooks/use-subscription-limits";
 import { useState } from "react";
 import UpgradeModal from "@/components/subscription/UpgradeModal";
 import { cn } from "@/lib/utils";
+import { Link } from "react-router-dom";
 
 const statusMap: Record<Obra['status'], string> = {
   ativa: "Ativa",
@@ -110,7 +111,7 @@ const Obras = () => {
                 key={obra.id}
                 className="group hover:shadow-xl transition-all duration-300 border-none bg-card shadow-clean rounded-2xl overflow-hidden flex flex-col"
               >
-                <div className="relative h-32 bg-muted w-full overflow-hidden">
+                <Link to={`/obras/${obra.id}`} className="block relative h-32 bg-muted w-full overflow-hidden cursor-pointer">
                     {obra.foto_url ? (
                         <img src={obra.foto_url} alt={obra.nome} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                     ) : (
@@ -127,14 +128,16 @@ const Obras = () => {
                         </Badge>
                     </div>
                     <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-black/60 to-transparent"></div>
-                </div>
+                </Link>
                 
                 <CardHeader className="pb-4 relative -mt-4 pt-4">
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex-1">
-                        <CardTitle className="text-xl font-bold truncate leading-tight mt-1">
-                            {obra.nome}
-                        </CardTitle>
+                        <Link to={`/obras/${obra.id}`} className="hover:underline">
+                            <CardTitle className="text-xl font-bold truncate leading-tight mt-1">
+                                {obra.nome}
+                            </CardTitle>
+                        </Link>
                         <CardDescription className="flex items-center text-xs pt-1">
                             <MapPin className="w-3 h-3 mr-1 text-primary" />
                             {obra.endereco || "Local não informado"}
@@ -181,39 +184,41 @@ const Obras = () => {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="flex-grow space-y-4 pt-0">
-                  <div className="grid grid-cols-2 gap-4 bg-accent/30 p-3 rounded-xl">
-                    <div className="space-y-1">
-                      <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
-                        Orçamento
-                      </p>
-                      <p className="text-sm font-bold text-primary">
-                        {formatCurrency(obra.orcamento_inicial)}
-                      </p>
+                <Link to={`/obras/${obra.id}`} className="flex-grow">
+                    <CardContent className="flex-grow space-y-4 pt-0">
+                    <div className="grid grid-cols-2 gap-4 bg-accent/30 p-3 rounded-xl">
+                        <div className="space-y-1">
+                        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+                            Orçamento
+                        </p>
+                        <p className="text-sm font-bold text-primary">
+                            {formatCurrency(obra.orcamento_inicial)}
+                        </p>
+                        </div>
+                        <div className="space-y-1">
+                        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+                            Início
+                        </p>
+                        <p className="text-sm font-bold">{formatDate(obra.data_inicio)}</p>
+                        </div>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
-                        Início
-                      </p>
-                      <p className="text-sm font-bold">{formatDate(obra.data_inicio)}</p>
+                        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+                        Proprietário / Cliente
+                        </p>
+                        <p className="text-sm font-medium">{obra.dono_cliente || "N/A"}</p>
                     </div>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
-                      Proprietário / Cliente
-                    </p>
-                    <p className="text-sm font-medium">{obra.dono_cliente || "N/A"}</p>
-                  </div>
-                </CardContent>
+                    </CardContent>
+                </Link>
                 <div className="px-6 py-4 border-t bg-accent/10">
                   <Button
                     variant="ghost"
                     className="w-full justify-between text-primary font-bold hover:bg-primary/10 rounded-xl"
                     asChild
                   >
-                    <a href="/gestao-rdo">
-                      Ver Diários de Obra <ArrowRight className="w-4 h-4" />
-                    </a>
+                    <Link to={`/obras/${obra.id}`}>
+                      Acessar Painel da Obra <ArrowRight className="w-4 h-4" />
+                    </Link>
                   </Button>
                 </div>
               </Card>
