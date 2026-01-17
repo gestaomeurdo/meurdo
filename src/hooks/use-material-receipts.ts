@@ -21,6 +21,8 @@ export interface MaterialReceipt {
 }
 
 const fetchReceipts = async (obraId: string, date?: string): Promise<MaterialReceipt[]> => {
+  if (!obraId) return [];
+
   let query = supabase
     .from('recebimento_materiais')
     .select('*')
@@ -33,19 +35,19 @@ const fetchReceipts = async (obraId: string, date?: string): Promise<MaterialRec
   const { data, error } = await query.order('data_recebimento', { ascending: false });
 
   if (error) {
-    console.error("[useMaterialReceipts] Erro ao buscar:", error);
+    console.error("[useMaterialReceipts] Erro na consulta:", error.message);
     throw new Error(error.message);
   }
   return data as MaterialReceipt[];
 };
 
-export const useMaterialReceipts = (obraId: string, date?: string) => {
+export const useMaterialReceipts = (obraId: string | undefined, date?: string) => {
   return useQuery<MaterialReceipt[], Error>({
     queryKey: ['materialReceipts', obraId, date],
-    queryFn: () => fetchReceipts(obraId, date),
-    enabled: !!obraId,
+    queryFn: () => fetchReceipts(obraId!, date),
+    enabled: !!obraId && obraId !== '',
     retry: 1,
-    staleTime: 1000 * 60 * 5, // 5 minutos
+    staleTime: 1000 * 60 * 2, // 2 minutos
   });
 };
 
@@ -55,19 +57,19 @@ export const useCreateReceipt = () => {
 
   return useMutation<MaterialReceipt, Error, Omit<MaterialReceipt, 'id' | 'user_id' | 'criado_em'>>({
     mutationFn: async (newReceipt) => {
-      if (!user) throw new Error("Não autenticado");
+      if (!user) throw new Error("Usuário não autenticado.");
+      
       const { data, error } = await supabase
         .from('recebimento_materiais')
         .insert({ ...newReceipt, user_id: user.id })
         .select()
         .single();
+        
       if (error) throw new Error(error.message);
       return data as MaterialReceipt;
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['materialReceipts'] });
-      // Invalida também os dados de RDO para que o auto-preenchimento funcione se o RDO estiver aberto
-      queryClient.invalidateQueries({ queryKey: ['rdo'] });
     },
   });
 };
