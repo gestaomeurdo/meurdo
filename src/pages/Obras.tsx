@@ -1,6 +1,6 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2, Loader2, MapPin, Calendar, Construction, Zap, ArrowRight } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2, MapPin, Construction, Zap, ArrowRight } from "lucide-react";
 import ObraDialog from "@/components/obras/ObraDialog";
 import { useDeleteObra, useObras, Obra } from "@/hooks/use-obras";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { formatCurrency, formatDate } from "@/utils/formatters";
 import { useCanCreateObra } from "@/hooks/use-subscription-limits";
 import { useState } from "react";
-import LimitReachedModal from "@/components/subscription/LimitReachedModal";
+import UpgradeModal from "@/components/subscription/UpgradeModal";
 import { cn } from "@/lib/utils";
 
 const statusMap: Record<Obra['status'], string> = {
@@ -29,7 +29,7 @@ const Obras = () => {
   const { data: obras, isLoading, error } = useObras();
   const deleteMutation = useDeleteObra();
   const { canCreate, isPro, isLoading: isLoadingLimits } = useCanCreateObra();
-  const [limitModalOpen, setLimitModalOpen] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   const handleDelete = async (id: string, nome: string) => {
     try {
@@ -73,16 +73,22 @@ const Obras = () => {
             ) : (
               <Button
                 size="lg"
-                onClick={() => setLimitModalOpen(true)}
+                onClick={() => setShowUpgrade(true)}
                 className="rounded-xl shadow-lg hover:scale-105 transition-transform bg-orange-500 hover:bg-orange-600"
               >
                 <Zap className="w-5 h-5 mr-2 fill-current" />
-                Desbloquear PRO
+                Limite Atingido
               </Button>
             )}
           </div>
         </div>
-        <LimitReachedModal open={limitModalOpen} onOpenChange={setLimitModalOpen} />
+        
+        <UpgradeModal 
+          open={showUpgrade} 
+          onOpenChange={setShowUpgrade} 
+          title="Limite de 1 Obra Atingido"
+          description="Engenheiros PRO gerenciam obras ilimitadas com relatórios automáticos."
+        />
 
         {obras && obras.length === 0 ? (
           <Card className="border-dashed py-20 text-center shadow-none bg-accent/20 rounded-2xl">

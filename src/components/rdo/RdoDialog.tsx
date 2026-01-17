@@ -11,8 +11,7 @@ import ObraSelector from "../financeiro/ObraSelector";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { useRdoLimits } from "@/hooks/use-rdo-limits";
-import UpgradeButton from "../subscription/UpgradeButton";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import UpgradeModal from "../subscription/UpgradeModal";
 
 interface RdoDialogProps {
   obraId: string;
@@ -25,7 +24,8 @@ const RdoDialog = ({ obraId: initialObraId, date, trigger }: RdoDialogProps) => 
   const [selectedObraId, setSelectedObraId] = useState<string | undefined>(initialObraId);
   const dateString = format(date, 'yyyy-MM-dd');
   const { data: obras, isLoading: isLoadingObras } = useObras();
-  const { canCreateRdo, rdoCount, limit, isPro, isLoading: isLoadingLimits } = useRdoLimits();
+  const { canCreateRdo, isPro, isLoading: isLoadingLimits } = useRdoLimits();
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   const needsObraSelection = useMemo(() => {
     return !obras || obras.length === 0 || initialObraId === '00000000-0000-0000-0000-000000000000';
@@ -44,7 +44,7 @@ const RdoDialog = ({ obraId: initialObraId, date, trigger }: RdoDialogProps) => 
   const { data: rdoData, isLoading: isLoadingRdo, refetch } = useRdoByDate(validObraId || '', dateString);
   const isEditing = !!rdoData;
 
-  const { data: previousRdoData, isLoading: isLoadingPreviousRdo, refetch: refetchPrevious } = useQuery({
+  const { data: previousRdoData, isLoading: isLoadingPreviousRdo } = useQuery({
     queryKey: ['previousRdo', validObraId, dateString],
     queryFn: () => fetchPreviousRdo(validObraId!, date),
     enabled: open && !isEditing && !!validObraId,
@@ -57,7 +57,7 @@ const RdoDialog = ({ obraId: initialObraId, date, trigger }: RdoDialogProps) => 
 
   const handleOpenChange = (newOpen: boolean) => {
     if (newOpen && !isEditing && !canCreateRdo && !isPro) {
-      setOpen(true); // Open the limit warning dialog
+      setShowUpgrade(true);
       return;
     }
     setOpen(newOpen);
@@ -65,89 +65,68 @@ const RdoDialog = ({ obraId: initialObraId, date, trigger }: RdoDialogProps) => 
 
   const isLoading = isLoadingRdo || (!isEditing && isLoadingPreviousRdo) || isLoadingObras || isLoadingLimits;
 
-  if (!isEditing && !canCreateRdo && !isPro && open) {
-    return (
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[450px]">
+  return (
+    <>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogTrigger asChild>
+          {trigger || (
+            <Button variant="outline" size="sm">
+              <FileText className="w-4 h-4 mr-2" />
+              {isEditing ? "Ver RDO" : "Criar RDO"}
+            </Button>
+          )}
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto rounded-3xl">
           <DialogHeader>
-            <div className="mx-auto w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mb-4">
-              <Zap className="h-6 w-6 text-orange-600" />
-            </div>
-            <DialogTitle className="text-center text-xl">Limite de RDOs Atingido</DialogTitle>
-            <DialogDescription className="text-center pt-2">
-              Você atingiu o limite de <strong>{limit} RDOs</strong> no plano gratuito.
+            <DialogTitle className="text-xl font-black uppercase tracking-tight">
+              {isEditing ? `Diário de ${format(date, 'dd/MM/yyyy')}` : `Novo RDO para ${format(date, 'dd/MM/yyyy')}`}
+            </DialogTitle>
+            <DialogDescription>
+              {isEditing ? "Registro técnico oficial de campo." : "Registre as atividades e equipe do dia de hoje."}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <Alert variant="default" className="bg-primary/10 border-primary/20">
-              <Zap className="h-4 w-4 text-primary" />
-              <AlertTitle className="text-primary font-bold">Plano PRO</AlertTitle>
-              <AlertDescription>
-                Desbloqueie registros ilimitados no plano PRO e tenha todos os recursos premium.
-              </AlertDescription>
-            </Alert>
-            <UpgradeButton />
-          </div>
+          {isLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : obras && obras.length === 0 ? (
+            <Card className="border-dashed py-12 text-center rounded-2xl">
+              <CardContent>
+                <Construction className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+                <p className="text-muted-foreground">Você precisa cadastrar uma obra primeiro.</p>
+                <Button asChild className="mt-4 rounded-xl"><Link to="/obras">Ir para Obras</Link></Button>
+              </CardContent>
+            </Card>
+          ) : !validObraId ? (
+            <div className="space-y-4">
+              <p className="text-sm font-bold text-muted-foreground uppercase">Selecione a obra de destino:</p>
+              <ObraSelector selectedObraId={selectedObraId} onSelectObra={setSelectedObraId} />
+              <Button 
+                className="w-full rounded-xl h-12 font-bold"
+                onClick={() => setSelectedObraId(selectedObraId)} 
+                disabled={!selectedObraId || selectedObraId === '00000000-0000-0000-0000-000000000000'}
+              >
+                Prosseguir para o Formulário
+              </Button>
+            </div>
+          ) : (
+            <RdoForm 
+              obraId={validObraId} 
+              initialData={rdoData || undefined} 
+              onSuccess={handleSuccess} 
+              previousRdoData={previousRdoData} 
+            />
+          )}
         </DialogContent>
       </Dialog>
-    );
-  }
 
-  return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button variant="outline" size="sm">
-            <FileText className="w-4 h-4 mr-2" />
-            {isEditing ? "Ver RDO" : "Criar RDO"}
-          </Button>
-        )}
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? `Editar RDO de ${format(date, 'dd/MM/yyyy')}` : `Criar RDO para ${format(date, 'dd/MM/yyyy')}`}
-          </DialogTitle>
-          <DialogDescription>
-            {isEditing ? "Atualize o Relatório Diário de Obra." : "Preencha o Relatório Diário de Obra para esta data."}
-          </DialogDescription>
-        </DialogHeader>
-        {isLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="ml-2">Carregando dados...</span>
-          </div>
-        ) : obras && obras.length === 0 ? (
-          <Card className="border-dashed py-12 text-center">
-            <CardContent>
-              <Construction className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-              <p className="text-muted-foreground">Você precisa cadastrar uma obra primeiro.</p>
-              <Button asChild className="mt-4">
-                <Link to="/obras">Ir para Obras</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ) : !validObraId ? (
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Selecione a obra:</p>
-            <ObraSelector selectedObraId={selectedObraId} onSelectObra={setSelectedObraId} />
-            <Button 
-              onClick={() => setSelectedObraId(selectedObraId)} 
-              disabled={!selectedObraId || selectedObraId === '00000000-0000-0000-0000-000000000000'}
-            >
-              Continuar
-            </Button>
-          </div>
-        ) : (
-          <RdoForm 
-            obraId={validObraId} 
-            initialData={rdoData || undefined} 
-            onSuccess={handleSuccess} 
-            previousRdoData={previousRdoData} 
-          />
-        )}
-      </DialogContent>
-    </Dialog>
+      <UpgradeModal 
+        open={showUpgrade} 
+        onOpenChange={setShowUpgrade} 
+        title="Limite de Diários Atingido"
+        description="No plano gratuito você pode registrar até 2 RDOs. Desbloqueie o PRO para histórico ilimitado."
+      />
+    </>
   );
 };
 
