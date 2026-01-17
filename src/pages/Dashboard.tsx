@@ -1,21 +1,23 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/integrations/supabase/auth-provider";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, CheckCircle } from "lucide-react";
 import { useRdoDashboardMetrics } from "@/hooks/use-rdo-dashboard-metrics";
 import RecentRdoList from "@/components/dashboard/RecentRdoList";
 import RdoDialog from "@/components/rdo/RdoDialog";
 import { Button } from "@/components/ui/button";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { showSuccess } from "@/utils/toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const Dashboard = () => {
   const { user, isLoading: authLoading, profile } = useAuth();
   const { data: rdoMetrics, isLoading: isLoadingRdoMetrics } = useRdoDashboardMetrics();
   const location = useLocation();
   const queryClient = useQueryClient();
+  const [showWelcomePro, setShowWelcomePro] = useState(false);
 
   // Efeito para verificar o retorno do Stripe e forçar a atualização do perfil
   useEffect(() => {
@@ -28,7 +30,13 @@ const Dashboard = () => {
       
       // Invalida a query do perfil para forçar o SessionContextProvider a buscar os dados atualizados
       queryClient.invalidateQueries({ queryKey: ['profile'] });
-      showSuccess("Pagamento confirmado! Seu plano PRO está ativo.");
+      
+      // Exibe a mensagem de boas-vindas
+      setShowWelcomePro(true);
+      
+      // Opcional: Esconde a mensagem após alguns segundos
+      const timer = setTimeout(() => setShowWelcomePro(false), 8000);
+      return () => clearTimeout(timer);
     }
   }, [location.search, queryClient]);
 
@@ -51,6 +59,16 @@ const Dashboard = () => {
           <p className="text-muted-foreground">Aqui está o resumo da sua operação hoje.</p>
         </div>
         
+        {showWelcomePro && (
+          <Alert className="bg-green-500/10 border-green-500/30 text-green-800">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertTitle className="text-green-700 font-bold">Bem-vindo ao PRO!</AlertTitle>
+            <AlertDescription>
+              Sua assinatura foi ativada com sucesso. Você agora tem acesso a obras ilimitadas e todos os recursos PRO.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <RdoDialog
           obraId={dummyObraId}
           date={new Date()}

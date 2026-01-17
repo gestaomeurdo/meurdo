@@ -9,6 +9,7 @@ import { useTheme } from "next-themes";
 import { Sun, Moon } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge"; // Import Badge
 
 interface SidebarProps {
   isMobile: boolean;
@@ -24,6 +25,7 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: SidebarProps) => {
   
   const userRole = profile?.role || "view_only";
   const isLoading = isAuthLoading || isProfileLoading;
+  const isPro = profile?.subscription_status === 'active';
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
@@ -59,8 +61,13 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: SidebarProps) => {
       )}
     >
       <div className="p-4 h-full flex flex-col">
-        <div className="mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-primary">MEU RDO</h1>
+          {isPro && (
+            <Badge className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold">
+              PRO
+            </Badge>
+          )}
         </div>
         <nav className="flex-grow">
           {filteredNavItems.map((item) => (

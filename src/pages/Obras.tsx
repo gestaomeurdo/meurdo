@@ -33,9 +33,9 @@ const Obras = () => {
   const handleDelete = async (id: string, nome: string) => {
     try {
       await deleteMutation.mutateAsync(id);
-      showSuccess(`Obra "\${nome}" excluída com sucesso.`);
+      showSuccess(`Obra "${nome}" excluída com sucesso.`);
     } catch (err) {
-      showError(`Erro ao excluir obra: \${err instanceof Error ? err.message : "Erro desconhecido"}`);
+      showError(`Erro ao excluir obra: ${err instanceof Error ? err.message : "Erro desconhecido"}`);
     }
   };
 
@@ -56,7 +56,11 @@ const Obras = () => {
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold">Gestão de Obras ({obras?.length || 0})</h1>
-            {!isPro && (
+            {isPro ? (
+              <Badge className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold">
+                PRO
+              </Badge>
+            ) : (
               <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50">
                 Plano Free
               </Badge>
