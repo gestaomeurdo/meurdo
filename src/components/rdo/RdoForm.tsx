@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { showSuccess, showError } from "@/utils/toast";
 import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, UserCheck, Sun, Clock, Copy, Upload, Image as ImageIcon, X, Handshake, Moon, SunMedium, CheckCircle, Trash2 } from "lucide-react";
-import { DiarioObra, useCreateRdo, useUpdateRdo, WorkforceType, usePayRdo, useDeleteRdo } from "@/hooks/use-rdo";
+import { DiarioObra, useCreateRdo, useUpdateRdo, WorkforceType, useDeleteRdo } from "@/hooks/use-rdo";
 import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
 import RdoEquipmentForm from "./RdoEquipmentForm";
@@ -113,7 +113,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
   const createMutation = useCreateRdo();
   const updateMutation = useUpdateRdo();
   const deleteMutation = useDeleteRdo();
-  const payMutation = usePayRdo();
   const { data: obras } = useObras();
   const obraNome = obras?.find(o => o.id === obraId)?.nome || "Obra";
   
@@ -307,37 +306,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
     }
   };
 
-  const handlePayRdo = async () => {
-    const manpower = methods.getValues('mao_de_obra') || [];
-    const equipment = methods.getValues('equipamentos') || [];
-    
-    if (estimatedDailyCost <= 0) {
-        showError("O custo total deve ser maior que zero.");
-        return;
-    }
-
-    try {
-        await payMutation.mutateAsync({
-            obraId,
-            rdoDate: format(methods.getValues('data_rdo'), 'yyyy-MM-dd'),
-            totalCost: estimatedDailyCost,
-            manpowerDetails: manpower.map(m => ({
-                funcao: m.funcao,
-                quantidade: m.quantidade,
-                custo_unitario: m.custo_unitario || 0
-            })),
-            equipmentDetails: equipment.map(e => ({
-                equipamento: e.equipamento,
-                horas: e.horas_trabalhadas,
-                custo_hora: e.custo_hora || 0
-            }))
-        });
-        showSuccess("Pagamento enviado para o Financeiro!");
-    } catch (error) {
-        showError(`Erro ao registrar pagamento: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
-    }
-  };
-
   const handleDeleteRdo = async () => {
     if (!initialData?.id) return;
     try {
@@ -458,26 +426,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                 </div>
               </div>
               <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button type="button" variant="outline" className="flex-1 sm:flex-none rounded-xl font-bold uppercase text-xs border-green-600 text-green-700 hover:bg-green-50">
-                            <DollarSign className="w-4 h-4 mr-2" /> Gerar Pagamento
-                        </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Registrar Pagamento no Financeiro?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Será criado um lançamento de <strong>{formatCurrency(estimatedDailyCost)}</strong> na categoria "Mão de Obra".
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={handlePayRdo} className="bg-green-600 hover:bg-green-700">Confirmar</AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-
                 {isEditing && (
                   <Button type="button" variant="outline" onClick={handleExportPdf} className="flex-1 sm:flex-none rounded-xl font-bold uppercase text-xs">
                     <FileDown className="w-4 h-4 mr-2" /> PDF
