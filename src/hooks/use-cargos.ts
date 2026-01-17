@@ -28,6 +28,8 @@ export const useCargos = () => {
     queryKey: ['cargos', user?.id],
     queryFn: () => fetchCargos(user!.id),
     enabled: !!user,
+    staleTime: 1000 * 60 * 10, // Cargos mudam raramente
+    gcTime: 1000 * 60 * 60,
   });
 };
 
@@ -58,16 +60,11 @@ export const useBulkCreateCargos = () => {
   return useMutation<void, Error, Omit<Cargo, 'id' | 'user_id'>[]>({
     mutationFn: async (newCargos) => {
       if (!user) throw new Error("Usuário não autenticado.");
-      
       const cargosToInsert = newCargos.map(cargo => ({
         ...cargo,
         user_id: user.id,
       }));
-
-      const { error } = await supabase
-        .from('cargos')
-        .insert(cargosToInsert);
-
+      const { error } = await supabase.from('cargos').insert(cargosToInsert);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
@@ -81,12 +78,7 @@ export const useUpdateCargo = () => {
   return useMutation<Cargo, Error, Cargo>({
     mutationFn: async (updatedCargo) => {
       const { id, ...rest } = updatedCargo;
-      const { data, error } = await supabase
-        .from('cargos')
-        .update(rest)
-        .eq('id', id)
-        .select()
-        .single();
+      const { data, error } = await supabase.from('cargos').update(rest).eq('id', id).select().single();
       if (error) throw new Error(error.message);
       return data as Cargo;
     },
@@ -115,10 +107,7 @@ export const useDeleteAllCargos = () => {
   return useMutation<void, Error, void>({
     mutationFn: async () => {
       if (!user) return;
-      const { error } = await supabase
-        .from('cargos')
-        .delete()
-        .eq('user_id', user.id);
+      const { error } = await supabase.from('cargos').delete().eq('user_id', user.id);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
