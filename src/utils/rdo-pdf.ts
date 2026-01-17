@@ -178,7 +178,9 @@ export const generateRdoPdf = async (rdo: DiarioObra, obraNome: string, profile:
     doc.setFont("helvetica", "bold");
     doc.text((rdo as any).signer_name || "RESPONSÁVEL TÉCNICO", margin, footerY + 5);
     doc.setFont("helvetica", "normal");
-    doc.text((rdo as any).signer_registration || "", margin, footerY + 10);
+    
+    // Removed registration line here
+    
     doc.setTextColor(6, 106, 188);
     doc.setFont("helvetica", "italic");
     doc.text(`Assinado digitalmente via Meu RDO em ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, margin, footerY + 15);

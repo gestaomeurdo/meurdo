@@ -72,7 +72,6 @@ const RdoSchema = z.object({
   responsible_signature_url: z.string().nullable().optional(),
   client_signature_url: z.string().nullable().optional(),
   signer_name: z.string().nullable().optional(),
-  signer_registration: z.string().nullable().optional(),
   work_stopped: z.boolean().default(false),
   hours_lost: z.number().min(0).max(24).default(0),
   safety_nr35: z.boolean().default(false),
@@ -123,7 +122,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
       responsible_signature_url: initialData?.responsible_signature_url || null,
       client_signature_url: initialData?.client_signature_url || null,
       signer_name: (initialData as any)?.signer_name || `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim(),
-      signer_registration: (initialData as any)?.signer_registration || "",
       work_stopped: initialData?.work_stopped || false,
       hours_lost: initialData?.hours_lost || 0,
       safety_nr35: initialData?.safety_nr35 || false,
@@ -194,7 +192,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
     
     if ((previousRdoData as any).signer_name) {
         methods.setValue('signer_name', (previousRdoData as any).signer_name);
-        methods.setValue('signer_registration', (previousRdoData as any).signer_registration);
     }
 
     showSuccess("Dados de Equipe e Equipamentos copiados do RDO anterior!");
@@ -335,7 +332,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                 <div className="flex items-center h-10 px-3 rounded-xl bg-white border border-transparent shadow-sm font-bold text-foreground">
                     {format(displayDate, "dd 'de' MMMM, yyyy", { locale: ptBR })}
                 </div>
-                {/* Hidden input to keep form logic working if needed, though we use defaultValues */}
             </div>
 
             <FormField
@@ -561,9 +557,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                         <div className="space-y-3">
                             <FormField control={methods.control} name="signer_name" render={({ field }) => (
                                 <FormItem><FormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Nome Completo</FormLabel><FormControl><Input placeholder="Engenheiro / Mestre" {...field} value={field.value || ""} className="rounded-xl h-9 bg-white" /></FormControl></FormItem>
-                            )} />
-                            <FormField control={methods.control} name="signer_registration" render={({ field }) => (
-                                <FormItem><FormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Registro (CREA/CAU)</FormLabel><FormControl><Input placeholder="Opcional" {...field} value={field.value || ""} className="rounded-xl h-9 bg-white" /></FormControl></FormItem>
                             )} />
                         </div>
                         <div className="mt-4">
