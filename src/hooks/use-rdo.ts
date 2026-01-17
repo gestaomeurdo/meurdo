@@ -46,12 +46,14 @@ export interface RdoMaterial {
 // --- Main RDO Type ---
 export type RdoStatusDia = 'Operacional' | 'Parcialmente Paralisado' | 'Totalmente Paralisado - Não Praticável';
 export type RdoClima = 'Sol' | 'Nublado' | 'Chuva Leve' | 'Chuva Forte';
+export type RdoPeriodo = 'Integral' | 'Manhã' | 'Tarde' | 'Noite';
 
 export interface DiarioObra {
   id: string;
   obra_id: string;
   user_id: string;
   data_rdo: string;
+  periodo: RdoPeriodo;
   clima_condicoes: RdoClima | null;
   status_dia: RdoStatusDia;
   observacoes_gerais: string | null;
@@ -68,6 +70,8 @@ export interface DiarioObra {
   safety_epi: boolean;
   safety_cleaning: boolean;
   safety_dds: boolean;
+  safety_comments: string | null;
+  safety_photo_url: string | null;
   
   // Signatures
   signer_name: string | null;
@@ -114,6 +118,7 @@ const fetchRdoList = async (obraId: string): Promise<DiarioObra[]> => {
       id,
       obra_id,
       data_rdo,
+      periodo,
       clima_condicoes,
       status_dia,
       user_id,
@@ -170,6 +175,7 @@ export const fetchPreviousRdo = async (obraId: string, currentDate: Date): Promi
 export interface RdoInput {
   obra_id: string;
   data_rdo: string;
+  periodo: RdoPeriodo;
   clima_condicoes: RdoClima | null;
   status_dia: RdoStatusDia;
   observacoes_gerais: string | null;
@@ -184,6 +190,8 @@ export interface RdoInput {
   safety_epi: boolean;
   safety_cleaning: boolean;
   safety_dds: boolean;
+  safety_comments?: string | null;
+  safety_photo_url?: string | null;
 
   // Signer
   signer_name?: string | null;

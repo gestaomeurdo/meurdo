@@ -8,8 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { showSuccess, showError } from "@/utils/toast";
-import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, UserCheck, CalendarIcon, Sun, AlertOctagon, Clock, Copy, RefreshCw } from "lucide-react";
-import { DiarioObra, RdoClima, RdoStatusDia, useCreateRdo, useUpdateRdo, WorkforceType } from "@/hooks/use-rdo";
+import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, UserCheck, CalendarIcon, Sun, AlertOctagon, Clock, Copy, RefreshCw, Upload, Image as ImageIcon, X, Handshake } from "lucide-react";
+import { DiarioObra, RdoClima, RdoStatusDia, useCreateRdo, useUpdateRdo, WorkforceType, RdoPeriodo } from "@/hooks/use-rdo";
 import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
 import RdoEquipmentForm from "./RdoEquipmentForm";
@@ -24,13 +24,14 @@ import { useAuth } from "@/integrations/supabase/auth-provider";
 import UpgradeModal from "../subscription/UpgradeModal";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { Label } from "@/components/ui/label";
 
 const statusOptions: RdoStatusDia[] = ['Operacional', 'Parcialmente Paralisado', 'Totalmente Paralisado - Não Praticável'];
 const climaOptions: RdoClima[] = ['Sol', 'Nublado', 'Chuva Leve', 'Chuva Forte'];
+const periodoOptions: RdoPeriodo[] = ['Integral', 'Manhã', 'Tarde', 'Noite'];
 const workforceTypes: WorkforceType[] = ['Própria', 'Terceirizada'];
 
 const RdoDetailSchema = z.object({
@@ -63,6 +64,7 @@ const MaterialSchema = z.object({
 const RdoSchema = z.object({
   obra_id: z.string().uuid("Obra inválida."),
   data_rdo: z.date({ required_error: "A data é obrigatória." }),
+  periodo: z.enum(periodoOptions).default('Integral'),
   clima_condicoes: z.enum(climaOptions).nullable().optional(),
   status_dia: z.enum(statusOptions, { required_error: "O status do dia é obrigatório." }),
   observacoes_gerais: z.string().nullable().optional(),
@@ -77,6 +79,8 @@ const RdoSchema = z.object({
   safety_epi: z.boolean().default(false),
   safety_cleaning: z.boolean().default(false),
   safety_dds: z.boolean().default(false),
+  safety_comments: z.string().nullable().optional(),
+  safety_photo_url: z.string().nullable().optional(),
   atividades: z.array(RdoDetailSchema).min(1, "Registre ao menos 1 atividade para salvar."),
   mao_de_obra: z.array(ManpowerSchema).optional(),
   equipamentos: z.array(EquipmentSchema).optional(),
@@ -102,6 +106,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
   const updateMutation = useUpdateRdo();
   const { data: obras } = useObras();
   const obraNome = obras?.find(o => o.id === obraId)?.nome || "Obra";
+  const [isUploadingSafety, setIsUploadingSafety] = useState(false);
 
   const methods = useForm<RdoFormValues>({
     resolver: zodResolver(RdoSchema),
@@ -110,6 +115,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
       data_rdo: initialData?.data_rdo 
         ? new Date(initialData.data_rdo + 'T12:00:00') 
         : (selectedDate || new Date()),
+      periodo: initialData?.periodo || 'Integral',
       clima_condicoes: initialData?.clima_condicoes || undefined,
       status_dia: initialData?.status_dia || 'Operacional',
       observacoes_gerais: initialData?.observacoes_gerais || "",
@@ -124,6 +130,8 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
       safety_epi: initialData?.safety_epi || false,
       safety_cleaning: initialData?.safety_cleaning || false,
       safety_dds: initialData?.safety_dds || false,
+      safety_comments: initialData?.safety_comments || "",
+      safety_photo_url: initialData?.safety_photo_url || null,
       atividades: initialData?.rdo_atividades_detalhe?.map(a => ({
         descricao_servico: a.descricao_servico,
         avanco_percentual: a.avanco_percentual,
@@ -143,7 +151,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
       materiais: initialData?.rdo_materiais?.map(m => ({
         nome_material: m.nome_material,
         unidade: m.unidade,
-        quantidade_entrada: m.quantidade_entrada,
+        quantidade_entrada: m.quantidade_entrada || 0,
         quantidade_consumida: m.quantidade_consumida,
         observacao: m.observacao,
       })) || [],
@@ -156,6 +164,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
     name: "mao_de_obra",
   });
   const workStopped = methods.watch("work_stopped");
+  const safetyPhotoUrl = methods.watch("safety_photo_url");
 
   const estimatedDailyCost = useMemo(() => {
     return maoDeObra?.reduce((sum, item) => {
@@ -167,10 +176,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
 
   const handleCopyPrevious = () => {
     if (!previousRdoData) return;
-
-    // Map previous data fields to form structure
-    // We primarily copy Manpower and Equipment as these are usually constant.
-    // Activities and Materials are usually different each day.
     
     const previousManpower = previousRdoData.rdo_mao_de_obra?.map(m => ({
         funcao: m.funcao,
@@ -185,11 +190,9 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
         horas_paradas: e.horas_paradas,
     })) || [];
 
-    // Update form values
     methods.setValue('mao_de_obra', previousManpower, { shouldDirty: true, shouldValidate: true });
     methods.setValue('equipamentos', previousEquipment, { shouldDirty: true, shouldValidate: true });
     
-    // Optional: Copy Signer info if available
     if ((previousRdoData as any).signer_name) {
         methods.setValue('signer_name', (previousRdoData as any).signer_name);
         methods.setValue('signer_registration', (previousRdoData as any).signer_registration);
@@ -210,6 +213,35 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
       generateRdoPdf(currentData, obraNome, profile);
     } else {
       showError("Salve o RDO antes de exportar.");
+    }
+  };
+
+  const handleSafetyFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingSafety(true);
+    
+    try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `safety-${obraId}-${Date.now()}.${fileExt}`;
+        const filePath = `rdo_safety/${obraId}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from('documentos_financeiros')
+            .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: publicUrlData } = supabase.storage
+            .from('documentos_financeiros')
+            .getPublicUrl(filePath);
+
+        methods.setValue('safety_photo_url', publicUrlData.publicUrl, { shouldDirty: true });
+        showSuccess("Foto de segurança anexada!");
+    } catch (error) {
+        showError("Erro no upload da foto.");
+    } finally {
+        setIsUploadingSafety(false);
     }
   };
 
@@ -242,6 +274,8 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
     }
   };
 
+  const displayDate = selectedDate || initialData?.data_rdo ? new Date((initialData?.data_rdo || selectedDate) as any) : new Date();
+
   return (
     <FormProvider {...methods}>
       <form onSubmit={methods.handleSubmit(onSubmit, onInvalid)} className="space-y-6">
@@ -263,7 +297,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                         className="w-full sm:w-auto border-primary/30 text-primary hover:bg-primary/5"
                     >
                         <Copy className="w-4 h-4 mr-2" />
-                        Copiar Equipe e Máquinas do Dia Anterior
+                        Copiar Equipe e Máquinas do Último RDO
                     </Button>
                 </div>
             )}
@@ -290,48 +324,26 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
             </div>
         </div>
 
-        {/* Informações Gerais (Data, Clima, Status) */}
+        {/* Informações Gerais */}
         <Card className="border-none shadow-clean bg-accent/20">
           <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <FormField
-              control={methods.control}
-              name="data_rdo"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1"><CalendarIcon className="w-3 h-3" /> Data do RDO</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn("w-full pl-3 text-left font-normal rounded-xl bg-white border-none shadow-sm", !field.value && "text-muted-foreground")}
-                        >
-                          {field.value ? format(field.value, "dd 'de' MMMM, yyyy", { locale: ptBR }) : <span>Selecione</span>}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Display Date as Read-only */}
+            <div className="flex flex-col space-y-2">
+                <Label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
+                    <CalendarIcon className="w-3 h-3" /> Data do Registro
+                </Label>
+                <div className="flex items-center h-10 px-3 rounded-xl bg-white border border-transparent shadow-sm font-bold text-foreground">
+                    {format(displayDate, "dd 'de' MMMM, yyyy", { locale: ptBR })}
+                </div>
+                {/* Hidden input to keep form logic working if needed, though we use defaultValues */}
+            </div>
 
             <FormField
               control={methods.control}
-              name="status_dia"
+              name="periodo"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1"><AlertOctagon className="w-3 h-3" /> Status Operacional</FormLabel>
+                  <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Período</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger className="rounded-xl bg-white border-none shadow-sm">
@@ -339,7 +351,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {statusOptions.map(option => (
+                      {periodoOptions.map(option => (
                         <SelectItem key={option} value={option}>{option}</SelectItem>
                       ))}
                     </SelectContent>
@@ -372,17 +384,41 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
               )}
             />
           </CardContent>
+          
           {/* Paralisação */}
-          <div className="px-4 pb-4 border-t border-muted-foreground/10 pt-3 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+          <div className="px-4 pb-4 pt-0 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+             <FormField
+                control={methods.control}
+                name="status_dia"
+                render={({ field }) => (
+                  <FormItem className="flex-1 w-full">
+                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1 mb-1.5"><AlertOctagon className="w-3 h-3" /> Status Operacional</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="rounded-xl bg-white border-none shadow-sm w-full">
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {statusOptions.map(option => (
+                          <SelectItem key={option} value={option}>{option}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+             
              <FormField
                 control={methods.control}
                 name="work_stopped"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                  <FormItem className="flex flex-row items-center gap-2 space-y-0 mt-6 bg-white p-2 rounded-xl px-4 shadow-sm">
                     <FormControl>
                       <Switch checked={field.value} onCheckedChange={field.onChange} />
                     </FormControl>
-                    <FormLabel className="font-medium text-sm cursor-pointer text-muted-foreground">Houve paralisação?</FormLabel>
+                    <FormLabel className="font-bold text-xs cursor-pointer text-muted-foreground uppercase">Houve paralisação?</FormLabel>
                   </FormItem>
                 )}
               />
@@ -391,10 +427,10 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                   control={methods.control}
                   name="hours_lost"
                   render={({ field }) => (
-                    <FormItem className="flex items-center gap-2 space-y-0 animate-in fade-in slide-in-from-left-2">
+                    <FormItem className="flex items-center gap-2 space-y-0 mt-6 animate-in fade-in slide-in-from-left-2">
                       <FormLabel className="whitespace-nowrap text-xs font-bold uppercase text-destructive flex items-center gap-1"><Clock className="w-3 h-3" /> Horas Perdidas</FormLabel>
                       <FormControl>
-                        <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} className="w-20 h-8 rounded-lg bg-white border-destructive/30" />
+                        <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} className="w-20 h-10 rounded-xl bg-white border-destructive/30 font-bold" />
                       </FormControl>
                     </FormItem>
                   )}
@@ -433,23 +469,63 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  { name: "safety_nr35", label: "NR-35 (Altura)", desc: "Cintos e ancoragem OK." },
-                  { name: "safety_epi", label: "Uso de EPIs", desc: "Equipe 100% protegida." },
-                  { name: "safety_cleaning", label: "Organização", desc: "Canteiro limpo." },
-                  { name: "safety_dds", label: "DDS Realizado", desc: "Instrução matinal feita." },
-                ].map((item) => (
-                  <FormField key={item.name} control={methods.control} name={item.name as any} render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-2xl border p-4 bg-white transition-all hover:border-primary/50">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-sm font-bold uppercase">{item.label}</FormLabel>
-                        <FormDescription className="text-[10px]">{item.desc}</FormDescription>
-                      </div>
-                      <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                    </FormItem>
-                  )} />
-                ))}
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    { name: "safety_nr35", label: "Treinamentos", desc: "Equipe treinada e orientada." },
+                    { name: "safety_epi", label: "Uso de EPIs", desc: "Equipe 100% protegida." },
+                    { name: "safety_cleaning", label: "Organização", desc: "Canteiro limpo." },
+                    { name: "safety_dds", label: "DDS Realizado", desc: "Instrução matinal feita." },
+                  ].map((item) => (
+                    <FormField key={item.name} control={methods.control} name={item.name as any} render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-2xl border p-4 bg-white transition-all hover:border-primary/50">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-sm font-bold uppercase">{item.label}</FormLabel>
+                          <FormDescription className="text-[10px]">{item.desc}</FormDescription>
+                        </div>
+                        <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                      </FormItem>
+                    )} />
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField control={methods.control} name="safety_comments" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="text-xs uppercase font-bold text-muted-foreground">Observações de Segurança</FormLabel>
+                            <FormControl>
+                                <Textarea {...field} value={field.value || ""} rows={4} className="rounded-xl resize-none" placeholder="Registro de ocorrências, faltas de EPI ou observações do técnico de segurança..." />
+                            </FormControl>
+                        </FormItem>
+                    )} />
+
+                    <div className="space-y-3">
+                        <Label className="text-xs uppercase font-bold text-muted-foreground">Foto de Segurança / DDS</Label>
+                        <div className="flex items-center gap-4">
+                            {safetyPhotoUrl ? (
+                                <div className="relative w-full h-32 rounded-xl overflow-hidden border bg-muted group">
+                                    <img src={safetyPhotoUrl} alt="Safety" className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                        <a href={safetyPhotoUrl} target="_blank" rel="noreferrer" className="p-2 bg-white/20 rounded-full text-white hover:bg-white/40"><ImageIcon className="w-4 h-4" /></a>
+                                        <button type="button" onClick={() => methods.setValue('safety_photo_url', null, { shouldDirty: true })} className="p-2 bg-red-500/80 rounded-full text-white hover:bg-red-600"><X className="w-4 h-4" /></button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer hover:bg-accent/50 transition-colors bg-muted/10">
+                                    {isUploadingSafety ? (
+                                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                                    ) : (
+                                        <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                                            <Upload className="w-6 h-6" />
+                                            <span className="text-xs font-bold uppercase">Upload Foto</span>
+                                        </div>
+                                    )}
+                                    <input type="file" className="hidden" accept="image/*" onChange={handleSafetyFileUpload} disabled={isUploadingSafety} />
+                                </label>
+                            )}
+                        </div>
+                    </div>
+                </div>
               </div>
             )}
           </TabsContent>
@@ -458,13 +534,12 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
           <TabsContent value="materiais" className="pt-4"><RdoMaterialsForm /></TabsContent>
           <TabsContent value="ocorrencias" className="pt-4 space-y-4">
             <FormField control={methods.control} name="impedimentos_comentarios" render={({ field }) => (
-              <FormItem><FormLabel className="text-xs uppercase font-bold text-muted-foreground">Impedimentos / Ocorrências</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={3} className="rounded-xl" /></FormControl></FormItem>
+              <FormItem><FormLabel className="text-xs uppercase font-bold text-muted-foreground">Impedimentos / Ocorrências Gerais</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={5} className="rounded-xl" placeholder="Descreva aqui qualquer fato relevante do dia..." /></FormControl></FormItem>
             )} />
           </TabsContent>
         </Tabs>
 
-        <div className="pt-6 border-t space-y-4">
-          <div className="flex items-center gap-2"><UserCheck className="w-5 h-5 text-primary" /><h2 className="text-lg font-black uppercase tracking-tight">Assinatura do Responsável</h2></div>
+        <div className="pt-6 border-t space-y-6">
           {!isPro ? (
             <div 
                 className="border-2 border-dashed border-muted rounded-3xl p-8 text-center cursor-pointer hover:bg-muted/50 transition-all flex flex-col items-center gap-3"
@@ -475,17 +550,39 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                 <Button size="sm" variant="outline" className="rounded-xl px-6">Ver Benefícios</Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                    <FormField control={methods.control} name="signer_name" render={({ field }) => (
-                        <FormItem><FormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Nome do Engenheiro / RT</FormLabel><FormControl><Input placeholder="Nome Completo" {...field} value={field.value || ""} className="rounded-xl" /></FormControl></FormItem>
-                    )} />
-                    <FormField control={methods.control} name="signer_registration" render={({ field }) => (
-                        <FormItem><FormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Registro Profissional (CREA/CAU)</FormLabel><FormControl><Input placeholder="Número do Registro" {...field} value={field.value || ""} className="rounded-xl" /></FormControl></FormItem>
-                    )} />
+            <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Responsável */}
+                    <div className="space-y-4 p-4 border rounded-2xl bg-slate-50">
+                        <div className="flex items-center gap-2 mb-2">
+                            <UserCheck className="w-5 h-5 text-primary" />
+                            <h3 className="text-sm font-black uppercase tracking-tight">Responsável Técnico</h3>
+                        </div>
+                        <div className="space-y-3">
+                            <FormField control={methods.control} name="signer_name" render={({ field }) => (
+                                <FormItem><FormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Nome Completo</FormLabel><FormControl><Input placeholder="Engenheiro / Mestre" {...field} value={field.value || ""} className="rounded-xl h-9 bg-white" /></FormControl></FormItem>
+                            )} />
+                            <FormField control={methods.control} name="signer_registration" render={({ field }) => (
+                                <FormItem><FormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Registro (CREA/CAU)</FormLabel><FormControl><Input placeholder="Opcional" {...field} value={field.value || ""} className="rounded-xl h-9 bg-white" /></FormControl></FormItem>
+                            )} />
+                        </div>
+                        <div className="mt-4">
+                            <RdoSignaturePad diarioId={initialData?.id || 'new'} obraId={obraId} currentSignatureUrl={methods.watch('responsible_signature_url') || null} onSignatureSave={(url) => methods.setValue('responsible_signature_url', url, { shouldDirty: true })} />
+                        </div>
+                    </div>
+
+                    {/* Cliente */}
+                    <div className="space-y-4 p-4 border rounded-2xl bg-slate-50">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Handshake className="w-5 h-5 text-primary" />
+                            <h3 className="text-sm font-black uppercase tracking-tight">Visto do Cliente / Fiscal</h3>
+                        </div>
+                        <div className="mt-4 pt-16"> {/* Spacer to align pads approximately */}
+                            <RdoSignaturePad diarioId={initialData?.id || 'new-client'} obraId={obraId} currentSignatureUrl={methods.watch('client_signature_url') || null} onSignatureSave={(url) => methods.setValue('client_signature_url', url, { shouldDirty: true })} />
+                        </div>
+                    </div>
                 </div>
-                <RdoSignaturePad diarioId={initialData?.id || 'new'} obraId={obraId} currentSignatureUrl={methods.watch('responsible_signature_url') || null} onSignatureSave={(url) => methods.setValue('responsible_signature_url', url, { shouldDirty: true })} />
-            </div>
+            </>
           )}
         </div>
       </form>

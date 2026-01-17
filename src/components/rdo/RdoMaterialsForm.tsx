@@ -19,7 +19,7 @@ const RdoMaterialsForm = () => {
         <h3 className="text-lg font-semibold">Controle de Materiais do Dia</h3>
         <div className="text-sm font-medium text-muted-foreground flex items-center">
             <Package className="w-4 h-4 mr-2" />
-            Entrada e Consumo de Materiais
+            Registro de Consumo
         </div>
       </div>
 
@@ -36,7 +36,7 @@ const RdoMaterialsForm = () => {
           </Button>
 
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-            <div className="md:col-span-4">
+            <div className="md:col-span-5">
               <Label className="text-xs uppercase text-muted-foreground">Nome do Material</Label>
               <Input
                 placeholder="Ex: Cimento CP V"
@@ -44,7 +44,7 @@ const RdoMaterialsForm = () => {
                 className="bg-background"
               />
             </div>
-            <div className="md:col-span-2">
+            <div className="md:col-span-3">
               <Label className="text-xs uppercase text-muted-foreground">Unidade</Label>
               <Input
                 placeholder="Ex: Saco, m3, un"
@@ -52,17 +52,7 @@ const RdoMaterialsForm = () => {
                 className="bg-background"
               />
             </div>
-            <div className="md:col-span-3">
-              <Label className="text-xs uppercase text-muted-foreground">Qtd. Entrada (Chegou)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                {...control.register(`materiais.${index}.quantidade_entrada`, { valueAsNumber: true })}
-                min={0}
-                className="bg-background"
-              />
-            </div>
-            <div className="md:col-span-3">
+            <div className="md:col-span-4">
               <Label className="text-xs uppercase text-muted-foreground">Qtd. Consumida</Label>
               <Input
                 type="number"
@@ -77,7 +67,7 @@ const RdoMaterialsForm = () => {
           <div>
             <Label className="text-xs uppercase text-muted-foreground">Observação (Opcional)</Label>
             <Textarea
-              placeholder="Fornecedor, nota fiscal, etc."
+              placeholder="Onde foi usado? (Ex: Concretagem da laje)"
               {...control.register(`materiais.${index}.observacao`)}
               rows={1}
               className="bg-background"
@@ -87,7 +77,7 @@ const RdoMaterialsForm = () => {
       ))}
 
       <Button type="button" variant="outline" className="w-full border-dashed py-6 hover:bg-primary/5 hover:text-primary transition-all" onClick={() => append({ nome_material: "", unidade: "", quantidade_entrada: 0, quantidade_consumida: 0, observacao: null })}>
-        <Plus className="w-4 h-4 mr-2" /> Adicionar Material
+        <Plus className="w-4 h-4 mr-2" /> Adicionar Material Consumido
       </Button>
     </div>
   );
