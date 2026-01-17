@@ -9,8 +9,6 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
 import { cn } from "@/lib/utils";
-import { useAtividades } from "@/hooks/use-atividades";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface RdoActivitiesFormProps {
   obraId: string;
@@ -23,7 +21,6 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
     name: "atividades",
   });
 
-  const { data: atividadesCronograma } = useAtividades(obraId);
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
 
   const handleFileUpload = async (file: File, index: number) => {
@@ -53,10 +50,6 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
     }
   };
 
-  const handleSelectActivity = (index: number, value: string) => {
-    setValue(`atividades.${index}.descricao_servico`, value, { shouldValidate: true, shouldDirty: true });
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between border-b pb-2">
@@ -69,10 +62,6 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
 
       {fields.map((field, index) => {
         const photoUrl = watch(`atividades.${index}.foto_anexo_url`);
-        const currentDesc = watch(`atividades.${index}.descricao_servico`);
-
-        // Check if the current description matches any item in the schedule
-        const selectedValue = atividadesCronograma?.some(a => a.descricao === currentDesc) ? currentDesc : undefined;
 
         return (
           <div key={field.id} className="p-4 border rounded-xl space-y-4 bg-secondary/5">
@@ -85,26 +74,9 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
               <div className="md:col-span-8 space-y-2">
-                <Label className="text-[10px] uppercase font-bold text-muted-foreground">O que foi trabalhado?</Label>
-                {atividadesCronograma && atividadesCronograma.length > 0 && (
-                    <Select 
-                        value={selectedValue}
-                        onValueChange={(val) => handleSelectActivity(index, val)}
-                    >
-                        <SelectTrigger className="bg-background h-10">
-                            <SelectValue placeholder="Selecione do cronograma..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {atividadesCronograma.map(atv => (
-                                <SelectItem key={atv.id} value={atv.descricao}>
-                                    {atv.descricao} ({atv.etapa})
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                )}
+                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Descrição do Serviço / Observações</Label>
                 <Textarea
-                  placeholder="Ou descreva o serviço manualmente..."
+                  placeholder="Descreva o serviço realizado..."
                   {...register(`atividades.${index}.descricao_servico`)}
                   rows={2}
                   className="bg-background mt-2"
@@ -124,17 +96,6 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
                     <span className="font-bold text-lg text-primary">%</span>
                 </div>
               </div>
-            </div>
-
-            {/* Novo Campo de Observação */}
-            <div>
-                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Observações / Detalhes (Opcional)</Label>
-                <Textarea
-                  placeholder="Ex: Serviço paralisado por chuva..."
-                  {...register(`atividades.${index}.observacao`)}
-                  rows={1}
-                  className="bg-background mt-1 text-sm"
-                />
             </div>
 
             <div className="flex items-center gap-3 pt-2">
