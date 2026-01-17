@@ -27,24 +27,24 @@ const Login = () => {
                     brand: 'hsl(var(--primary))',
                     brandAccent: 'hsl(var(--primary))',
                     inputBorderFocus: 'hsl(var(--primary))',
-                    // Garante que o botão use o azul corporativo #066abc
                     defaultButtonBackground: 'hsl(var(--primary))',
-                    defaultButtonBackgroundHover: 'hsl(var(--primary-foreground))', // Use white for hover background
+                    defaultButtonBackgroundHover: 'hsl(var(--primary))',
                     defaultButtonBorder: 'hsl(var(--primary))',
-                    defaultButtonText: 'hsl(var(--primary-foreground))',
+                    defaultButtonText: 'white',
                     anchorTextColor: 'hsl(var(--primary))',
                     anchorTextHoverColor: 'hsl(var(--primary))',
                   },
                   radii: {
-                    buttonRadius: '0.75rem', // Rounded-xl
-                    inputRadius: '0.75rem', // Rounded-xl
-                    containerRadius: '1rem', // Rounded-2xl
+                    buttonRadius: '0.75rem',
+                    inputRadius: '0.75rem',
+                    containerRadius: '1rem',
                   },
                 },
               },
             }}
             theme="light"
             view="sign_in"
+            showLinks={true}
             onlyAllowIf={['sign_in', 'sign_up', 'forgotten_password']}
             localization={{
               variables: {
@@ -56,35 +56,19 @@ const Login = () => {
                 sign_in: {
                   email_label: 'E-mail',
                   password_label: 'Senha',
-                  button_label: 'Entrar',
-                  link_text: 'Não tem uma conta? Cadastre-se',
+                  button_label: 'Entrar Agora',
+                  link_text: 'Não tem uma conta? Cadastre-se agora',
                   forgotten_password_link_text: 'Esqueceu sua senha?',
-                  email_input_placeholder: 'Seu endereço de e-mail', // Novo placeholder
-                  password_input_placeholder: 'Sua senha', // Novo placeholder
+                  email_input_placeholder: 'Seu e-mail profissional',
+                  password_input_placeholder: 'Sua senha segura',
                 },
                 sign_up: {
                   email_label: 'E-mail',
-                  password_label: 'Senha',
-                  button_label: 'Criar Conta',
-                  link_text: 'Já tem uma conta? Entrar',
-                  email_input_placeholder: 'Seu endereço de e-mail', // Novo placeholder
-                  password_input_placeholder: 'Sua senha', // Novo placeholder
-                },
-                forgotten_password: {
-                  email_label: 'E-mail',
-                  button_label: 'Enviar instruções de recuperação',
-                  link_text: 'Esqueceu sua senha?',
-                  email_input_placeholder: 'Seu endereço de e-mail', // Novo placeholder
-                },
-                update_password: {
-                  password_label: 'Nova Senha',
-                  button_label: 'Atualizar Senha',
-                },
-                magic_link: {
-                  email_label: 'E-mail',
-                  button_label: 'Enviar Link Mágico',
-                  link_text: 'Entrar com Link Mágico',
-                  email_input_placeholder: 'Seu endereço de e-mail', // Novo placeholder
+                  password_label: 'Crie uma Senha',
+                  button_label: 'Criar Minha Conta',
+                  link_text: 'Já possui conta? Clique para entrar',
+                  email_input_placeholder: 'Seu e-mail profissional',
+                  password_input_placeholder: 'Mínimo 6 caracteres',
                 },
               },
             }}
