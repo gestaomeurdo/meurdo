@@ -3,12 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, Upload, Loader2, Image as ImageIcon, CheckSquare, X } from "lucide-react";
+import { Plus, Trash2, Upload, Loader2, Image as ImageIcon, CheckSquare, X, ListTodo } from "lucide-react";
 import { RdoInput } from "@/hooks/use-rdo";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
 import { cn } from "@/lib/utils";
+import { useAtividades } from "@/hooks/use-atividades";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface RdoActivitiesFormProps {
   obraId: string;
@@ -21,6 +23,7 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
     name: "atividades",
   });
 
+  const { data: atividadesCronograma } = useAtividades(obraId);
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
 
   const handleFileUpload = async (file: File, index: number) => {
@@ -50,6 +53,14 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
     }
   };
 
+  const handleSelectActivity = (index: number, value: string) => {
+    // Finds the activity to get the full description if needed, or just uses the value
+    const activity = atividadesCronograma?.find(a => a.descricao === value);
+    const textToSet = activity ? activity.descricao : value;
+    
+    setValue(`atividades.${index}.descricao_servico`, textToSet, { shouldValidate: true, shouldDirty: true });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between border-b pb-2">
@@ -62,6 +73,10 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
 
       {fields.map((field, index) => {
         const photoUrl = watch(`atividades.${index}.foto_anexo_url`);
+        const currentDesc = watch(`atividades.${index}.descricao_servico`);
+
+        // Determine if the current description matches a schedule item
+        const selectedValue = atividadesCronograma?.some(a => a.descricao === currentDesc) ? currentDesc : undefined;
 
         return (
           <div key={field.id} className="p-4 border rounded-xl space-y-4 bg-secondary/5">
@@ -74,12 +89,36 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
               <div className="md:col-span-8 space-y-2">
-                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Descrição do Serviço / Observações</Label>
+                <Label className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                    <ListTodo className="w-3 h-3" /> Selecionar do Cronograma (Opcional)
+                </Label>
+                
+                {atividadesCronograma && atividadesCronograma.length > 0 && (
+                    <Select 
+                        value={selectedValue} 
+                        onValueChange={(val) => handleSelectActivity(index, val)}
+                    >
+                        <SelectTrigger className="bg-white h-9 text-xs border-primary/20 focus:ring-primary/20">
+                            <SelectValue placeholder="Toque para selecionar uma atividade..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {atividadesCronograma.map(atv => (
+                                <SelectItem key={atv.id} value={atv.descricao} className="text-xs">
+                                    {atv.descricao} {atv.etapa && <span className="text-muted-foreground ml-1">({atv.etapa})</span>}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
+
+                <Label className="text-[10px] uppercase font-bold text-muted-foreground mt-2 block">
+                    Descrição do Serviço / Detalhes
+                </Label>
                 <Textarea
-                  placeholder="Descreva o serviço realizado..."
+                  placeholder="Descreva o serviço realizado ou ajuste o texto..."
                   {...register(`atividades.${index}.descricao_servico`)}
                   rows={2}
-                  className="bg-background mt-2"
+                  className="bg-background"
                 />
               </div>
               <div className="md:col-span-4">
