@@ -2,7 +2,7 @@ import { useFieldArray, useFormContext } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, Search, DollarSign, Clock } from "lucide-react";
+import { Plus, Trash2, Search, DollarSign } from "lucide-react";
 import { useMaquinas } from "@/hooks/use-maquinas";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCurrency } from "@/utils/formatters";
@@ -18,8 +18,8 @@ const RdoEquipmentForm = () => {
   const { data: maquinas } = useMaquinas();
   const equipamentos = watch("equipamentos");
 
-  const handleMachineSelect = (index: number, maquinaId: string) => {
-    const maquina = maquinas?.find(m => m.id === maquinaId);
+  const handleMachineSelect = (index: number, maquinaName: string) => {
+    const maquina = maquinas?.find(m => m.nome === maquinaName);
     if (maquina) {
         setValue(`equipamentos.${index}.equipamento`, maquina.nome);
         setValue(`equipamentos.${index}.custo_hora`, maquina.custo_hora);
@@ -64,36 +64,29 @@ const RdoEquipmentForm = () => {
                 </Button>
 
                 <div className="grid grid-cols-2 md:grid-cols-12 gap-3 items-end">
-                    {/* Seletor - 3 Colunas */}
-                    <div className="col-span-2 md:col-span-3 space-y-1">
+                    {/* Seletor - 6 Colunas (Expandido para cobrir a remoção da descrição) */}
+                    <div className="col-span-2 md:col-span-6 space-y-1">
                         <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-1">
-                            <Search className="w-3 h-3" /> Máquina
+                            <Search className="w-3 h-3" /> Máquina / Equipamento
                         </Label>
-                        <Select onValueChange={(val) => handleMachineSelect(index, val)}>
+                        <Select 
+                            value={equipamentos?.[index]?.equipamento} 
+                            onValueChange={(val) => handleMachineSelect(index, val)}
+                        >
                             <SelectTrigger className="bg-background rounded-xl border-muted-foreground/20 h-9 text-xs">
-                                <SelectValue placeholder="Escolher..." />
+                                <SelectValue placeholder="Selecione do banco..." />
                             </SelectTrigger>
                             <SelectContent>
                                 {maquinas?.map(m => (
-                                    <SelectItem key={m.id} value={m.id} className="text-xs">
+                                    <SelectItem key={m.id} value={m.nome} className="text-xs">
                                         {m.nome} ({formatCurrency(m.custo_hora)}/h)
                                     </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
                     </div>
-
-                    {/* Nome - 3 Colunas */}
-                    <div className="col-span-2 md:col-span-3 space-y-1">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground">Descrição</Label>
-                        <Input
-                            placeholder="Ex: Escavadeira"
-                            {...register(`equipamentos.${index}.equipamento`)}
-                            className="bg-background rounded-xl border-muted-foreground/20 h-9 text-xs"
-                        />
-                    </div>
                     
-                    {/* Horas Trabalhadas - 1.5 Colunas (arredondado pra 2 no grid visual mobile) */}
+                    {/* Horas Trabalhadas - 1.5 Colunas */}
                     <div className="col-span-1 md:col-span-1 space-y-1">
                         <Label className="text-[9px] md:text-[10px] font-black uppercase text-muted-foreground truncate" title="Horas Trabalhadas">
                             H. Trab.
