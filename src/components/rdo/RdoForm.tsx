@@ -1,4 +1,4 @@
-import { useForm, FormProvider } from "react-hook-form";
+import { useForm, FormProvider, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { showSuccess, showError } from "@/utils/toast";
-import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, UserCheck, CalendarIcon, Sun, AlertOctagon, Clock } from "lucide-react";
+import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, UserCheck, CalendarIcon, Sun, AlertOctagon, Clock, Copy, RefreshCw } from "lucide-react";
 import { DiarioObra, RdoClima, RdoStatusDia, useCreateRdo, useUpdateRdo, WorkforceType } from "@/hooks/use-rdo";
 import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
@@ -16,7 +16,7 @@ import RdoEquipmentForm from "./RdoEquipmentForm";
 import RdoMaterialsForm from "./RdoMaterialsForm";
 import RdoSignaturePad from "./RdoSignaturePad";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { formatCurrency } from "@/utils/formatters";
 import { generateRdoPdf } from "@/utils/rdo-pdf";
 import { useObras } from "@/hooks/use-obras";
@@ -93,7 +93,7 @@ interface RdoFormProps {
   selectedDate?: Date;
 }
 
-const RdoForm = ({ obraId, initialData, onSuccess, selectedDate }: RdoFormProps) => {
+const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate }: RdoFormProps) => {
   const { profile } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const isEditing = !!initialData;
@@ -107,7 +107,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, selectedDate }: RdoFormProps)
     resolver: zodResolver(RdoSchema),
     defaultValues: {
       obra_id: obraId,
-      // Se tiver dados iniciais, usa a data do RDO. Se não, usa a selectedDate (se houver), ou cai na data atual.
       data_rdo: initialData?.data_rdo 
         ? new Date(initialData.data_rdo + 'T12:00:00') 
         : (selectedDate || new Date()),
@@ -151,18 +150,59 @@ const RdoForm = ({ obraId, initialData, onSuccess, selectedDate }: RdoFormProps)
     },
   });
 
-  const maoDeObra = methods.watch("mao_de_obra");
+  // Use useWatch for real-time updates of nested arrays
+  const maoDeObra = useWatch({
+    control: methods.control,
+    name: "mao_de_obra",
+  });
   const workStopped = methods.watch("work_stopped");
 
   const estimatedDailyCost = useMemo(() => {
-    return maoDeObra?.reduce((sum, item) => sum + (item.quantidade * (item.custo_unitario || 0)), 0) || 0;
+    return maoDeObra?.reduce((sum, item) => {
+        const qtd = Number(item.quantidade) || 0;
+        const custo = Number(item.custo_unitario) || 0;
+        return sum + (qtd * custo);
+    }, 0) || 0;
   }, [maoDeObra]);
+
+  const handleCopyPrevious = () => {
+    if (!previousRdoData) return;
+
+    // Map previous data fields to form structure
+    // We primarily copy Manpower and Equipment as these are usually constant.
+    // Activities and Materials are usually different each day.
+    
+    const previousManpower = previousRdoData.rdo_mao_de_obra?.map(m => ({
+        funcao: m.funcao,
+        quantidade: m.quantidade,
+        custo_unitario: m.custo_unitario,
+        tipo: m.tipo || 'Própria',
+    })) || [];
+
+    const previousEquipment = previousRdoData.rdo_equipamentos?.map(e => ({
+        equipamento: e.equipamento,
+        horas_trabalhadas: e.horas_trabalhadas,
+        horas_paradas: e.horas_paradas,
+    })) || [];
+
+    // Update form values
+    methods.setValue('mao_de_obra', previousManpower, { shouldDirty: true, shouldValidate: true });
+    methods.setValue('equipamentos', previousEquipment, { shouldDirty: true, shouldValidate: true });
+    
+    // Optional: Copy Signer info if available
+    if ((previousRdoData as any).signer_name) {
+        methods.setValue('signer_name', (previousRdoData as any).signer_name);
+        methods.setValue('signer_registration', (previousRdoData as any).signer_registration);
+    }
+
+    showSuccess("Dados de Equipe e Equipamentos copiados do RDO anterior!");
+  };
 
   const handleExportPdf = () => {
     if (initialData) {
       const currentData: DiarioObra = {
         ...initialData,
-        ...methods.getValues() as any, // Pega os valores atuais do form
+        ...methods.getValues() as any, 
         rdo_mao_de_obra: methods.getValues('mao_de_obra') as any,
         rdo_materiais: methods.getValues('materiais') as any,
         rdo_atividades_detalhe: methods.getValues('atividades') as any,
@@ -176,14 +216,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, selectedDate }: RdoFormProps)
   const onInvalid = (errors: any) => {
     console.error("Erros de validação:", errors);
     if (errors.atividades) {
-      const atividadesErrors = errors.atividades;
-      if (Array.isArray(atividadesErrors)) {
-         if(atividadesErrors[0]?.descricao_servico) {
-             showError("Preencha a descrição da atividade (mínimo 5 letras).");
-             return;
-         }
-      }
-      showError("Verifique a aba 'Serviços': " + (errors.atividades.message || "Dados inválidos"));
+      showError("Verifique a aba 'Serviços': Preencha a descrição (mínimo 5 letras).");
     } else {
       showError("Verifique os campos obrigatórios em vermelho.");
     }
@@ -220,25 +253,41 @@ const RdoForm = ({ obraId, initialData, onSuccess, selectedDate }: RdoFormProps)
         />
 
         {/* Custo e Botões de Ação */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-primary/10 rounded-2xl border border-primary/20 gap-4">
-          <div className="flex items-center gap-3">
-            <div className="bg-primary p-2 rounded-lg text-primary-foreground"><DollarSign className="w-5 h-5" /></div>
-            <div>
-              <p className="text-xs font-black text-primary uppercase">Custo Estimado</p>
-              <h2 className="text-2xl font-black">{formatCurrency(estimatedDailyCost)}</h2>
-            </div>
-          </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-            {isEditing && (
-              <Button type="button" variant="outline" onClick={handleExportPdf} className="flex-1 sm:flex-none rounded-xl font-bold uppercase text-xs">
-                <FileDown className="w-4 h-4 mr-2" /> PDF
-              </Button>
+        <div className="flex flex-col gap-4">
+            {!isEditing && previousRdoData && (
+                <div className="flex justify-center bg-accent/20 p-2 rounded-xl">
+                    <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={handleCopyPrevious} 
+                        className="w-full sm:w-auto border-primary/30 text-primary hover:bg-primary/5"
+                    >
+                        <Copy className="w-4 h-4 mr-2" />
+                        Copiar Equipe e Máquinas do Dia Anterior
+                    </Button>
+                </div>
             )}
-            <Button type="submit" disabled={updateMutation.isPending || createMutation.isPending} className="flex-1 sm:flex-none rounded-xl bg-primary hover:bg-primary/90 font-bold uppercase text-xs">
-              {(updateMutation.isPending || createMutation.isPending) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-              Salvar
-            </Button>
-          </div>
+
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-primary/10 rounded-2xl border border-primary/20 gap-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-primary p-2 rounded-lg text-primary-foreground"><DollarSign className="w-5 h-5" /></div>
+                <div>
+                  <p className="text-xs font-black text-primary uppercase">Custo de Mão de Obra do Dia</p>
+                  <h2 className="text-2xl font-black">{formatCurrency(estimatedDailyCost)}</h2>
+                </div>
+              </div>
+              <div className="flex gap-2 w-full sm:w-auto">
+                {isEditing && (
+                  <Button type="button" variant="outline" onClick={handleExportPdf} className="flex-1 sm:flex-none rounded-xl font-bold uppercase text-xs">
+                    <FileDown className="w-4 h-4 mr-2" /> PDF
+                  </Button>
+                )}
+                <Button type="submit" disabled={updateMutation.isPending || createMutation.isPending} className="flex-1 sm:flex-none rounded-xl bg-primary hover:bg-primary/90 font-bold uppercase text-xs">
+                  {(updateMutation.isPending || createMutation.isPending) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                  Salvar
+                </Button>
+              </div>
+            </div>
         </div>
 
         {/* Informações Gerais (Data, Clima, Status) */}
