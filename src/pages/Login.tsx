@@ -8,8 +8,6 @@ const LOGO_URL = "https://meurdo.com.br/wp-content/uploads/2026/01/Logo-MEU-RDO-
 
 const Login = () => {
   const [view, setView] = useState<'sign_in' | 'sign_up' | 'forgotten_password'>('sign_in');
-
-  // Define o redirecionamento para o domínio atual (produção ou dev)
   const redirectUrl = window.location.origin;
 
   return (
@@ -88,6 +86,9 @@ const Login = () => {
                   confirmation_sent_label: 'Instruções enviadas para seu e-mail!',
                 },
               },
+            }}
+            additionalData={{
+              full_name: '',
             }}
           />
 

@@ -8,9 +8,8 @@ import React, {
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "./client";
 import { useNavigate } from "react-router-dom";
-import { showSuccess, showError } from "@/utils/toast";
 import { Profile, fetchProfile } from "@/hooks/use-profile";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface AuthContextType {
@@ -33,7 +32,6 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // Inicializa isPro a partir do cache para evitar flicker
   const [isPro, setIsPro] = useState<boolean>(() => {
     return localStorage.getItem(PRO_CACHE_KEY) === 'true';
   });
@@ -64,7 +62,6 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
         }
       } catch (err: any) {
         console.error("Erro na inicialização da autenticação:", err);
-        // Não define erro crítico se for apenas falha de rede temporária
       } finally {
         setIsLoading(false);
       }
@@ -85,9 +82,13 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
           }
 
           if (event === 'SIGNED_IN') {
+            // Se não for recuperação, vai pro dashboard
             navigate("/dashboard", { replace: true });
           } else if (event === 'SIGNED_OUT') {
             navigate("/login", { replace: true });
+          } else if (event === 'PASSWORD_RECOVERY') {
+            // Redireciona obrigatoriamente para troca de senha
+            navigate("/update-password", { replace: true });
           }
         }
       );
