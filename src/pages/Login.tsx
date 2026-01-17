@@ -9,6 +9,9 @@ const LOGO_URL = "https://meurdo.com.br/wp-content/uploads/2026/01/Logo-MEU-RDO-
 const Login = () => {
   const [view, setView] = useState<'sign_in' | 'sign_up' | 'forgotten_password'>('sign_in');
 
+  // Define o redirecionamento para o domínio atual (produção ou dev)
+  const redirectUrl = window.location.origin;
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-accent/30 p-4">
       <Card className="w-full max-w-md shadow-2xl border-t-4 border-t-primary rounded-2xl">
@@ -31,6 +34,7 @@ const Login = () => {
                 setView(newView as any);
               }
             }}
+            redirectTo={redirectUrl}
             providers={[]}
             appearance={{
               theme: ThemeSupa,
