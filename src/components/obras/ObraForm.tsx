@@ -90,17 +90,19 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
         showSuccess("Obra atualizada com sucesso!");
       } else {
         await createMutation.mutateAsync(payload);
-        showSuccess("Obra criada e cronograma configurado!");
+        showSuccess("Obra criada com sucesso!");
       }
+      
+      // Chamamos onSuccess para fechar o diálogo apenas após o sucesso da mutação
       onSuccess();
     } catch (error) {
+      console.error("[ObraForm] Erro na submissão:", error);
       showError(`Erro ao salvar: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
     }
   };
 
   const isLoading = createMutation.isPending || updateMutation.isPending;
 
-  // --- Step 1: Niche Selector ---
   if (step === 1 && !isEditing) {
     return (
       <div className="space-y-6 py-4">
@@ -155,7 +157,6 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
     );
   }
 
-  // --- Step 2: Main Form ---
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -163,7 +164,7 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
             <div className="flex items-center gap-2 text-xs font-bold text-[#066abc] uppercase tracking-widest mb-2">
                 <CheckCircle2 className="w-4 h-4" />
                 Modelo: {form.watch('modelo_id') === 'residencial-padrao' ? 'Residencial' : form.watch('modelo_id') === 'empresarial-galpao' ? 'Empresarial' : 'Personalizado'}
-                <button type="button" onClick={() => setStep(1)} className="ml-auto underline hover:text-primary">Alterar</button>
+                <button type="button" onClick={() => setStep(1)} className="ml-auto underline hover:text-primary" disabled={isLoading}>Alterar</button>
             </div>
         )}
 
@@ -360,7 +361,7 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
                 {isLoading ? (
                     <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Criando Obra...
+                    Salvando Dados...
                     </>
                 ) : isEditing ? (
                     "Salvar Alterações"

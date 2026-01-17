@@ -48,7 +48,7 @@ interface ObraInput {
   previsao_entrega?: string | null;
   orcamento_inicial: number;
   status: 'ativa' | 'concluida' | 'pausada';
-  modelo_id?: string; // Novo campo para seleção de nicho
+  modelo_id?: string;
 }
 
 export const useCreateObra = () => {
@@ -62,39 +62,45 @@ export const useCreateObra = () => {
       const { modelo_id, ...newObra } = newObraData;
       
       // 1. Criar a Obra
-      const { data: obra, error: obraError } = await supabase
+      const { data: createdObra, error: obraError } = await supabase
         .from('obras')
         .insert({ ...newObra, user_id: user.id })
         .select()
         .single();
 
-      if (obraError) throw new Error(obraError.message);
+      if (obraError) throw new Error(`Erro ao criar obra: ${obraError.message}`);
+      if (!createdObra) throw new Error("A obra foi criada mas os dados não foram retornados.");
 
-      // 2. Se um modelo foi selecionado, popular as atividades
+      // 2. Tentar popular as atividades se um modelo foi selecionado
       if (modelo_id) {
-        const model = ATIVIDADE_MODELS.find(m => m.id === modelo_id);
-        if (model) {
-          const activitiesToInsert = model.atividades.map(atv => ({
-            obra_id: obra.id,
-            user_id: user.id,
-            descricao: atv.descricao,
-            etapa: atv.etapa,
-            data_atividade: newObra.data_inicio,
-            status: 'Pendente',
-            progresso_atual: 0
-          }));
+        try {
+          const model = ATIVIDADE_MODELS.find(m => m.id === modelo_id);
+          if (model) {
+            const activitiesToInsert = model.atividades.map(atv => ({
+              obra_id: createdObra.id,
+              user_id: user.id,
+              descricao: atv.descricao,
+              etapa: atv.etapa,
+              data_atividade: newObra.data_inicio,
+              status: 'Pendente',
+              progresso_atual: 0
+            }));
 
-          const { error: activityError } = await supabase
-            .from('atividades_obra')
-            .insert(activitiesToInsert);
+            const { error: activityError } = await supabase
+              .from('atividades_obra')
+              .insert(activitiesToInsert);
 
-          if (activityError) {
-            console.error("Erro ao importar atividades do modelo:", activityError);
+            if (activityError) {
+              console.error("[useCreateObra] Erro ao inserir atividades do modelo:", activityError);
+              // Não travamos a criação da obra por erro nas atividades
+            }
           }
+        } catch (err) {
+          console.error("[useCreateObra] Falha crítica na geração de atividades:", err);
         }
       }
 
-      return obra;
+      return createdObra;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['obras'] });
@@ -110,18 +116,16 @@ export const useUpdateObra = () => {
   return useMutation<void, Error, Partial<ObraInput> & { id: string }>({
     mutationFn: async (payload) => {
       const { id, ...updateData } = payload;
-      // Remove campos que não pertencem à tabela obras
-      delete (updateData as any).modelo_id;
+      // Removemos modelo_id se ele vier do formulário por engano
+      const cleanedData = { ...updateData };
+      delete (cleanedData as any).modelo_id;
 
       const { error } = await supabase
         .from('obras')
-        .update(updateData)
+        .update(cleanedData)
         .eq('id', id);
 
-      if (error) {
-        console.error("[useUpdateObra] Erro:", error);
-        throw new Error(error.message);
-      }
+      if (error) throw new Error(error.message);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['obras'] });
