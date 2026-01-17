@@ -3,7 +3,7 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useObras } from "@/hooks/use-obras";
 import { useState, useEffect, useMemo } from "react";
-import { Loader2, ClipboardList, Plus, Search, ListFilter, LayoutGrid, Layers } from "lucide-react";
+import { Loader2, ClipboardList, Plus, Search, ListFilter, LayoutGrid, Layers, AlertTriangle } from "lucide-react";
 import ObraSelector from "@/components/financeiro/ObraSelector";
 import { useAtividades, useDeleteAtividade, Atividade } from "@/hooks/use-atividades";
 import AtividadeCard from "@/components/atividades/AtividadeCard";
@@ -13,14 +13,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { showSuccess, showError } from "@/utils/toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const Atividades = () => {
-  const { data: obras, isLoading: isLoadingObras } = useObras();
+  const { data: obras, isLoading: isLoadingObras, error: obrasError } = useObras();
   const [selectedObraId, setSelectedObraId] = useState<string | undefined>(undefined);
   const [filterEtapa, setFilterEtapa] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { data: atividades, isLoading: isLoadingAtividades } = useAtividades(selectedObraId || '');
+  // Só habilita a busca de atividades se houver uma obra selecionada
+  const { 
+    data: atividades, 
+    isLoading: isLoadingAtividades, 
+    error: atividadesError,
+    isError: hasAtividadesError
+  } = useAtividades(selectedObraId || '');
+  
   const deleteMutation = useDeleteAtividade();
 
   useEffect(() => {
@@ -48,11 +56,10 @@ const Atividades = () => {
       groups[etapa].push(atv);
     });
 
-    // Sort stages: those with "Preliminares" or "Fundação" usually come first
     return Object.entries(groups).sort(([a], [b]) => {
-        const order = ["Preliminares", "Fundação", "Estrutura", "Alvenaria"];
-        const indexA = order.findIndex(o => a.includes(o));
-        const indexB = order.findIndex(o => b.includes(o));
+        const order = ["Preliminares", "Fundação", "Estrutura", "Alvenaria", "Elétricas", "Hidráulicas", "Revestimento", "Acabamento"];
+        const indexA = order.findIndex(o => a.toLowerCase().includes(o.toLowerCase()));
+        const indexB = order.findIndex(o => b.toLowerCase().includes(o.toLowerCase()));
         if (indexA !== -1 && indexB !== -1) return indexA - indexB;
         if (indexA !== -1) return -1;
         if (indexB !== -1) return 1;
@@ -70,16 +77,62 @@ const Atividades = () => {
     if (!selectedObraId) return;
     try {
       await deleteMutation.mutateAsync({ id, obraId: selectedObraId });
-      showSuccess("Atividade removida do cronograma.");
+      showSuccess("Atividade removida.");
     } catch (err) {
       showError("Erro ao remover atividade.");
     }
   };
 
   const renderContent = () => {
-    if (isLoadingObras) return <div className="flex justify-center items-center py-20"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
-    if (!selectedObraId) return <div className="text-center py-20 border border-dashed rounded-2xl bg-muted/20"><ClipboardList className="w-12 h-12 mx-auto text-muted-foreground mb-4" /><p className="text-muted-foreground">Selecione uma obra para gerenciar o planejamento.</p></div>;
-    if (isLoadingAtividades) return <div className="flex justify-center items-center py-20"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+    if (isLoadingObras) {
+      return (
+        <div className="flex flex-col justify-center items-center py-20 gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-muted-foreground animate-pulse">Buscando suas obras...</p>
+        </div>
+      );
+    }
+
+    if (obrasError) {
+      return (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Erro ao carregar obras</AlertTitle>
+          <AlertDescription>Não foi possível conectar ao servidor. Tente recarregar a página.</AlertDescription>
+        </Alert>
+      );
+    }
+
+    if (!selectedObraId) {
+      return (
+        <div className="text-center py-20 border border-dashed rounded-2xl bg-muted/20">
+          <ClipboardList className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+          <h2 className="text-xl font-bold mb-2">Nenhuma obra selecionada</h2>
+          <p className="text-muted-foreground">Selecione uma obra no seletor acima para ver o cronograma.</p>
+        </div>
+      );
+    }
+
+    if (isLoadingAtividades) {
+      return (
+        <div className="flex flex-col justify-center items-center py-20 gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-muted-foreground animate-pulse">Carregando cronograma da obra...</p>
+        </div>
+      );
+    }
+
+    if (hasAtividadesError) {
+      return (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Erro no Cronograma</AlertTitle>
+          <AlertDescription>
+            {atividadesError instanceof Error ? atividadesError.message : "Erro ao buscar atividades desta obra."}
+          </AlertDescription>
+        </Alert>
+      );
+    }
 
     return (
       <div className="space-y-8">
@@ -88,7 +141,7 @@ const Atividades = () => {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
-              placeholder="Buscar por nome ou responsável..." 
+              placeholder="Buscar atividade..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 bg-background"
@@ -107,15 +160,15 @@ const Atividades = () => {
             </SelectContent>
           </Select>
           <div className="flex justify-end items-center px-2">
-            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{filteredAtividades.length} atividades</span>
+            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{filteredAtividades.length} atividades filtradas</span>
           </div>
         </div>
 
-        {filteredAtividades.length === 0 ? (
+        {atividades && atividades.length === 0 ? (
           <div className="text-center py-20 border border-dashed rounded-2xl bg-muted/10">
             <LayoutGrid className="w-12 h-12 mx-auto text-primary/20 mb-4" />
-            <h2 className="text-xl font-bold mb-2">Nenhuma atividade encontrada</h2>
-            <p className="text-muted-foreground mb-6">Cadastre manualmente ou use a importação de modelos.</p>
+            <h2 className="text-xl font-bold mb-2">Cronograma Vazio</h2>
+            <p className="text-muted-foreground mb-6">Comece agora importando um modelo técnico ou criando uma atividade.</p>
             <div className="flex justify-center gap-3">
               <AtividadeModelSelector obraId={selectedObraId} />
               <AtividadeDialog obraId={selectedObraId} />
@@ -127,7 +180,7 @@ const Atividades = () => {
                 <div key={etapa} className="space-y-4">
                     <div className="flex items-center gap-3 pb-2 border-b">
                         <Layers className="w-5 h-5 text-primary" />
-                        <h2 className="text-lg font-black uppercase tracking-tight text-[#066abc]">{etapa}</h2>
+                        <h2 className="text-lg font-black uppercase tracking-tight text-primary">{etapa}</h2>
                         <span className="text-xs font-bold px-2 py-0.5 bg-accent text-primary rounded-full">
                             {items.length}
                         </span>
