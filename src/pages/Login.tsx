@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { showSuccess, showError } from '@/utils/toast';
-import { Loader2, Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { Loader2, Mail, Lock, User } from 'lucide-react';
 
 const LOGO_URL = "https://meurdo.com.br/wp-content/uploads/2026/01/Logo-MEU-RDO-scaled.png";
 
@@ -30,6 +30,7 @@ const Login = () => {
           setLoading(false);
           return;
         }
+        // Enviando full_name para o trigger handle_new_user processar no banco
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -37,17 +38,17 @@ const Login = () => {
             data: {
               full_name: fullName,
             },
-            emailRedirectTo: window.location.origin,
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
           },
         });
         if (error) throw error;
-        showSuccess("Verifique seu e-mail para confirmar o cadastro!");
+        showSuccess("Cadastro realizado! Verifique seu e-mail para confirmar.");
       } else {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/update-password`,
+          redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
         });
         if (error) throw error;
-        showSuccess("Instruções enviadas para seu e-mail!");
+        showSuccess("Link de recuperação enviado para seu e-mail!");
       }
     } catch (error: any) {
       showError(error.message || "Ocorreu um erro na autenticação.");

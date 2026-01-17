@@ -9,8 +9,7 @@ import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "./client";
 import { useNavigate } from "react-router-dom";
 import { Profile, fetchProfile } from "@/hooks/use-profile";
-import { AlertTriangle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 
 interface AuthContextType {
   session: Session | null;
@@ -18,7 +17,6 @@ interface AuthContextType {
   profile: Profile | null;
   isLoading: boolean;
   isPro: boolean;
-  error: string | null;
   signOut: () => Promise<void>;
 }
 
@@ -31,7 +29,6 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isPro, setIsPro] = useState<boolean>(() => {
     return localStorage.getItem(PRO_CACHE_KEY) === 'true';
   });
@@ -47,10 +44,8 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
         
-        if (sessionError) throw sessionError;
-
         setSession(initialSession);
         const currentUser = initialSession?.user ?? null;
         setUser(currentUser);
@@ -60,8 +55,8 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
           setProfile(userProfile);
           updateProStatus(userProfile);
         }
-      } catch (err: any) {
-        console.error("Erro na inicialização da autenticação:", err);
+      } catch (err) {
+        console.error("Auth init error:", err);
       } finally {
         setIsLoading(false);
       }
@@ -82,7 +77,10 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
           }
 
           if (event === 'SIGNED_IN') {
-            navigate("/dashboard", { replace: true });
+            // Apenas navega se não estiver vindo de um link de recuperação
+            if (!window.location.href.includes('type=recovery')) {
+                navigate("/dashboard", { replace: true });
+            }
           } else if (event === 'SIGNED_OUT') {
             navigate("/login", { replace: true });
           } else if (event === 'PASSWORD_RECOVERY') {
@@ -102,33 +100,25 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
   }, [navigate]);
 
   const signOut = async () => {
-    try {
-      localStorage.removeItem(PRO_CACHE_KEY);
-      await supabase.auth.signOut();
-      // Garantia de redirecionamento se o evento onAuthStateChange demorar
-      navigate("/login", { replace: true });
-    } catch (err) {
-      console.error("Erro ao sair:", err);
-      // Fallback em caso de erro no SDK
-      window.location.href = "/login";
-    }
+    localStorage.removeItem(PRO_CACHE_KEY);
+    await supabase.auth.signOut();
+    navigate("/login", { replace: true });
   };
 
-  if (error) {
+  // Substituído o erro crítico por uma tela de carregamento elegante
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-6">
-        <div className="bg-destructive/10 p-6 rounded-xl border border-destructive/20 max-w-md w-full text-center space-y-4">
-          <AlertTriangle className="h-12 w-12 text-destructive mx-auto" />
-          <h2 className="text-xl font-bold text-destructive">Falha de Conexão</h2>
-          <p className="text-sm text-muted-foreground">{error}</p>
-          <Button onClick={() => window.location.reload()} className="w-full">Tentar Novamente</Button>
-        </div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground animate-pulse">
+            Sincronizando Sessão
+        </p>
       </div>
     );
   }
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, isLoading, isPro, error, signOut }}>
+    <AuthContext.Provider value={{ session, user, profile, isLoading, isPro, signOut }}>
       {children}
     </AuthContext.Provider>
   );

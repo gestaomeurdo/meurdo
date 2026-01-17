@@ -19,6 +19,7 @@ import Relatorios from "./pages/Relatorios";
 import GestaoRdo from "./pages/GestaoRdo";
 import Profile from "./pages/Profile";
 import UpdatePassword from "./pages/UpdatePassword";
+import AuthCallback from "./pages/AuthCallback";
 import { ThemeProvider } from "./components/layout/ThemeProvider";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/obras" element={<Obras />} />
               <Route path="/financeiro" element={<Financeiro />} />
