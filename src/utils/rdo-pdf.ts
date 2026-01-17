@@ -81,8 +81,48 @@ export const generateRdoPdf = async (rdo: DiarioObra, obraNome: string, profile:
   doc.setFont("helvetica", "normal");
   doc.text(rdo.status_dia, 158, y);
 
+  // --- SEGURANÇA (EXCLUSIVO PRO) ---
+  if (isPro) {
+    y += 15;
+    doc.setFontSize(11);
+    doc.setTextColor(6, 106, 188);
+    doc.setFont("helvetica", "bold");
+    doc.text("CONFORMIDADE DE SEGURANÇA", margin, y);
+    
+    y += 5;
+    const safetyData = [
+      ['ITEM DE FISCALIZAÇÃO', 'STATUS'],
+      ['NR-35 (Trabalho em Altura)', rdo.safety_nr35 ? 'CONFORME' : 'NÃO APLICÁVEL/PENDENTE'],
+      ['Uso de EPIs (Equip. Prot. Individual)', rdo.safety_epi ? 'CONFORME' : 'NÃO APLICÁVEL/PENDENTE'],
+      ['Organização e Limpeza do Canteiro', rdo.safety_cleaning ? 'CONFORME' : 'NÃO APLICÁVEL/PENDENTE'],
+      ['Treinamento DDS (Diálogo Segurança)', rdo.safety_dds ? 'REALIZADO' : 'NÃO REALIZADO']
+    ];
+
+    doc.autoTable({
+      startY: y,
+      head: [safetyData[0]],
+      body: safetyData.slice(1),
+      theme: 'grid',
+      headStyles: { fillColor: [240, 240, 240], textColor: 50 },
+      styles: { fontSize: 8, cellPadding: 2 },
+      columnStyles: {
+        1: { fontStyle: 'bold', halign: 'center' }
+      },
+      didParseCell: (data: any) => {
+        if (data.column.index === 1 && data.cell.section === 'body') {
+          if (data.cell.text[0].includes('CONFORME') || data.cell.text[0].includes('REALIZADO')) {
+            data.cell.styles.textColor = [0, 150, 0];
+          } else {
+            data.cell.styles.textColor = [150, 0, 0];
+          }
+        }
+      }
+    });
+    y = (doc as any).lastAutoTable.finalY;
+  }
+
   // --- TABELAS ---
-  y += 15;
+  y += 10;
   
   // Mão de Obra
   doc.autoTable({

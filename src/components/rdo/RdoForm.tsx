@@ -3,11 +3,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { showSuccess, showError } from "@/utils/toast";
-import { CalendarIcon, Loader2, Save, FileDown, DollarSign, CheckCircle, Trash2, CloudRain, Clock } from "lucide-react";
+import { CalendarIcon, Loader2, Save, FileDown, DollarSign, CheckCircle, Trash2, CloudRain, Clock, ShieldCheck, Zap } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -28,10 +29,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/integrations/supabase/auth-provider";
+import UpgradeButton from "../subscription/UpgradeButton";
 
 const statusOptions: RdoStatusDia[] = ['Operacional', 'Parcialmente Paralisado', 'Totalmente Paralisado - Não Praticável'];
 const climaOptions: RdoClima[] = ['Sol', 'Nublado', 'Chuva Leve', 'Chuva Forte'];
 const workforceTypes: WorkforceType[] = ['Própria', 'Terceirizada'];
+
+const ICON_URL = "https://meurdo.com.br/wp-content/uploads/2026/01/Icone.png";
 
 const RdoDetailSchema = z.object({
   descricao_servico: z.string().min(5, "Descrição é obrigatória."),
@@ -71,6 +75,13 @@ const RdoSchema = z.object({
   client_signature_url: z.string().nullable().optional(),
   work_stopped: z.boolean().default(false),
   hours_lost: z.number().min(0).max(24).default(0),
+  
+  // Safety
+  safety_nr35: z.boolean().default(false),
+  safety_epi: z.boolean().default(false),
+  safety_cleaning: z.boolean().default(false),
+  safety_dds: z.boolean().default(false),
+
   atividades: z.array(RdoDetailSchema).min(1, "Pelo menos uma atividade deve ser registrada."),
   mao_de_obra: z.array(ManpowerSchema).optional(),
   equipamentos: z.array(EquipmentSchema).optional(),
@@ -89,14 +100,12 @@ interface RdoFormProps {
 const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormProps) => {
   const { profile } = useAuth();
   const isEditing = !!initialData;
+  const isPro = profile?.subscription_status === 'active';
+  
   const createMutation = useCreateRdo();
   const updateMutation = useUpdateRdo();
-  const deleteMutation = useDeleteRdo();
-  const payRdoMutation = usePayRdo();
-  const queryClient = useQueryClient();
   const { data: obras } = useObras();
   const obraNome = obras?.find(o => o.id === obraId)?.nome || "Obra";
-  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
 
   const methods = useForm<RdoFormValues>({
     resolver: zodResolver(RdoSchema),
@@ -111,6 +120,10 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
       client_signature_url: initialData?.client_signature_url || null,
       work_stopped: initialData?.work_stopped || false,
       hours_lost: initialData?.hours_lost || 0,
+      safety_nr35: initialData?.safety_nr35 || false,
+      safety_epi: initialData?.safety_epi || false,
+      safety_cleaning: initialData?.safety_cleaning || false,
+      safety_dds: initialData?.safety_dds || false,
       atividades: initialData?.rdo_atividades_detalhe?.map(a => ({
         descricao_servico: a.descricao_servico,
         avanco_percentual: a.avanco_percentual,
@@ -137,16 +150,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
     },
   });
 
-  const rdoDateString = format(methods.watch('data_rdo'), 'yyyy-MM-dd');
-  const { data: existingPayment } = useQuery({
-    queryKey: ['rdoPaymentCheck', obraId, rdoDateString],
-    queryFn: async () => {
-      const { data } = await supabase.from('lancamentos_financeiros').select('id').eq('obra_id', obraId).eq('data_gasto', rdoDateString).ilike('descricao', 'Pagamento Mão de Obra RDO%').maybeSingle();
-      return data;
-    },
-    enabled: isEditing,
-  });
-
   const estimatedDailyCost = useMemo(() => {
     return methods.watch("mao_de_obra")?.reduce((sum, item) => sum + (item.quantidade * (item.custo_unitario || 0)), 0) || 0;
   }, [methods.watch("mao_de_obra")]);
@@ -159,6 +162,10 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
         client_signature_url: methods.watch('client_signature_url'),
         work_stopped: methods.watch('work_stopped'),
         hours_lost: methods.watch('hours_lost'),
+        safety_nr35: methods.watch('safety_nr35'),
+        safety_epi: methods.watch('safety_epi'),
+        safety_cleaning: methods.watch('safety_cleaning'),
+        safety_dds: methods.watch('safety_dds'),
         rdo_mao_de_obra: methods.getValues('mao_de_obra') as any,
         rdo_materiais: methods.getValues('materiais') as any,
         rdo_atividades_detalhe: methods.getValues('atividades') as any,
@@ -222,15 +229,75 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData }: RdoFormPro
         </div>
 
         <Tabs defaultValue="atividades" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="atividades">Atividades</TabsTrigger>
             <TabsTrigger value="mao_de_obra">Mão de Obra</TabsTrigger>
-            <TabsTrigger value="equipamentos">Equipamentos</TabsTrigger>
+            <TabsTrigger value="seguranca" className="text-[#066abc] font-bold">Segurança</TabsTrigger>
+            <TabsTrigger value="equipamentos">Equip.</TabsTrigger>
             <TabsTrigger value="materiais">Materiais</TabsTrigger>
-            <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger>
+            <TabsTrigger value="ocorrencias">Notas</TabsTrigger>
           </TabsList>
+          
           <TabsContent value="atividades" className="pt-4"><RdoActivitiesForm obraId={obraId} /></TabsContent>
           <TabsContent value="mao_de_obra" className="pt-4"><RdoManpowerForm /></TabsContent>
+          
+          <TabsContent value="seguranca" className="pt-4 space-y-6">
+            <div className="flex items-center gap-3 border-b pb-4 mb-4">
+                <img src={ICON_URL} alt="Ícone" className="h-8 object-contain" />
+                <div>
+                    <h3 className="text-xl font-black text-[#066abc] uppercase tracking-tight">Segurança do Trabalho</h3>
+                    <p className="text-xs text-muted-foreground font-medium">Fiscalização e cumprimento de normas técnicas.</p>
+                </div>
+            </div>
+
+            {!isPro ? (
+                <Card className="border-dashed border-primary/30 bg-accent/30 py-10">
+                    <CardContent className="flex flex-col items-center text-center space-y-4">
+                        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                            <ShieldCheck className="w-8 h-8 text-primary" />
+                        </div>
+                        <div className="space-y-2">
+                            <h4 className="font-bold text-lg">Checklist de Segurança Avançado</h4>
+                            <p className="text-sm text-muted-foreground max-w-md">O monitoramento de EPIs e NR-35 é um recurso exclusivo do **Plano PRO**. Garanta segurança jurídica para sua obra.</p>
+                        </div>
+                        <div className="w-full max-w-xs pt-2">
+                            <UpgradeButton />
+                        </div>
+                    </CardContent>
+                </Card>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {[
+                        { name: "safety_nr35", label: "NR-35 (Trabalho em Altura OK?)", desc: "Verificação de cintos, travas e pontos de ancoragem." },
+                        { name: "safety_epi", label: "Uso Obrigatório de EPIs OK?", desc: "Fiscalização ativa do uso de capacete, luvas e botas." },
+                        { name: "safety_cleaning", label: "Organização e Limpeza OK?", desc: "Manutenção do canteiro livre de entulhos e riscos." },
+                        { name: "safety_dds", label: "Treinamento DDS Realizado?", desc: "Diálogo Diário de Segurança com a equipe no início do turno." },
+                    ].map((item) => (
+                        <FormField
+                            key={item.name}
+                            control={methods.control}
+                            name={item.name as any}
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-2xl border p-4 bg-white shadow-sm transition-all hover:border-primary/50">
+                                    <div className="space-y-0.5">
+                                        <FormLabel className="text-sm font-bold uppercase tracking-tight">{item.label}</FormLabel>
+                                        <FormDescription className="text-[10px] leading-tight">{item.desc}</FormDescription>
+                                    </div>
+                                    <FormControl>
+                                        <Switch
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                            className="data-[state=checked]:bg-[#066abc]"
+                                        />
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
+                    ))}
+                </div>
+            )}
+          </TabsContent>
+
           <TabsContent value="equipamentos" className="pt-4"><RdoEquipmentForm /></TabsContent>
           <TabsContent value="materiais" className="pt-4"><RdoMaterialsForm /></TabsContent>
           <TabsContent value="ocorrencias" className="pt-4 space-y-4">

@@ -63,6 +63,12 @@ export interface DiarioObra {
   work_stopped: boolean;
   hours_lost: number;
   
+  // Safety Checklist
+  safety_nr35: boolean;
+  safety_epi: boolean;
+  safety_cleaning: boolean;
+  safety_dds: boolean;
+  
   rdo_atividades_detalhe?: RdoAtividadeDetalhe[];
   rdo_mao_de_obra?: RdoMaoDeObra[];
   rdo_equipamentos?: RdoEquipamento[];
@@ -163,6 +169,12 @@ export interface RdoInput {
   client_signature_url: string | null;
   work_stopped: boolean;
   hours_lost: number;
+
+  // Safety Checklist
+  safety_nr35: boolean;
+  safety_epi: boolean;
+  safety_cleaning: boolean;
+  safety_dds: boolean;
 
   atividades: Omit<RdoAtividadeDetalhe, 'id' | 'diario_id'>[];
   mao_de_obra: Omit<RdoMaoDeObra, 'id' | 'diario_id' | 'cargo_id'>[]; 
