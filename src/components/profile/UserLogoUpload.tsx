@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/integrations/supabase/auth-provider";
-import { Loader2, Upload, Trash2, CheckCircle2, ShieldCheck } from "lucide-center";
+import { Loader2, Upload, Trash2, CheckCircle2, ShieldCheck } from "lucide-react";
 import { showError, showSuccess } from "@/utils/toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
