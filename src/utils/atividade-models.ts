@@ -14,43 +14,42 @@ export interface AtividadeModel {
 export const ATIVIDADE_MODELS: AtividadeModel[] = [
   {
     id: 'residencial-padrao',
-    nome: 'Modelo Residencial Padrão',
-    descricao: 'Cronograma completo: Preliminares, Infra, Supra, Alvenaria e Acabamentos.',
+    nome: 'Modelo Residencial',
+    descricao: 'Cronograma para casas e sobrados: Fundação, Alvenaria e Acabamentos.',
     isPremium: false,
     atividades: [
-      // Serviços Preliminares
       { descricao: 'Instalação de Canteiro e Barracão', etapa: 'Serviços Preliminares' },
       { descricao: 'Locação da Obra (Gabarito)', etapa: 'Serviços Preliminares' },
-      { descricao: 'Limpeza e Terraplenagem', etapa: 'Serviços Preliminares' },
-      // Infraestrutura
       { descricao: 'Escavação de Fundações', etapa: 'Infraestrutura' },
-      { descricao: 'Armação de Ferragens (Fundação)', etapa: 'Infraestrutura' },
+      { descricao: 'Armação de Ferragens', etapa: 'Infraestrutura' },
       { descricao: 'Concretagem de Sapatas/Blocos', etapa: 'Infraestrutura' },
-      // Supraestrutura
       { descricao: 'Montagem de Pilares e Colunas', etapa: 'Supraestrutura' },
-      { descricao: 'Formas e Ferragens de Vigas', etapa: 'Supraestrutura' },
       { descricao: 'Concretagem de Lajes', etapa: 'Supraestrutura' },
-      // Alvenaria e Cobertura
-      { descricao: 'Elevação de Alvenaria (Tijolos)', etapa: 'Alvenaria e Cobertura' },
-      { descricao: 'Execução de Vergas e Contravergas', etapa: 'Alvenaria e Cobertura' },
-      { descricao: 'Montagem de Telhado e Calhas', etapa: 'Alvenaria e Cobertura' },
-      // Acabamentos
+      { descricao: 'Elevação de Alvenaria (Tijolos)', etapa: 'Alvenaria' },
+      { descricao: 'Montagem de Telhado e Calhas', etapa: 'Cobertura' },
       { descricao: 'Reboco Interno e Externo', etapa: 'Acabamentos' },
       { descricao: 'Assentamento de Pisos e Azulejos', etapa: 'Acabamentos' },
       { descricao: 'Pintura e Vernizes', etapa: 'Acabamentos' },
     ]
   },
   {
-    id: 'reforma-simples',
-    nome: 'Reforma de Interiores',
-    descricao: 'Focado em demolição, gesso e pintura.',
-    isPremium: true,
+    id: 'industrial-padrao',
+    nome: 'Modelo Empresarial/Industrial',
+    descricao: 'Foco em grandes vãos: Pré-moldados, Estrutura Metálica e Pisos de Alta Resistência.',
+    isPremium: false,
     atividades: [
-      { descricao: 'Proteção de pisos e elevadores', etapa: 'Preliminares' },
-      { descricao: 'Demolição de alvenarias e revestimentos', etapa: 'Demolição' },
-      { descricao: 'Instalações elétricas e pontos de luz', etapa: 'Instalações' },
-      { descricao: 'Nivelamento de paredes e teto (Gesso)', etapa: 'Acabamento' },
-      { descricao: 'Pintura e Texturização', etapa: 'Pintura' },
+      { descricao: 'Canteiro e Movimentação de Terra', etapa: 'Serviços Preliminares' },
+      { descricao: 'Locação e Nivelamento a Laser', etapa: 'Serviços Preliminares' },
+      { descricao: 'Fundações Profundas (Estacas)', etapa: 'Infraestrutura' },
+      { descricao: 'Montagem de Pilares Pré-moldados', etapa: 'Estrutura' },
+      { descricao: 'Içamento de Vigas de Concreto', etapa: 'Estrutura' },
+      { descricao: 'Montagem de Lajes Alveolares', etapa: 'Estrutura' },
+      { descricao: 'Montagem de Tesouras Metálicas', etapa: 'Cobertura e Fechamento' },
+      { descricao: 'Instalação de Telhas Termoacústicas', etapa: 'Cobertura e Fechamento' },
+      { descricao: 'Fechamento em Painéis de Concreto', etapa: 'Cobertura e Fechamento' },
+      { descricao: 'Preparação de Base e Sub-base', etapa: 'Piso Industrial' },
+      { descricao: 'Armadura de Malha e Juntas', etapa: 'Piso Industrial' },
+      { descricao: 'Concretagem e Polimento Mecânico', etapa: 'Piso Industrial' },
     ]
   }
 ];

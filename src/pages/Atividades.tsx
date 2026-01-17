@@ -3,9 +3,9 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useObras } from "@/hooks/use-obras";
 import { useState, useEffect, useMemo } from "react";
-import { Loader2, ClipboardList, Plus, Search, ListFilter, LayoutGrid, Layers, AlertTriangle, RefreshCcw, Construction, Zap } from "lucide-react";
+import { Loader2, ClipboardList, Plus, Search, ListFilter, LayoutGrid, Layers, RefreshCcw, Construction, CheckCircle2 } from "lucide-react";
 import ObraSelector from "@/components/financeiro/ObraSelector";
-import { useAtividades, useDeleteAtividade, Atividade, useBulkCreateAtividades } from "@/hooks/use-atividades";
+import { useAtividades, useDeleteAtividade, Atividade } from "@/hooks/use-atividades";
 import AtividadeCard from "@/components/atividades/AtividadeCard";
 import AtividadeDialog from "@/components/atividades/AtividadeDialog";
 import AtividadeModelSelector from "@/components/atividades/AtividadeModelSelector";
@@ -13,9 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { showSuccess, showError } from "@/utils/toast";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useQueryClient } from "@tanstack/react-query";
-import { ATIVIDADE_MODELS } from "@/utils/atividade-models";
 
 const Atividades = () => {
   const queryClient = useQueryClient();
@@ -28,11 +26,9 @@ const Atividades = () => {
   const { 
     data: atividades, 
     isLoading: isLoadingAtividades,
-    error: atividadesError,
   } = useAtividades(selectedObraId || '');
   
   const deleteMutation = useDeleteAtividade();
-  const bulkCreate = useBulkCreateAtividades();
 
   useEffect(() => {
     if (obras && obras.length > 0 && !selectedObraId) {
@@ -67,20 +63,12 @@ const Atividades = () => {
     return Array.from(new Set(etapas)).sort();
   }, [atividades]);
 
-  const handleImportDefaultModel = async () => {
-    if (!selectedObraId) return;
-    const model = ATIVIDADE_MODELS.find(m => m.id === 'residencial-padrao');
-    if (!model) return;
-
-    try {
-      await bulkCreate.mutateAsync({
-        obraId: selectedObraId,
-        atividades: model.atividades
-      });
-      showSuccess("Cronograma residencial padrão importado com sucesso!");
-    } catch (err) {
-      showError("Erro ao importar modelo.");
+  const handleManualRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['obras'] });
+    if (selectedObraId) {
+        queryClient.invalidateQueries({ queryKey: ['atividades', selectedObraId] });
     }
+    showSuccess("Cronograma atualizado.");
   };
 
   const renderContent = () => {
@@ -91,7 +79,7 @@ const Atividades = () => {
             <div className="text-center py-20 border border-dashed rounded-2xl bg-muted/20">
                 <Construction className="w-16 h-16 mx-auto text-primary/30 mb-4" />
                 <h2 className="text-2xl font-bold mb-2">Selecione uma Obra</h2>
-                <p className="text-muted-foreground">Escolha uma obra no seletor acima para gerenciar o cronograma.</p>
+                <p className="text-muted-foreground">Escolha uma obra no seletor para ver seu cronograma técnico.</p>
             </div>
         );
     }
@@ -106,24 +94,24 @@ const Atividades = () => {
                 </div>
                 <h2 className="text-2xl font-black mb-2 uppercase tracking-tight">Cronograma Vazio</h2>
                 <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
-                    Para agilizar seu trabalho, você pode usar nosso modelo técnico residencial ou criar atividades do zero.
+                    Inicie seu planejamento em segundos usando nossos modelos verificados ou crie manualmente.
                 </p>
                 <div className="flex flex-col sm:flex-row justify-center gap-4">
-                    <Button 
-                        size="lg" 
-                        className="bg-[#066abc] hover:bg-[#066abc]/90 rounded-2xl px-8 shadow-xl shadow-primary/20"
-                        onClick={handleImportDefaultModel}
-                        disabled={bulkCreate.isPending}
-                    >
-                        {bulkCreate.isPending ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Zap className="w-5 h-5 mr-2 fill-current" />}
-                        Usar Modelo Residencial Padrão
-                    </Button>
+                    <AtividadeModelSelector 
+                        obraId={selectedObraId!} 
+                        className="bg-[#066abc] hover:bg-[#066abc]/90 text-white rounded-2xl px-8 h-14 shadow-xl shadow-primary/20 font-bold"
+                    />
                     <AtividadeDialog obraId={selectedObraId!} trigger={
-                        <Button size="lg" variant="outline" className="rounded-2xl px-8 border-primary text-primary hover:bg-primary/5">
+                        <Button size="lg" variant="outline" className="rounded-2xl px-8 border-primary text-primary hover:bg-primary/5 h-14 font-bold">
                             <Plus className="w-5 h-5 mr-2" />
                             Criar Manualmente
                         </Button>
                     } />
+                </div>
+                <div className="mt-8 flex justify-center gap-6 text-[10px] uppercase font-bold text-muted-foreground tracking-widest">
+                    <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-green-500" /> Residencial</span>
+                    <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-green-500" /> Empresarial</span>
+                    <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-green-500" /> Industrial</span>
                 </div>
             </div>
         );
@@ -131,7 +119,6 @@ const Atividades = () => {
 
     return (
       <div className="space-y-8 animate-in fade-in duration-500">
-        {/* Barra de Filtros */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-card p-4 border rounded-2xl shadow-clean">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -150,7 +137,7 @@ const Atividades = () => {
             </SelectContent>
           </Select>
           <div className="flex justify-end items-center px-2">
-            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{filteredAtividades.length} atividades filtradas</span>
+            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{filteredAtividades.length} atividades</span>
           </div>
         </div>
 
@@ -180,14 +167,21 @@ const Atividades = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-6">
           <div className="space-y-1">
             <h1 className="text-3xl font-black tracking-tight uppercase">Cronograma de Obra</h1>
-            <p className="text-sm text-muted-foreground">Planejamento técnico e avanço físico.</p>
+            <p className="text-sm text-muted-foreground">Planejamento e controle de avanço físico.</p>
           </div>
           <div className="flex flex-wrap gap-3 items-center">
             <ObraSelector selectedObraId={selectedObraId} onSelectObra={setSelectedObraId} />
+            <Button variant="outline" size="icon" onClick={handleManualRefresh} className="rounded-xl">
+                <RefreshCcw className="h-4 w-4" />
+            </Button>
             {isObraValid && (
                 <div className="flex items-center gap-2">
                     <AtividadeModelSelector obraId={selectedObraId!} />
-                    <AtividadeDialog obraId={selectedObraId!} />
+                    <AtividadeDialog obraId={selectedObraId!} trigger={
+                         <Button className="rounded-xl shadow-lg shadow-primary/20 font-bold bg-[#066abc] hover:bg-[#066abc]/90">
+                            <Plus className="w-4 h-4 mr-2" /> Nova Atividade
+                        </Button>
+                    } />
                 </div>
             )}
           </div>

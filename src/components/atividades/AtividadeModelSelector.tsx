@@ -3,106 +3,72 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Library, Loader2, Zap, CheckCircle2, ShieldAlert } from "lucide-react";
+import { Library, Loader2, CheckCircle2, ChevronDown } from "lucide-react";
 import { ATIVIDADE_MODELS, AtividadeModel } from "@/utils/atividade-models";
-import { useAuth } from "@/integrations/supabase/auth-provider";
 import { useBulkCreateAtividades } from "@/hooks/use-atividades";
 import { showSuccess, showError } from "@/utils/toast";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import UpgradeButton from "../subscription/UpgradeButton";
+
+const LOGO_ICON = "https://meurdo.com.br/wp-content/uploads/2026/01/Icone.png";
 
 interface AtividadeModelSelectorProps {
   obraId: string;
+  variant?: "default" | "outline" | "ghost";
+  className?: string;
 }
 
-const AtividadeModelSelector = ({ obraId }: AtividadeModelSelectorProps) => {
-  const { profile } = useAuth();
+const AtividadeModelSelector = ({ obraId, variant = "outline", className }: AtividadeModelSelectorProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const isPro = profile?.subscription_status === 'active';
   const bulkCreate = useBulkCreateAtividades();
 
   const handleImport = async (model: AtividadeModel) => {
-    if (model.isPremium && !isPro) {
-      setShowUpgradeModal(true);
-      return;
-    }
-
     try {
       await bulkCreate.mutateAsync({
         obraId,
         atividades: model.atividades
       });
-      showSuccess(`${model.atividades.length} atividades importadas do modelo ${model.nome}!`);
+      showSuccess(`Cronograma ${model.nome} importado com sucesso!`);
+      setIsOpen(false);
     } catch (error) {
       showError("Erro ao importar modelo.");
     }
   };
 
   return (
-    <>
-      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="rounded-xl border-dashed">
-            {bulkCreate.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Library className="w-4 h-4 mr-2" />}
-            Importar Modelo
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-64 rounded-xl shadow-xl">
-          <DropdownMenuLabel className="flex items-center gap-2">
-            Modelos Disponíveis
-            {!isPro && <Zap className="w-3 h-3 text-orange-500 fill-orange-500" />}
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {ATIVIDADE_MODELS.map((model) => (
-            <DropdownMenuItem 
-              key={model.id} 
-              onSelect={() => handleImport(model)}
-              className="flex flex-col items-start gap-1 py-3 cursor-pointer"
-            >
-              <div className="flex items-center justify-between w-full">
-                <span className="font-bold">{model.nome}</span>
-                {model.isPremium && !isPro && <Zap className="w-3 h-3 text-orange-500 fill-orange-500" />}
-              </div>
-              <span className="text-[10px] text-muted-foreground leading-tight">
-                {model.descricao}
-              </span>
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <Dialog open={showUpgradeModal} onOpenChange={setShowUpgradeModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <div className="mx-auto w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mb-4">
-              <Zap className="h-6 w-6 text-orange-600" />
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+      <DropdownMenuTrigger asChild>
+        <Button 
+            variant={variant} 
+            className={className || "rounded-xl border-dashed hover:bg-primary/5 hover:text-primary transition-all"}
+            disabled={bulkCreate.isPending}
+        >
+          {bulkCreate.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Library className="w-4 h-4 mr-2" />}
+          Importar Modelo Padrão
+          <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-72 rounded-xl shadow-xl border-primary/10">
+        <DropdownMenuLabel className="flex items-center justify-between text-xs uppercase tracking-widest text-muted-foreground py-3">
+          Modelos Técnicos
+          <img src={LOGO_ICON} alt="Selo" className="h-4 w-4 opacity-50" />
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {ATIVIDADE_MODELS.map((model) => (
+          <DropdownMenuItem 
+            key={model.id} 
+            onSelect={() => handleImport(model)}
+            className="flex flex-col items-start gap-1 py-4 px-3 cursor-pointer group focus:bg-primary/5"
+          >
+            <div className="flex items-center justify-between w-full">
+              <span className="font-bold text-sm group-hover:text-primary transition-colors">{model.nome}</span>
+              <img src={LOGO_ICON} alt="Verificado" className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-all" title="Modelo Verificado Meu RDO" />
             </div>
-            <DialogTitle className="text-center text-xl">Recurso Exclusivo PRO</DialogTitle>
-            <DialogDescription className="text-center pt-2">
-              Modelos avançados de cronograma (Residencial, Comercial e Reforma) estão disponíveis apenas para membros PRO.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                <span>Cronogramas técnicos completos</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                <span>Gestão ilimitada de etapas</span>
-              </div>
-            </div>
-            
-            <div className="pt-2">
-              <UpgradeButton />
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+            <span className="text-[10px] text-muted-foreground leading-tight">
+              {model.descricao}
+            </span>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 
