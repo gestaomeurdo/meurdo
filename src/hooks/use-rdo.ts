@@ -22,7 +22,7 @@ export interface RdoMaoDeObra {
   quantidade: number;
   custo_unitario: number; 
   cargo_id: string | null;
-  tipo: WorkforceType; // NEW
+  tipo: WorkforceType; 
 }
 
 export interface RdoEquipamento {
@@ -33,7 +33,6 @@ export interface RdoEquipamento {
   horas_paradas: number;
 }
 
-// NEW Material Type
 export interface RdoMaterial {
   id: string;
   diario_id: string;
@@ -59,17 +58,15 @@ export interface DiarioObra {
   impedimentos_comentarios: string | null;
   created_at: string;
   responsavel?: string;
-  
-  // New fields
-  responsible_signature_url: string | null; // NEW
-  client_signature_url: string | null; // NEW
-  work_stopped: boolean; // NEW
-  hours_lost: number; // NEW
+  responsible_signature_url: string | null;
+  client_signature_url: string | null;
+  work_stopped: boolean;
+  hours_lost: number;
   
   rdo_atividades_detalhe?: RdoAtividadeDetalhe[];
   rdo_mao_de_obra?: RdoMaoDeObra[];
   rdo_equipamentos?: RdoEquipamento[];
-  rdo_materiais?: RdoMaterial[]; // NEW
+  rdo_materiais?: RdoMaterial[];
 }
 
 // --- Fetching Single RDO ---
@@ -162,8 +159,6 @@ export interface RdoInput {
   status_dia: RdoStatusDia;
   observacoes_gerais: string | null;
   impedimentos_comentarios: string | null;
-  
-  // New fields for main RDO
   responsible_signature_url: string | null;
   client_signature_url: string | null;
   work_stopped: boolean;
@@ -172,7 +167,7 @@ export interface RdoInput {
   atividades: Omit<RdoAtividadeDetalhe, 'id' | 'diario_id'>[];
   mao_de_obra: Omit<RdoMaoDeObra, 'id' | 'diario_id' | 'cargo_id'>[]; 
   equipamentos: Omit<RdoEquipamento, 'id' | 'diario_id'>[];
-  materiais: Omit<RdoMaterial, 'id' | 'diario_id' | 'created_at'>[]; // NEW
+  materiais: Omit<RdoMaterial, 'id' | 'diario_id' | 'created_at'>[]; 
 }
 
 const insertRdoDetails = async (diarioId: string, details: RdoInput) => {
@@ -188,7 +183,7 @@ const insertRdoDetails = async (diarioId: string, details: RdoInput) => {
         const { error } = await supabase.from('rdo_equipamentos').insert(details.equipamentos.map(e => ({ ...e, diario_id: diarioId })));
         if (error) throw error;
     }
-    if (details.materiais.length > 0) { // NEW
+    if (details.materiais.length > 0) { 
         const { error } = await supabase.from('rdo_materiais').insert(details.materiais.map(m => ({ ...m, diario_id: diarioId })));
         if (error) throw error;
     }
@@ -219,6 +214,8 @@ export const useCreateRdo = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['rdoList', data.obra_id] });
       queryClient.invalidateQueries({ queryKey: ['rdo', data.obra_id, data.data_rdo] });
+      queryClient.invalidateQueries({ queryKey: ['rdoDashboardMetrics'] });
+      queryClient.invalidateQueries({ queryKey: ['rdoCount'] });
     },
   });
 };
@@ -239,13 +236,11 @@ export const useUpdateRdo = () => {
 
       if (updateError) throw new Error(updateError.message);
       
-      // Delete old details
       await supabase.from('rdo_atividades_detalhe').delete().eq('diario_id', id);
       await supabase.from('rdo_mao_de_obra').delete().eq('diario_id', id);
       await supabase.from('rdo_equipamentos').delete().eq('diario_id', id);
-      await supabase.from('rdo_materiais').delete().eq('diario_id', id); // NEW
+      await supabase.from('rdo_materiais').delete().eq('diario_id', id); 
       
-      // Insert new details
       await insertRdoDetails(id, updatedRdo);
       
       const completeRdo = await fetchRdoByDate(updatedRdo.obra_id, updatedRdo.data_rdo);
@@ -255,6 +250,7 @@ export const useUpdateRdo = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['rdoList', data.obra_id] });
       queryClient.invalidateQueries({ queryKey: ['rdo', data.obra_id, data.data_rdo] });
+      queryClient.invalidateQueries({ queryKey: ['rdoDashboardMetrics'] });
     },
   });
 };
@@ -268,6 +264,8 @@ export const useDeleteRdo = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['rdoList', variables.obraId] });
+      queryClient.invalidateQueries({ queryKey: ['rdoDashboardMetrics'] });
+      queryClient.invalidateQueries({ queryKey: ['rdoCount'] });
     },
   });
 };
@@ -284,6 +282,8 @@ export const useDeleteAllRdo = () => {
     },
     onSuccess: (_, obraId) => {
       queryClient.invalidateQueries({ queryKey: ['rdoList', obraId] });
+      queryClient.invalidateQueries({ queryKey: ['rdoDashboardMetrics'] });
+      queryClient.invalidateQueries({ queryKey: ['rdoCount'] });
     },
   });
 };
@@ -292,7 +292,7 @@ export const useDeleteAllRdo = () => {
 
 interface RdoPaymentInput {
   obraId: string;
-  rdoDate: string; // YYYY-MM-DD
+  rdoDate: string; 
   totalCost: number;
   manpowerDetails: { funcao: string, quantidade: number, custo_unitario: number }[];
 }
