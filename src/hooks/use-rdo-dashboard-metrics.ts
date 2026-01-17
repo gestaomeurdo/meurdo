@@ -5,19 +5,16 @@ import { format, subDays } from "date-fns";
 import { DiarioObra } from "./use-rdo";
 
 interface RdoMetrics {
-  rdosTodayCount: number;
-  totalManpowerToday: number;
-  totalEquipmentToday: number;
+  totalRdosCount: number;
+  totalManpowerAccumulated: number;
+  totalEquipmentAccumulated: number;
   pendingRdosCount: number;
   openOccurrencesCount: number;
   recentRdos: DiarioObra[];
 }
 
 const fetchRdoMetrics = async (userId: string): Promise<RdoMetrics> => {
-  const today = format(new Date(), 'yyyy-MM-dd');
-  const sevenDaysAgo = format(subDays(new Date(), 7), 'yyyy-MM-dd');
-
-  // Fetch RDOs for the last 7 days, including details needed for calculation
+  // Fetch ALL RDOs for the user to get accumulated totals
   const { data: rdosData, error } = await supabase
     .from('diarios_obra')
     .select(`
@@ -31,7 +28,6 @@ const fetchRdoMetrics = async (userId: string): Promise<RdoMetrics> => {
       obras!inner (nome)
     `)
     .eq('user_id', userId)
-    .gte('data_rdo', sevenDaysAgo)
     .order('data_rdo', { ascending: false });
 
   if (error) {
@@ -39,45 +35,43 @@ const fetchRdoMetrics = async (userId: string): Promise<RdoMetrics> => {
     throw new Error(error.message);
   }
 
-  // We cast the result to include the joined 'obras' and 'equipamentos' data
   const rdos = rdosData as any[];
 
-  // 1. RDOs Today
-  const rdosToday = rdos.filter(rdo => rdo.data_rdo === today);
-  const rdosTodayCount = rdosToday.length;
+  // 1. Total RDOs
+  const totalRdosCount = rdos.length;
 
-  // 2. Total Manpower Today
-  const totalManpowerToday = rdosToday.reduce((sum, rdo) => {
+  // 2. Total Manpower Accumulated
+  const totalManpowerAccumulated = rdos.reduce((sum, rdo) => {
     const dailyManpower = rdo.rdo_mao_de_obra?.reduce((mSum: number, m: any) => mSum + m.quantidade, 0) || 0;
     return sum + dailyManpower;
   }, 0);
 
-  // 3. Total Equipment Today
-  const totalEquipmentToday = rdosToday.reduce((sum, rdo) => {
+  // 3. Total Equipment Accumulated
+  const totalEquipmentAccumulated = rdos.reduce((sum, rdo) => {
     const dailyEquipment = rdo.rdo_equipamentos?.length || 0;
     return sum + dailyEquipment;
   }, 0);
 
-  // 4. Pending RDOs (Not Operational in the last 7 days)
+  // 4. Pending RDOs (Not Operational)
   const pendingRdosCount = rdos.filter(rdo => 
     rdo.status_dia !== 'Operacional'
   ).length;
 
-  // 5. Open Occurrences (RDOs with comments/impediments in the last 7 days)
+  // 5. Open Occurrences (Any RDO with comments)
   const openOccurrencesCount = rdos.filter(rdo => 
     !!rdo.impedimentos_comentarios && rdo.impedimentos_comentarios.trim().length > 0
   ).length;
   
-  // Prepare recent RDOs list (last 5, including obra name)
+  // Prepare recent RDOs list (last 5)
   const recentRdos = rdos.slice(0, 5).map(rdo => ({
     ...rdo,
     obra_nome: rdo.obras.nome,
   })) as DiarioObra & { obra_nome: string }[];
 
   return {
-    rdosTodayCount,
-    totalManpowerToday,
-    totalEquipmentToday,
+    totalRdosCount,
+    totalManpowerAccumulated,
+    totalEquipmentAccumulated,
     pendingRdosCount,
     openOccurrencesCount,
     recentRdos: recentRdos as DiarioObra[],

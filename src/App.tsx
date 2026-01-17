@@ -14,6 +14,7 @@ import Financeiro from "./pages/Financeiro";
 import Atividades from "./pages/Atividades";
 import Materiais from "./pages/Materiais";
 import MaoDeObra from "./pages/MaoDeObra";
+import Maquinas from "./pages/Maquinas";
 import Documentacao from "./pages/Documentacao";
 import Settings from "./pages/Settings";
 import Relatorios from "./pages/Relatorios";
@@ -46,6 +47,7 @@ const App = () => (
               <Route path="/gestao-rdo" element={<GestaoRdo />} />
               <Route path="/materiais" element={<Materiais />} />
               <Route path="/mao-de-obra" element={<MaoDeObra />} />
+              <Route path="/maquinas" element={<Maquinas />} />
               <Route path="/documentacao" element={<Documentacao />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/profile" element={<Profile />} />

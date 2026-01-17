@@ -18,6 +18,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { showSuccess, showError } from "@/utils/toast";
 import RdoLimitWarning from "@/components/rdo/RdoLimitWarning";
 import { ptBR } from "date-fns/locale";
+import { useLocation } from "react-router-dom";
 
 const GestaoRdo = () => {
   const { data: obras, isLoading: isLoadingObras } = useObras();
@@ -25,14 +26,20 @@ const GestaoRdo = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<'kanban' | 'lista' | 'calendario'>('calendario');
   const isMobile = useIsMobile();
+  const location = useLocation();
 
   const deleteAllMutation = useDeleteAllRdo();
 
   useEffect(() => {
-    if (obras && obras.length > 0 && !selectedObraId) {
+    // Check for ID in location state (navigated from details)
+    const stateObraId = location.state?.obraId;
+    
+    if (stateObraId && obras?.find(o => o.id === stateObraId)) {
+        setSelectedObraId(stateObraId);
+    } else if (obras && obras.length > 0 && !selectedObraId) {
       setSelectedObraId(obras[0].id);
     }
-  }, [obras, selectedObraId]);
+  }, [obras, selectedObraId, location.state]);
 
   const { data: rdoList, isLoading: isLoadingRdoList, error: rdoError } = useRdoList(selectedObraId || '');
 

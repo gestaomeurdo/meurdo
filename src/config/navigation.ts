@@ -1,4 +1,4 @@
-import { LayoutDashboard, Construction, DollarSign, Package, Users, FileText, Settings, ClipboardList, BarChart3, Star } from "lucide-react";
+import { LayoutDashboard, Construction, DollarSign, Package, Users, FileText, Settings, ClipboardList, BarChart3, Star, Truck } from "lucide-react";
 
 export interface NavItem {
   title: string;
@@ -54,6 +54,12 @@ export const navItems: NavItem[] = [
     title: "Mão de Obra",
     href: "/mao-de-obra",
     icon: Users,
+    roles: ["administrator", "obra_user", "view_only"],
+  },
+  {
+    title: "Máquinas",
+    href: "/maquinas",
+    icon: Truck,
     roles: ["administrator", "obra_user", "view_only"],
   },
   {

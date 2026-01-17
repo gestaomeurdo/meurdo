@@ -9,6 +9,7 @@ import { formatCurrency, formatDate } from "@/utils/formatters";
 import ObraDialog from "@/components/obras/ObraDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { showSuccess, showError } from "@/utils/toast";
+import { Progress } from "@/components/ui/progress";
 
 const statusColorMap = {
   ativa: "bg-green-500",
@@ -113,6 +114,9 @@ const ObraDetails = () => {
     },
   ];
 
+  // Mock progress - In a real app, calculate this based on completed activities
+  const progress = 0; 
+
   return (
     <DashboardLayout>
       <div className="p-4 sm:p-6 space-y-6 animate-in fade-in duration-500">
@@ -123,7 +127,7 @@ const ObraDetails = () => {
           </Button>
           
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-card p-6 rounded-3xl border shadow-sm">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 w-full lg:w-auto">
                 {obra.foto_url ? (
                     <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 border-muted shrink-0">
                         <img src={obra.foto_url} alt={obra.nome} className="w-full h-full object-cover" />
@@ -133,16 +137,24 @@ const ObraDetails = () => {
                         <FileText className="w-8 h-8 text-primary" />
                     </div>
                 )}
-                <div>
+                <div className="flex-1">
                     <div className="flex items-center gap-3 mb-1">
                         <h1 className="text-2xl sm:text-3xl font-black text-foreground uppercase tracking-tight">{obra.nome}</h1>
                         <Badge className={`${statusColorMap[obra.status]} hover:${statusColorMap[obra.status]} text-white border-none`}>
                             {statusLabelMap[obra.status]}
                         </Badge>
                     </div>
-                    <div className="flex items-center text-sm text-muted-foreground">
+                    <div className="flex items-center text-sm text-muted-foreground mb-2">
                         <MapPin className="w-4 h-4 mr-1 text-primary" />
                         {obra.endereco || "Endereço não informado"}
+                    </div>
+                    {/* Barra de Progresso Placeholder */}
+                    <div className="max-w-xs">
+                        <div className="flex justify-between text-[10px] uppercase font-bold text-muted-foreground mb-1">
+                            <span>Progresso Geral</span>
+                            <span>{progress}%</span>
+                        </div>
+                        <Progress value={progress} className="h-2" />
                     </div>
                 </div>
             </div>
@@ -190,7 +202,7 @@ const ObraDetails = () => {
                 <CardContent className="p-4 pt-0">
                     <div className="space-y-1">
                         <p className="text-sm"><span className="font-bold">Início:</span> {formatDate(obra.data_inicio)}</p>
-                        <p className="text-sm"><span className="font-bold">Previsão de Término:</span> {obra.previsao_entrega ? formatDate(obra.previsao_entrega) : 'N/A'}</p>
+                        <p className="text-sm"><span className="font-bold">Previsão:</span> {obra.previsao_entrega ? formatDate(obra.previsao_entrega) : 'Indefinido'}</p>
                     </div>
                 </CardContent>
             </Card>
@@ -229,10 +241,15 @@ const ObraDetails = () => {
             <h2 className="text-xl font-bold text-foreground">Módulos de Gestão</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {modules.map((module) => (
-                    <Link to={module.href} key={module.href} className="group">
+                    <Link 
+                        to={module.href} 
+                        key={module.href} 
+                        state={{ obraId: obra.id }}
+                        className="group"
+                    >
                         <Card className="h-full border hover:border-primary/50 transition-all hover:shadow-md cursor-pointer group-hover:-translate-y-1">
                             <CardContent className="p-6 flex items-start gap-4">
-                                <div className="p-3 rounded-2xl ${module.bg} ${module.color}">
+                                <div className={`p-3 rounded-2xl ${module.bg} ${module.color}`}>
                                     <module.icon className="w-6 h-6" />
                                 </div>
                                 <div className="space-y-1">

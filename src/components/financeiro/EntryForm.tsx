@@ -32,6 +32,7 @@ const EntrySchema = z.object({
   ignorar_soma: z.boolean().default(false),
   documento_file: z.any().optional(),
   documento_url: z.string().optional().nullable(),
+  observacao: z.string().optional().nullable(),
 }).refine((data) => {
   const parsedValue = parseCurrencyInput(data.valor);
   return parsedValue > 0;
@@ -67,6 +68,7 @@ const EntryForm = ({ obraId, initialData, onSuccess, onCancel }: EntryFormProps)
       forma_pagamento: initialData?.forma_pagamento || 'Pix',
       ignorar_soma: initialData?.ignorar_soma || false,
       documento_url: initialData?.documento_url || null,
+      observacao: (initialData as any)?.observacao || "",
     },
   });
 
@@ -118,6 +120,7 @@ const EntryForm = ({ obraId, initialData, onSuccess, onCancel }: EntryFormProps)
         forma_pagamento: values.forma_pagamento,
         ignorar_soma: values.ignorar_soma,
         documento_url: documentoUrl,
+        observacao: values.observacao,
       };
 
       if (isEditing && initialData) {
@@ -218,6 +221,29 @@ const EntryForm = ({ obraId, initialData, onSuccess, onCancel }: EntryFormProps)
             </FormItem>
           )}
         />
+        
+        {/* Nova Nota / Observação */}
+        <FormField
+          control={form.control}
+          name="observacao"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Nota / Observação (Opcional)</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Ex: Tive que comprar mais porque roubaram na obra..."
+                  {...field}
+                  value={field.value || ""}
+                  rows={2}
+                  className="bg-yellow-50/50 border-yellow-200"
+                  disabled={isLoading}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}

@@ -91,23 +91,23 @@ const Dashboard = () => {
             },
             { 
               label: "Total de RDOs", 
-              value: totalRdosLifetime, 
+              value: rdoMetrics?.totalRdosCount ?? 0, 
               icon: FileStack, 
               color: "bg-purple-500",
               textColor: "text-purple-600",
               bgColor: "bg-purple-50"
             },
             { 
-              label: "Mão de Obra (Hoje)", 
-              value: rdoMetrics?.totalManpowerToday ?? 0, 
+              label: "Efetivo Acumulado", 
+              value: rdoMetrics?.totalManpowerAccumulated ?? 0, 
               icon: HardHat, 
               color: "bg-green-500",
               textColor: "text-green-600",
               bgColor: "bg-green-50"
             },
             { 
-              label: "Máquinas (Hoje)", 
-              value: rdoMetrics?.totalEquipmentToday ?? 0, 
+              label: "Máquinas Acumulado", 
+              value: rdoMetrics?.totalEquipmentAccumulated ?? 0, 
               icon: Truck, 
               color: "bg-orange-500",
               textColor: "text-orange-600",

@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, Users, CloudRain, TrendingUp, AlertTriangle, Briefcase, Handshake } from "lucide-react";
+import { DollarSign, Users, Briefcase, Handshake } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useMemo } from "react";
 import { format, parseISO, isSameMonth, isSameYear } from "date-fns";
@@ -33,6 +33,9 @@ const RdoDashboard = ({ rdoList, currentDate, isLoading }: RdoDashboardProps) =>
           own += cost;
         } else if (m.tipo === 'Terceirizada') {
           outsourced += cost;
+        } else {
+            // Default to own if undefined
+            own += cost;
         }
       });
     });
@@ -76,6 +79,10 @@ const RdoDashboard = ({ rdoList, currentDate, isLoading }: RdoDashboardProps) =>
       };
     });
   }, [currentMonthRdos, currentDate]);
+
+  // Fix NaN percentage calculation
+  const ownPercentage = totalCost > 0 ? ((ownTeamCost / totalCost) * 100).toFixed(0) : "0";
+  const outsourcedPercentage = totalCost > 0 ? ((outsourcedCost / totalCost) * 100).toFixed(0) : "0";
 
   if (isLoading) {
     return (
@@ -122,7 +129,7 @@ const RdoDashboard = ({ rdoList, currentDate, isLoading }: RdoDashboardProps) =>
           <CardContent>
             <div className="text-xl font-bold">{formatCurrency(ownTeamCost)}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {((ownTeamCost / totalCost) * 100).toFixed(0)}% do total
+              {ownPercentage}% do total
             </p>
           </CardContent>
         </Card>
@@ -135,7 +142,7 @@ const RdoDashboard = ({ rdoList, currentDate, isLoading }: RdoDashboardProps) =>
           <CardContent>
             <div className="text-xl font-bold">{formatCurrency(outsourcedCost)}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {((outsourcedCost / totalCost) * 100).toFixed(0)}% do total
+              {outsourcedPercentage}% do total
             </p>
           </CardContent>
         </Card>

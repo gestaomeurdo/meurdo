@@ -8,8 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { showSuccess, showError } from "@/utils/toast";
-import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, UserCheck, Sun, AlertOctagon, Clock, Copy, Upload, Image as ImageIcon, X, Handshake, Moon, SunMedium } from "lucide-react";
-import { DiarioObra, RdoStatusDia, useCreateRdo, useUpdateRdo, WorkforceType } from "@/hooks/use-rdo";
+import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, UserCheck, Sun, AlertOctagon, Clock, Copy, Upload, Image as ImageIcon, X, Handshake, Moon, SunMedium, CheckCircle } from "lucide-react";
+import { DiarioObra, RdoStatusDia, useCreateRdo, useUpdateRdo, WorkforceType, usePayRdo } from "@/hooks/use-rdo";
 import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
 import RdoEquipmentForm from "./RdoEquipmentForm";
@@ -27,8 +27,10 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { Label } from "@/components/ui/label";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
-const statusOptions: RdoStatusDia[] = ['Operacional', 'Parcialmente Paralisado', 'Totalmente Paralisado - Não Praticável'];
+// Simple status options
+const statusOptions = ['Operacional', 'Parcialmente Paralisado', 'Totalmente Paralisado - Não Praticável'];
 // Clima as string options
 const climaOptions = ['Sol', 'Nublado', 'Chuva Leve', 'Chuva Forte'];
 const workforceTypes: WorkforceType[] = ['Própria', 'Terceirizada'];
@@ -64,8 +66,8 @@ const RdoSchema = z.object({
   obra_id: z.string().uuid("Obra inválida."),
   data_rdo: z.date({ required_error: "A data é obrigatória." }),
   periodo: z.string().min(1, "Selecione pelo menos um período."),
-  clima_condicoes: z.string().nullable().optional(), // Changed to string
-  status_dia: z.enum(statusOptions, { required_error: "O status do dia é obrigatório." }),
+  clima_condicoes: z.string().nullable().optional(),
+  status_dia: z.string(), // Changed to string to support "Manhã: Op, Tarde: Parado"
   observacoes_gerais: z.string().nullable().optional(),
   impedimentos_comentarios: z.string().nullable().optional(),
   responsible_signature_url: z.string().nullable().optional(),
@@ -73,12 +75,22 @@ const RdoSchema = z.object({
   signer_name: z.string().nullable().optional(),
   work_stopped: z.boolean().default(false),
   hours_lost: z.number().min(0).max(24).default(0),
-  safety_nr35: z.boolean().default(false),
-  safety_epi: z.boolean().default(false),
-  safety_cleaning: z.boolean().default(false),
-  safety_dds: z.boolean().default(false),
+  
+  // Safety items renamed in UI but keeping internal names for DB compatibility
+  safety_nr35: z.boolean().default(false), // Treinamento
+  safety_epi: z.boolean().default(false), // Utilização EPI
+  safety_cleaning: z.boolean().default(false), // Limpeza
+  safety_dds: z.boolean().default(false), // DDS
+  
   safety_comments: z.string().nullable().optional(),
-  safety_photo_url: z.string().nullable().optional(),
+  safety_photo_url: z.string().nullable().optional(), // General photo (deprecated in UI favor of specific ones)
+  
+  // Specific Safety Photos (mapped to custom fields or handled via side effects)
+  safety_nr35_photo: z.string().nullable().optional(),
+  safety_epi_photo: z.string().nullable().optional(),
+  safety_cleaning_photo: z.string().nullable().optional(),
+  safety_dds_photo: z.string().nullable().optional(),
+
   atividades: z.array(RdoDetailSchema).min(1, "Registre ao menos 1 atividade para salvar."),
   mao_de_obra: z.array(ManpowerSchema).optional(),
   equipamentos: z.array(EquipmentSchema).optional(),
@@ -102,12 +114,16 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
   const isPro = profile?.subscription_status === 'active' || profile?.plan_type === 'pro';
   const createMutation = useCreateRdo();
   const updateMutation = useUpdateRdo();
+  const payMutation = usePayRdo();
   const { data: obras } = useObras();
   const obraNome = obras?.find(o => o.id === obraId)?.nome || "Obra";
-  const [isUploadingSafety, setIsUploadingSafety] = useState(false);
+  
+  // Upload states
+  const [uploadingState, setUploadingState] = useState<Record<string, boolean>>({});
   
   // State for weather per period
   const [weatherMap, setWeatherMap] = useState<Record<string, string>>({});
+  const [statusMap, setStatusMap] = useState<Record<string, string>>({});
 
   // Helper para normalizar o período inicial
   const getInitialPeriod = () => {
@@ -125,7 +141,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
         : (selectedDate || new Date()),
       periodo: getInitialPeriod(),
       clima_condicoes: initialData?.clima_condicoes || "",
-      status_dia: initialData?.status_dia || 'Operacional',
+      status_dia: (initialData?.status_dia as string) || 'Operacional',
       observacoes_gerais: initialData?.observacoes_gerais || "",
       impedimentos_comentarios: initialData?.impedimentos_comentarios || "",
       responsible_signature_url: initialData?.responsible_signature_url || null,
@@ -138,7 +154,13 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
       safety_cleaning: initialData?.safety_cleaning || false,
       safety_dds: initialData?.safety_dds || false,
       safety_comments: initialData?.safety_comments || "",
-      safety_photo_url: initialData?.safety_photo_url || null,
+      
+      // Map extra columns (checking if they exist in initialData, otherwise null)
+      safety_nr35_photo: (initialData as any)?.safety_nr35_photo || null,
+      safety_epi_photo: (initialData as any)?.safety_epi_photo || null,
+      safety_cleaning_photo: (initialData as any)?.safety_cleaning_photo || null,
+      safety_dds_photo: (initialData as any)?.safety_dds_photo || null,
+
       atividades: initialData?.rdo_atividades_detalhe?.map(a => ({
         descricao_servico: a.descricao_servico,
         avanco_percentual: a.avanco_percentual,
@@ -169,15 +191,13 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
     control: methods.control,
     name: "mao_de_obra",
   });
-  const workStopped = methods.watch("work_stopped");
-  const safetyPhotoUrl = methods.watch("safety_photo_url");
   const activePeriods = methods.watch("periodo");
 
-  // Parse initial weather string
+  // Parse initial weather & status strings
   useEffect(() => {
+    // Weather
     if (initialData?.clima_condicoes) {
       const weatherString = initialData.clima_condicoes;
-      // Try to parse "Manhã: Sol, Tarde: Chuva" format
       if (weatherString.includes(':')) {
         const parts = weatherString.split(', ');
         const map: Record<string, string> = {};
@@ -187,26 +207,46 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
         });
         setWeatherMap(map);
       } else {
-        // Fallback for simple format (e.g. "Sol") -> Assign to all periods
         const map: Record<string, string> = {};
         ['Manhã', 'Tarde', 'Noite'].forEach(p => map[p] = weatherString);
         setWeatherMap(map);
       }
     }
+
+    // Status
+    if (initialData?.status_dia) {
+        const statusString = initialData.status_dia as string;
+        if (statusString.includes(':')) {
+            const parts = statusString.split(', ');
+            const map: Record<string, string> = {};
+            parts.forEach(p => {
+                const [period, status] = p.split(': ');
+                if (period && status) map[period] = status;
+            });
+            setStatusMap(map);
+        } else {
+            const map: Record<string, string> = {};
+            ['Manhã', 'Tarde', 'Noite'].forEach(p => map[p] = statusString);
+            setStatusMap(map);
+        }
+    }
   }, [initialData]);
 
-  // Update clima_condicoes hidden field whenever weatherMap or activePeriods change
+  // Update hidden fields
   useEffect(() => {
     const selectedPeriods = activePeriods.split(', ').filter(p => p !== '');
-    const weatherString = selectedPeriods
-      .map(p => {
-        const condition = weatherMap[p] || 'Sol'; // Default to Sol if not selected
-        return `${p}: ${condition}`;
-      })
-      .join(', ');
     
+    const weatherString = selectedPeriods
+      .map(p => `${p}: ${weatherMap[p] || 'Sol'}`)
+      .join(', ');
     methods.setValue('clima_condicoes', weatherString, { shouldDirty: true });
-  }, [weatherMap, activePeriods, methods]);
+
+    const statusString = selectedPeriods
+      .map(p => `${p}: ${statusMap[p] || 'Operacional'}`)
+      .join(', ');
+    methods.setValue('status_dia', statusString as any, { shouldDirty: true });
+
+  }, [weatherMap, statusMap, activePeriods, methods]);
 
   const estimatedDailyCost = useMemo(() => {
     return maoDeObra?.reduce((sum, item) => {
@@ -257,14 +297,42 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
     }
   };
 
-  const handleSafetyFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePayRdo = async () => {
+    const manpower = methods.getValues('mao_de_obra');
+    if (!manpower || manpower.length === 0) {
+        showError("Adicione mão de obra primeiro.");
+        return;
+    }
+    if (estimatedDailyCost <= 0) {
+        showError("O custo total deve ser maior que zero.");
+        return;
+    }
+
+    try {
+        await payMutation.mutateAsync({
+            obraId,
+            rdoDate: format(methods.getValues('data_rdo'), 'yyyy-MM-dd'),
+            totalCost: estimatedDailyCost,
+            manpowerDetails: manpower.map(m => ({
+                funcao: m.funcao,
+                quantidade: m.quantidade,
+                custo_unitario: m.custo_unitario || 0
+            }))
+        });
+        showSuccess("Pagamento enviado para o Financeiro!");
+    } catch (error) {
+        showError("Erro ao registrar pagamento.");
+    }
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, fieldName: any) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setIsUploadingSafety(true);
+    setUploadingState(prev => ({ ...prev, [fieldName]: true }));
     
     try {
         const fileExt = file.name.split('.').pop();
-        const fileName = `safety-${obraId}-${Date.now()}.${fileExt}`;
+        const fileName = `safety-${fieldName}-${obraId}-${Date.now()}.${fileExt}`;
         const filePath = `rdo_safety/${obraId}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
@@ -277,21 +345,12 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
             .from('documentos_financeiros')
             .getPublicUrl(filePath);
 
-        methods.setValue('safety_photo_url', publicUrlData.publicUrl, { shouldDirty: true });
+        methods.setValue(fieldName, publicUrlData.publicUrl, { shouldDirty: true });
         showSuccess("Foto anexada!");
     } catch (error) {
         showError("Erro no upload.");
     } finally {
-        setIsUploadingSafety(false);
-    }
-  };
-
-  const onInvalid = (errors: any) => {
-    console.error("Erros de validação:", errors);
-    if (errors.atividades) {
-      showError("Verifique a aba 'Serviços': Preencha a descrição.");
-    } else {
-      showError("Verifique os campos obrigatórios.");
+        setUploadingState(prev => ({ ...prev, [fieldName]: false }));
     }
   };
 
@@ -330,9 +389,16 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
 
   const activePeriodsList = activePeriods.split(', ').filter(p => p !== '');
 
+  const safetyItems = [
+    { key: "safety_nr35", label: "Treinamento / NR-35", photoKey: "safety_nr35_photo" },
+    { key: "safety_epi", label: "Utilização de EPIs", photoKey: "safety_epi_photo" },
+    { key: "safety_cleaning", label: "Limpeza e Organização", photoKey: "safety_cleaning_photo" },
+    { key: "safety_dds", label: "DDS Realizado", photoKey: "safety_dds_photo" },
+  ];
+
   return (
     <FormProvider {...methods}>
-      <form onSubmit={methods.handleSubmit(onSubmit, onInvalid)} className="space-y-6">
+      <form onSubmit={methods.handleSubmit(onSubmit, (e) => console.log(e))} className="space-y-6">
         <UpgradeModal 
             open={showUpgrade} 
             onOpenChange={setShowUpgrade} 
@@ -365,7 +431,27 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                   <h2 className="text-2xl font-black">{formatCurrency(estimatedDailyCost)}</h2>
                 </div>
               </div>
-              <div className="flex gap-2 w-full sm:w-auto">
+              <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button type="button" variant="outline" className="flex-1 sm:flex-none rounded-xl font-bold uppercase text-xs border-green-600 text-green-700 hover:bg-green-50">
+                            <DollarSign className="w-4 h-4 mr-2" /> Gerar Pagamento
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Registrar Pagamento no Financeiro?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Será criado um lançamento de <strong>{formatCurrency(estimatedDailyCost)}</strong> na categoria "Mão de Obra".
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={handlePayRdo} className="bg-green-600 hover:bg-green-700">Confirmar</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+
                 {isEditing && (
                   <Button type="button" variant="outline" onClick={handleExportPdf} className="flex-1 sm:flex-none rounded-xl font-bold uppercase text-xs">
                     <FileDown className="w-4 h-4 mr-2" /> PDF
@@ -381,7 +467,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
 
         {/* Informações Gerais (Local e Clima) */}
         <Card className="border-none shadow-clean bg-accent/20">
-          <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <CardContent className="p-4 grid grid-cols-1 gap-6">
             {/* Seletor de Períodos */}
             <FormField
               control={methods.control}
@@ -421,21 +507,20 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
               )}
             />
 
-            {/* Clima por Período */}
-            <div>
-                <Label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1 mb-2">
-                    <Sun className="w-3 h-3" /> Condições Climáticas
-                </Label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {activePeriodsList.length > 0 ? activePeriodsList.map(period => (
-                        <div key={period} className="flex items-center gap-2 bg-white p-2 rounded-xl border shadow-sm">
-                            <span className="text-[10px] font-black uppercase text-muted-foreground w-12 text-center">{period}</span>
-                            <div className="h-4 w-[1px] bg-border mx-1"></div>
+            {/* Clima e Status por Período */}
+            <div className="space-y-4">
+                {activePeriodsList.length > 0 ? activePeriodsList.map(period => (
+                    <div key={period} className="flex flex-col sm:flex-row items-center gap-3 bg-white p-3 rounded-xl border shadow-sm">
+                        <span className="text-xs font-black uppercase text-primary w-full sm:w-16 text-center bg-primary/10 rounded-md py-1">{period}</span>
+                        
+                        {/* Weather */}
+                        <div className="flex-1 w-full">
+                            <Label className="text-[9px] uppercase text-muted-foreground font-bold mb-1 block">Clima</Label>
                             <Select 
                                 value={weatherMap[period] || 'Sol'} 
                                 onValueChange={(val) => setWeatherMap(prev => ({ ...prev, [period]: val }))}
                             >
-                                <SelectTrigger className="border-none h-7 text-xs font-medium focus:ring-0">
+                                <SelectTrigger className="h-8 text-xs font-medium">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -443,162 +528,119 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                                 </SelectContent>
                             </Select>
                         </div>
-                    )) : (
-                        <p className="text-xs text-muted-foreground italic p-2">Selecione um período primeiro.</p>
-                    )}
-                </div>
+
+                        {/* Status */}
+                        <div className="flex-1 w-full">
+                            <Label className="text-[9px] uppercase text-muted-foreground font-bold mb-1 block">Status Operacional</Label>
+                            <Select 
+                                value={statusMap[period] || 'Operacional'} 
+                                onValueChange={(val) => setStatusMap(prev => ({ ...prev, [period]: val }))}
+                            >
+                                <SelectTrigger className="h-8 text-xs font-medium">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {statusOptions.map(opt => <SelectItem key={opt} value={opt} className="text-xs">{opt}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                )) : (
+                    <p className="text-xs text-muted-foreground italic p-2 text-center">Selecione um período acima para configurar clima e status.</p>
+                )}
             </div>
           </CardContent>
-          
-          <div className="px-4 pb-4 pt-0 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-             <FormField
-                control={methods.control}
-                name="status_dia"
-                render={({ field }) => (
-                  <FormItem className="flex-1 w-full">
-                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1 mb-1.5"><AlertOctagon className="w-3 h-3" /> Status Operacional</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="rounded-xl bg-white border-none shadow-sm w-full">
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {statusOptions.map(option => (
-                          <SelectItem key={option} value={option}>{option}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-             
-             <FormField
-                control={methods.control}
-                name="work_stopped"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center gap-2 space-y-0 mt-6 bg-white p-2 rounded-xl px-4 shadow-sm">
-                    <FormControl>
-                      <Switch checked={field.value} onCheckedChange={field.onChange} />
-                    </FormControl>
-                    <FormLabel className="font-bold text-xs cursor-pointer text-muted-foreground uppercase">Houve paralisação?</FormLabel>
-                  </FormItem>
-                )}
-              />
-              {workStopped && (
-                <FormField
-                  control={methods.control}
-                  name="hours_lost"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center gap-2 space-y-0 mt-6 animate-in fade-in slide-in-from-left-2">
-                      <FormLabel className="whitespace-nowrap text-xs font-bold uppercase text-destructive flex items-center gap-1"><Clock className="w-3 h-3" /> Horas Perdidas</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} className="w-20 h-10 rounded-xl bg-white border-destructive/30 font-bold" />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              )}
-          </div>
-        </Card>
-
-        {/* SEÇÃO DE SEGURANÇA EM DESTAQUE */}
-        <Card className="border-l-4 border-l-primary shadow-sm overflow-hidden bg-white">
-            <CardHeader className="bg-primary/5 pb-2 py-3">
-                <CardTitle className="text-sm font-black uppercase text-primary flex items-center gap-2">
-                    <ShieldCheck className="w-5 h-5" /> Segurança do Trabalho (EPI / DDS)
-                </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 space-y-6">
-                {!isPro ? (
-                    <div className="flex items-center justify-between gap-4 p-2 bg-accent/20 rounded-xl cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => setShowUpgrade(true)}>
-                        <div className="flex items-center gap-3">
-                            <Lock className="w-5 h-5 text-muted-foreground" />
-                            <p className="text-xs text-muted-foreground font-medium">O checklist e o registro fotográfico de segurança são exclusivos do plano PRO.</p>
-                        </div>
-                        <Button size="sm" variant="outline" className="text-xs h-8">Liberar</Button>
-                    </div>
-                ) : (
-                    <>
-                        {/* Checklist */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            {[
-                                { name: "safety_nr35", label: "NR-35 (Altura)" },
-                                { name: "safety_epi", label: "EPIs Completo" },
-                                { name: "safety_cleaning", label: "Limpeza" },
-                                { name: "safety_dds", label: "DDS Realizado" },
-                            ].map((item) => (
-                                <FormField key={item.name} control={methods.control} name={item.name as any} render={({ field }) => (
-                                    <FormItem className="flex flex-row items-center justify-between rounded-xl border p-2 bg-slate-50">
-                                        <FormLabel className="text-[10px] font-bold uppercase cursor-pointer">{item.label}</FormLabel>
-                                        <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} className="scale-75" /></FormControl>
-                                    </FormItem>
-                                )} />
-                            ))}
-                        </div>
-
-                        {/* Foto e Obs */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                            <div className="space-y-2 order-2 md:order-1">
-                                <FormField control={methods.control} name="safety_comments" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-xs uppercase font-bold text-muted-foreground">Observações de Segurança</FormLabel>
-                                        <FormControl>
-                                            <Textarea {...field} value={field.value || ""} rows={3} className="rounded-xl resize-none text-xs" placeholder="Ex: Equipe orientada sobre riscos elétricos..." />
-                                        </FormControl>
-                                    </FormItem>
-                                )} />
-                            </div>
-                            
-                            <div className="space-y-2 order-1 md:order-2">
-                                <Label className="text-xs uppercase font-bold text-muted-foreground flex items-center gap-2">
-                                    <ImageIcon className="w-4 h-4 text-primary" />
-                                    Foto de Comprovação (EPIs / DDS)
-                                </Label>
-                                <div className="flex items-center gap-4">
-                                    {safetyPhotoUrl ? (
-                                        <div className="relative w-full h-24 rounded-xl overflow-hidden border bg-muted group">
-                                            <img src={safetyPhotoUrl} alt="Safety" className="w-full h-full object-cover" />
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                                <a href={safetyPhotoUrl} target="_blank" rel="noreferrer" className="p-2 bg-white/20 rounded-full text-white hover:bg-white/40"><ImageIcon className="w-4 h-4" /></a>
-                                                <button type="button" onClick={() => methods.setValue('safety_photo_url', null, { shouldDirty: true })} className="p-2 bg-red-500/80 rounded-full text-white hover:bg-red-600"><X className="w-4 h-4" /></button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-xl cursor-pointer hover:bg-accent/50 transition-colors bg-blue-50/50 border-blue-200">
-                                            {isUploadingSafety ? (
-                                                <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                                            ) : (
-                                                <div className="flex flex-col items-center gap-1 text-primary">
-                                                    <Upload className="w-5 h-5" />
-                                                    <span className="text-[10px] font-bold uppercase">Anexar Foto do Dia</span>
-                                                </div>
-                                            )}
-                                            <input type="file" className="hidden" accept="image/*" onChange={handleSafetyFileUpload} disabled={isUploadingSafety} />
-                                        </label>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </>
-                )}
-            </CardContent>
         </Card>
 
         {/* Tabs */}
         <Tabs defaultValue="atividades" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto bg-muted/50 p-1 rounded-xl gap-1">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 h-auto bg-muted/50 p-1 rounded-xl gap-1">
             <TabsTrigger value="atividades" className="rounded-lg text-[10px] uppercase font-black py-2">Serviços</TabsTrigger>
             <TabsTrigger value="mao_de_obra" className="rounded-lg text-[10px] uppercase font-black py-2">Equipe</TabsTrigger>
             <TabsTrigger value="equipamentos" className="rounded-lg text-[10px] uppercase font-black py-2">Máquinas</TabsTrigger>
             <TabsTrigger value="materiais" className="rounded-lg text-[10px] uppercase font-black py-2">Materiais</TabsTrigger>
+            <TabsTrigger value="seguranca" className="rounded-lg text-[10px] uppercase font-black py-2 md:col-span-1 col-span-3">Segurança</TabsTrigger>
           </TabsList>
           
           <TabsContent value="atividades" className="pt-4"><RdoActivitiesForm obraId={obraId} /></TabsContent>
           <TabsContent value="mao_de_obra" className="pt-4"><RdoManpowerForm /></TabsContent>
           <TabsContent value="equipamentos" className="pt-4"><RdoEquipmentForm /></TabsContent>
           <TabsContent value="materiais" className="pt-4"><RdoMaterialsForm /></TabsContent>
+          
+          {/* Nova Aba de Segurança */}
+          <TabsContent value="seguranca" className="pt-4">
+            <Card className="border-l-4 border-l-primary shadow-sm bg-white">
+                <CardHeader className="bg-primary/5 pb-2 py-3">
+                    <CardTitle className="text-sm font-black uppercase text-primary flex items-center gap-2">
+                        <ShieldCheck className="w-5 h-5" /> Controle de Segurança (EPI / DDS)
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 space-y-6">
+                    {!isPro ? (
+                        <div className="flex flex-col items-center justify-center gap-4 py-8 bg-accent/10 rounded-xl" onClick={() => setShowUpgrade(true)}>
+                            <Lock className="w-10 h-10 text-muted-foreground/30" />
+                            <p className="text-sm text-muted-foreground font-medium text-center px-4">
+                                Checklist de segurança e registro fotográfico são recursos exclusivos PRO.
+                            </p>
+                            <Button size="sm" onClick={() => setShowUpgrade(true)}>Liberar Acesso</Button>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {safetyItems.map((item) => {
+                                const isChecked = methods.watch(item.key as any);
+                                const photoUrl = methods.watch(item.photoKey as any);
+                                const isUploading = uploadingState[item.photoKey];
+
+                                return (
+                                    <div key={item.key} className={cn("p-4 rounded-xl border transition-all", isChecked ? "border-green-200 bg-green-50/50" : "bg-slate-50")}>
+                                        <div className="flex items-center justify-between mb-3">
+                                            <Label className="text-xs font-black uppercase cursor-pointer">{item.label}</Label>
+                                            <FormField control={methods.control} name={item.key as any} render={({ field }) => (
+                                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                            )} />
+                                        </div>
+                                        
+                                        {isChecked && (
+                                            <div className="mt-2 animate-in fade-in slide-in-from-top-1">
+                                                {photoUrl ? (
+                                                    <div className="relative w-full h-32 rounded-lg overflow-hidden border bg-black/5">
+                                                        <img src={photoUrl} alt={item.label} className="w-full h-full object-cover" />
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => methods.setValue(item.photoKey as any, null, { shouldDirty: true })} 
+                                                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 shadow-sm hover:bg-red-600"
+                                                        >
+                                                            <X className="w-3 h-3" />
+                                                        </button>
+                                                        <div className="absolute bottom-0 left-0 w-full bg-black/50 p-1">
+                                                            <p className="text-[9px] text-white text-center font-bold uppercase flex items-center justify-center gap-1">
+                                                                <CheckCircle className="w-3 h-3" /> Comprovado
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-primary/30 rounded-lg cursor-pointer hover:bg-primary/5 transition-colors bg-white">
+                                                        {isUploading ? (
+                                                            <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                                                        ) : (
+                                                            <>
+                                                                <Upload className="w-5 h-5 text-primary mb-1" />
+                                                                <span className="text-[9px] font-bold text-primary uppercase">Adicionar Foto</span>
+                                                            </>
+                                                        )}
+                                                        <input type="file" className="hidden" accept="image/*" onChange={(e) => handlePhotoUpload(e, item.photoKey)} disabled={isUploading} />
+                                                    </label>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
         
         <div className="pt-6 border-t space-y-6">
