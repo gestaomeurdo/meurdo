@@ -13,6 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useCanCreateObra } from "@/hooks/use-subscription-limits";
 import LimitReachedModal from "@/components/subscription/LimitReachedModal";
 import WelcomeFreeModal from "@/components/subscription/WelcomeFreeModal";
+import { cn } from "@/lib/utils";
 
 const Dashboard = () => {
   const { user, isLoading: authLoading, profile, isPro } = useAuth();
