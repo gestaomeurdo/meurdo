@@ -17,6 +17,7 @@ import { parseCurrencyInput, formatCurrencyForInput } from "@/utils/formatters";
 import { useCurrencyInput } from "@/hooks/use-currency-input";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/integrations/supabase/auth-provider";
 
 const ObraSchema = z.object({
   nome: z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),
@@ -45,6 +46,7 @@ interface ObraFormProps {
 }
 
 const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
+  const { user } = useAuth();
   const isEditing = !!initialData;
   const [step, setStep] = useState(isEditing ? 2 : 1);
   const createMutation = useCreateObra();
@@ -72,6 +74,10 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!user) {
+        showError("Você precisa estar logado.");
+        return;
+    }
 
     if (file.size > 2 * 1024 * 1024) {
         showError("A imagem deve ter no máximo 2MB.");
@@ -81,8 +87,8 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
     setIsUploading(true);
     const fileExt = file.name.split('.').pop();
     const fileName = `obra-cover-${Date.now()}.${fileExt}`;
-    // Usar um bucket público ou existente. Vamos usar 'company_assets' como no logo.
-    const filePath = `obras/${fileName}`;
+    // Caminho corrigido: user_id/obras/arquivo
+    const filePath = `${user.id}/obras/${fileName}`;
 
     try {
       const { error: uploadError } = await supabase.storage
@@ -99,7 +105,7 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
       showSuccess("Foto carregada com sucesso!");
     } catch (error) {
       console.error("Upload error:", error);
-      showError("Erro no upload da foto.");
+      showError("Erro no upload da foto. Tente novamente.");
     } finally {
       setIsUploading(false);
     }
