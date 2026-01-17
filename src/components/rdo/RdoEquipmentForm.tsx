@@ -2,7 +2,7 @@ import { useFieldArray, useFormContext } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, Search } from "lucide-react";
+import { Plus, Trash2, Search, DollarSign } from "lucide-react";
 import { RdoInput } from "@/hooks/use-rdo";
 import { useMaquinas } from "@/hooks/use-maquinas";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,25 +10,32 @@ import { formatCurrency } from "@/utils/formatters";
 import { Link } from "react-router-dom";
 
 const RdoEquipmentForm = () => {
-  const { control, setValue } = useFormContext<RdoInput>();
+  const { control, setValue, watch, register } = useFormContext<any>(); // using any to access nested array dynamically
   const { fields, append, remove } = useFieldArray({
     control,
     name: "equipamentos",
   });
   
   const { data: maquinas } = useMaquinas();
+  const equipamentos = watch("equipamentos");
 
   const handleMachineSelect = (index: number, maquinaId: string) => {
     const maquina = maquinas?.find(m => m.id === maquinaId);
     if (maquina) {
         setValue(`equipamentos.${index}.equipamento`, maquina.nome);
-        // We don't have cost in RDO Equipment schema yet, but we populate name for now
+        setValue(`equipamentos.${index}.custo_hora`, maquina.custo_hora);
     }
   };
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold border-b pb-2">Equipamentos/Ferramentas</h3>
+      <div className="flex justify-between items-center border-b pb-2">
+        <h3 className="text-lg font-semibold">Equipamentos/Ferramentas</h3>
+        <div className="text-xs font-medium text-muted-foreground flex items-center bg-accent px-2 py-1 rounded-full">
+            <DollarSign className="w-3 h-3 mr-1 text-primary" />
+            Custo Calculado
+        </div>
+      </div>
       
       {maquinas && maquinas.length === 0 && (
         <div className="text-center p-4 bg-yellow-50 border border-yellow-200 rounded-xl mb-4">
@@ -39,69 +46,85 @@ const RdoEquipmentForm = () => {
         </div>
       )}
 
-      {fields.map((field, index) => (
-        <div key={field.id} className="p-4 border rounded-lg space-y-3 bg-secondary/10">
-          <div className="flex justify-between items-start">
-            <Label className="font-medium">Equipamento #{index + 1}</Label>
-            <Button variant="ghost" size="icon" onClick={() => remove(index)} title="Remover Equipamento">
-              <Trash2 className="w-4 h-4 text-destructive" />
-            </Button>
-          </div>
+      {fields.map((field, index) => {
+        const hours = equipamentos?.[index]?.horas_trabalhadas || 0;
+        const costPerHour = equipamentos?.[index]?.custo_hora || 0;
+        const subtotal = hours * costPerHour;
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-1">
-                 <Search className="w-3 h-3" /> Selecionar Máquina
-              </Label>
-              <Select onValueChange={(val) => handleMachineSelect(index, val)}>
-                <SelectTrigger className="bg-background">
-                    <SelectValue placeholder="Escolher..." />
-                </SelectTrigger>
-                <SelectContent>
-                    {maquinas?.map(m => (
-                        <SelectItem key={m.id} value={m.id}>
-                            {m.nome} ({formatCurrency(m.custo_hora)}/h)
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+        return (
+            <div key={field.id} className="p-4 border rounded-xl space-y-4 bg-secondary/5 relative group transition-all hover:border-primary/40 hover:shadow-sm">
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 text-destructive hover:bg-destructive/10 h-8 w-8"
+                    onClick={() => remove(index)}
+                    title="Remover Equipamento"
+                >
+                    <Trash2 className="w-4 h-4" />
+                </Button>
+
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                    <div className="md:col-span-4 space-y-2">
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-1">
+                        <Search className="w-3 h-3" /> Selecionar Máquina
+                    </Label>
+                    <Select onValueChange={(val) => handleMachineSelect(index, val)}>
+                        <SelectTrigger className="bg-background rounded-xl border-muted-foreground/20 h-9 text-xs">
+                            <SelectValue placeholder="Escolher..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {maquinas?.map(m => (
+                                <SelectItem key={m.id} value={m.id} className="text-xs">
+                                    {m.nome} ({formatCurrency(m.custo_hora)}/h)
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    </div>
+                    <div className="md:col-span-3 space-y-2">
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground">Nome do Equipamento</Label>
+                    <Input
+                        placeholder="Ex: Escavadeira"
+                        {...register(`equipamentos.${index}.equipamento`)}
+                        className="bg-background rounded-xl border-muted-foreground/20 h-9"
+                    />
+                    </div>
+                    
+                    <div className="md:col-span-2 space-y-2">
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground">Horas Trab.</Label>
+                    <Input
+                        type="number"
+                        placeholder="0.0"
+                        step="0.1"
+                        {...register(`equipamentos.${index}.horas_trabalhadas`, { valueAsNumber: true })}
+                        min={0}
+                        className="bg-background rounded-xl border-muted-foreground/20 h-9 text-center font-bold"
+                    />
+                    </div>
+
+                    <div className="md:col-span-1 space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground">Custo/h</Label>
+                        <Input
+                            type="number"
+                            step="0.01"
+                            {...register(`equipamentos.${index}.custo_hora`, { valueAsNumber: true })}
+                            className="bg-background rounded-xl border-muted-foreground/20 h-9 text-xs"
+                            placeholder="0.00"
+                        />
+                    </div>
+
+                    <div className="md:col-span-2 space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-primary">Total</Label>
+                        <div className="h-9 flex items-center justify-center px-2 bg-primary/10 border border-primary/20 rounded-xl font-black text-primary text-xs whitespace-nowrap overflow-hidden">
+                            {formatCurrency(subtotal)}
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div className="md:col-span-2">
-              <Label htmlFor={`equipamento-${index}`}>Nome do Equipamento</Label>
-              <Input
-                id={`equipamento-${index}`}
-                placeholder="Ex: Betoneira, Escavadeira"
-                {...control.register(`equipamentos.${index}.equipamento`)}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor={`horas_trabalhadas-${index}`}>Horas Trabalhadas</Label>
-              <Input
-                id={`horas_trabalhadas-${index}`}
-                type="number"
-                placeholder="0.0"
-                step="0.1"
-                {...control.register(`equipamentos.${index}.horas_trabalhadas`, { valueAsNumber: true })}
-                min={0}
-              />
-            </div>
-            <div>
-              <Label htmlFor={`horas_paradas-${index}`}>Horas Paradas</Label>
-              <Input
-                id={`horas_paradas-${index}`}
-                type="number"
-                placeholder="0.0"
-                step="0.1"
-                {...control.register(`equipamentos.${index}.horas_paradas`, { valueAsNumber: true })}
-                min={0}
-              />
-            </div>
-          </div>
-        </div>
-      ))}
-      <Button type="button" variant="outline" onClick={() => append({ equipamento: "", horas_trabalhadas: 0, horas_paradas: 0 })}>
+        );
+      })}
+      <Button type="button" variant="outline" className="w-full border-dashed border-primary/40 py-6 rounded-2xl hover:bg-primary/5 hover:text-primary transition-all font-bold uppercase text-xs tracking-widest mt-4" onClick={() => append({ equipamento: "", horas_trabalhadas: 0, horas_paradas: 0, custo_hora: 0 })}>
         <Plus className="w-4 h-4 mr-2" /> Adicionar Equipamento
       </Button>
     </div>

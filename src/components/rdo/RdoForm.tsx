@@ -51,6 +51,7 @@ const EquipmentSchema = z.object({
   equipamento: z.string().min(3, "Equipamento é obrigatório."),
   horas_trabalhadas: z.number().min(0),
   horas_paradas: z.number().min(0),
+  custo_hora: z.number().min(0).optional(),
 });
 
 const MaterialSchema = z.object({
@@ -168,6 +169,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
         equipamento: e.equipamento,
         horas_trabalhadas: e.horas_trabalhadas,
         horas_paradas: e.horas_paradas,
+        custo_hora: e.custo_hora || 0, // Load cost if available
       })) || [],
       materiais: initialData?.rdo_materiais?.map(m => ({
         nome_material: m.nome_material,
@@ -183,6 +185,12 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
     control: methods.control,
     name: "mao_de_obra",
   });
+  
+  const equipamentos = useWatch({
+    control: methods.control,
+    name: "equipamentos",
+  });
+
   const activePeriods = methods.watch("periodo");
 
   useEffect(() => {
@@ -240,12 +248,20 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
   }, [weatherMap, statusMap, activePeriods, methods]);
 
   const estimatedDailyCost = useMemo(() => {
-    return maoDeObra?.reduce((sum, item) => {
+    const manpowerCost = maoDeObra?.reduce((sum, item) => {
         const qtd = Number(item.quantidade) || 0;
         const custo = Number(item.custo_unitario) || 0;
         return sum + (qtd * custo);
     }, 0) || 0;
-  }, [maoDeObra]);
+
+    const equipmentCost = equipamentos?.reduce((sum, item) => {
+        const horas = Number(item.horas_trabalhadas) || 0;
+        const custo = Number(item.custo_hora) || 0;
+        return sum + (horas * custo);
+    }, 0) || 0;
+
+    return manpowerCost + equipmentCost;
+  }, [maoDeObra, equipamentos]);
 
   const handleCopyPrevious = () => {
     if (!previousRdoData) return;
@@ -261,6 +277,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
         equipamento: e.equipamento,
         horas_trabalhadas: e.horas_trabalhadas,
         horas_paradas: e.horas_paradas,
+        custo_hora: e.custo_hora || 0,
     })) || [];
 
     methods.setValue('mao_de_obra', previousManpower, { shouldDirty: true, shouldValidate: true });
@@ -281,6 +298,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
         rdo_mao_de_obra: methods.getValues('mao_de_obra') as any,
         rdo_materiais: methods.getValues('materiais') as any,
         rdo_atividades_detalhe: methods.getValues('atividades') as any,
+        rdo_equipamentos: methods.getValues('equipamentos') as any,
       };
       generateRdoPdf(currentData, obraNome, profile);
     } else {
@@ -289,11 +307,9 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
   };
 
   const handlePayRdo = async () => {
-    const manpower = methods.getValues('mao_de_obra');
-    if (!manpower || manpower.length === 0) {
-        showError("Adicione mão de obra primeiro.");
-        return;
-    }
+    const manpower = methods.getValues('mao_de_obra') || [];
+    const equipment = methods.getValues('equipamentos') || [];
+    
     if (estimatedDailyCost <= 0) {
         showError("O custo total deve ser maior que zero.");
         return;
@@ -308,6 +324,11 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                 funcao: m.funcao,
                 quantidade: m.quantidade,
                 custo_unitario: m.custo_unitario || 0
+            })),
+            equipmentDetails: equipment.map(e => ({
+                equipamento: e.equipamento,
+                horas: e.horas_trabalhadas,
+                custo_hora: e.custo_hora || 0
             }))
         });
         showSuccess("Pagamento enviado para o Financeiro!");
@@ -417,7 +438,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
               <div className="flex items-center gap-3">
                 <div className="bg-primary p-2 rounded-lg text-primary-foreground"><DollarSign className="w-5 h-5" /></div>
                 <div>
-                  <p className="text-xs font-black text-primary uppercase">Custo de Mão de Obra do Dia</p>
+                  <p className="text-xs font-black text-primary uppercase">Custo do Dia (Equipe + Máquinas)</p>
                   <h2 className="text-2xl font-black">{formatCurrency(estimatedDailyCost)}</h2>
                 </div>
               </div>

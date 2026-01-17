@@ -31,6 +31,7 @@ export interface RdoEquipamento {
   equipamento: string;
   horas_trabalhadas: number;
   horas_paradas: number;
+  custo_hora: number; // Added field
 }
 
 export interface RdoMaterial {
@@ -332,6 +333,7 @@ interface RdoPaymentInput {
   rdoDate: string; 
   totalCost: number;
   manpowerDetails: { funcao: string, quantidade: number, custo_unitario: number }[];
+  equipmentDetails: { equipamento: string, horas: number, custo_hora: number }[]; // Added
 }
 
 const getManpowerCategoryId = async (): Promise<string> => {
@@ -352,15 +354,21 @@ export const usePayRdo = () => {
   const { user } = useAuth();
 
   return useMutation<void, Error, RdoPaymentInput>({
-    mutationFn: async ({ obraId, rdoDate, totalCost, manpowerDetails }) => {
+    mutationFn: async ({ obraId, rdoDate, totalCost, manpowerDetails, equipmentDetails }) => {
       if (!user) throw new Error("Usuário não autenticado.");
       if (totalCost <= 0) throw new Error("Custo total deve ser maior que zero para registrar o pagamento.");
 
       const categoryId = await getManpowerCategoryId();
 
-      const description = `Pagamento Mão de Obra RDO ${format(new Date(rdoDate), 'dd/MM/yyyy')}. Detalhes: ${
-        manpowerDetails.map(m => `${m.quantidade}x ${m.funcao} (${formatCurrency(m.custo_unitario)})`).join(', ')
-      }`;
+      let description = `Pagamento RDO ${format(new Date(rdoDate), 'dd/MM/yyyy')}.`;
+      
+      if (manpowerDetails.length > 0) {
+        description += ` Equipe: ${manpowerDetails.map(m => `${m.quantidade}x ${m.funcao}`).join(', ')}.`;
+      }
+      
+      if (equipmentDetails.length > 0) {
+        description += ` Maq: ${equipmentDetails.map(e => `${e.equipamento} (${e.horas}h)`).join(', ')}.`;
+      }
 
       const newEntry = {
         obra_id: obraId,
