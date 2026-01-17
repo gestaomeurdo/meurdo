@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/integrations/supabase/auth-provider";
-import { Loader2, Upload, Trash2, ShieldCheck, Lock } from "lucide-react";
+import { Loader2, Upload, Trash2, ShieldCheck, Lock, AlertTriangle } from "lucide-react";
 import { showError, showSuccess } from "@/utils/toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import UpgradeModal from "../subscription/UpgradeModal";
+
+const BUCKET_NAME = 'company_assets';
 
 const UserLogoUpload = () => {
   const { profile, user } = useAuth();
@@ -23,31 +25,52 @@ const UserLogoUpload = () => {
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!isPro) {
         setShowUpgrade(true);
+        // Limpa o input para permitir selecionar o mesmo arquivo novamente se o usuário virar PRO
+        e.target.value = '';
         return;
     }
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validação de tamanho (2MB)
     if (file.size > 2 * 1024 * 1024) {
-      showError("A imagem deve ter no máximo 2MB.");
+      showError("A imagem é muito grande. O limite máximo é 2MB.");
+      e.target.value = '';
+      return;
+    }
+
+    // Validação de tipo
+    if (!file.type.startsWith('image/')) {
+      showError("Apenas arquivos de imagem são permitidos.");
+      e.target.value = '';
       return;
     }
 
     setIsUploading(true);
     try {
       const fileExt = file.name.split('.').pop();
-      const filePath = `logos/${user?.id}/${Date.now()}.${fileExt}`;
+      // Usando user.id como pasta raiz para conformidade com RLS
+      const filePath = `${user?.id}/${Date.now()}.${fileExt}`;
 
+      // 1. Upload para o bucket dedicado
       const { error: uploadError } = await supabase.storage
-        .from('documentos_financeiros')
-        .upload(filePath, file);
+        .from(BUCKET_NAME)
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("Erro detalhado do upload:", uploadError);
+        throw new Error(uploadError.message === "The resource was not found" ? "Bucket de armazenamento não encontrado." : uploadError.message);
+      }
 
+      // 2. Obter URL pública
       const { data: publicUrlData } = supabase.storage
-        .from('documentos_financeiros')
+        .from(BUCKET_NAME)
         .getPublicUrl(filePath);
 
+      // 3. Atualizar perfil
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: publicUrlData.publicUrl })
@@ -58,9 +81,12 @@ const UserLogoUpload = () => {
       showSuccess("Logo da empresa salva com sucesso!");
       queryClient.invalidateQueries({ queryKey: ['profile'] });
     } catch (error: any) {
-      showError(`Erro no upload: ${error.message}`);
+      console.error("Erro no processo de logo:", error);
+      showError(`Falha no upload: ${error.message || "Erro de conexão."}`);
     } finally {
       setIsUploading(false);
+      // Limpa o input
+      e.target.value = '';
     }
   };
 
@@ -100,7 +126,7 @@ const UserLogoUpload = () => {
           <div className="flex flex-col sm:flex-row items-center gap-6">
             <div 
                 className={cn(
-                    "w-32 h-32 border-2 border-dashed rounded-2xl bg-white flex items-center justify-center overflow-hidden group relative transition-all",
+                    "w-32 h-32 border-2 border-dashed rounded-2xl bg-white flex items-center justify-center overflow-hidden group relative transition-all shadow-sm",
                     !isPro && "opacity-50 cursor-not-allowed hover:bg-muted",
                     isPro && "border-primary/30"
                 )}
@@ -109,7 +135,15 @@ const UserLogoUpload = () => {
               {currentLogo ? (
                 <>
                   <img src={currentLogo} alt="Logo" className="w-full h-full object-contain p-2" />
-                  <button onClick={(e) => { e.stopPropagation(); removeLogo(); }} className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"><Trash2 className="w-6 h-6" /></button>
+                  {isPro && (
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); removeLogo(); }} 
+                        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
+                        title="Remover Logo"
+                    >
+                        <Trash2 className="w-6 h-6" />
+                    </button>
+                  )}
                 </>
               ) : (
                 <div className="text-center space-y-1">
@@ -117,23 +151,23 @@ const UserLogoUpload = () => {
                 </div>
               )}
             </div>
-            <div className="flex-1 space-y-3">
+            <div className="flex-1 space-y-3 w-full text-center sm:text-left">
               <p className="text-xs text-muted-foreground font-medium">
-                PNG ou JPG (fundo transparente recomendado). Tamanho máx: 2MB.
+                Recomendado: PNG com fundo transparente.<br/>Tamanho máximo: 2MB.
               </p>
-              <div className="flex gap-2">
+              <div className="flex justify-center sm:justify-start gap-2">
                 <Button 
                     asChild={isPro} 
                     variant={isPro ? "outline" : "secondary"} 
                     size="sm" 
                     disabled={isUploading}
                     onClick={() => !isPro && setShowUpgrade(true)}
-                    className="rounded-xl font-bold"
+                    className="rounded-xl font-bold min-w-[140px]"
                 >
                   <label className={isPro ? "cursor-pointer" : "cursor-not-allowed"}>
                     {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                     {currentLogo ? "Trocar Logotipo" : "Fazer Upload"}
-                    {isPro && <input type="file" className="hidden" accept="image/*" onChange={handleUpload} disabled={isUploading} />}
+                    {isPro && <input type="file" className="hidden" accept="image/png, image/jpeg, image/jpg" onChange={handleUpload} disabled={isUploading} />}
                   </label>
                 </Button>
               </div>
