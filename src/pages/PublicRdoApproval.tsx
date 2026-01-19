@@ -6,7 +6,7 @@ import {
   Loader2, CheckCircle2, AlertTriangle, Cloud, Sun, Users, ImageIcon, 
   FileDown, Check, X, MapPin, Calendar, Camera, ListChecks, ShieldCheck, 
   Signature as SignatureIcon, Send, Truck, HardHat, Info, Clock, AlertCircle, 
-  Eye, CloudRain, CloudLightning, Package, User, Building
+  Eye, CloudRain, CloudLightning, Package, User, Building, Briefcase
 } from "lucide-react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import SignatureCanvas from 'react-signature-canvas';
@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
@@ -35,6 +36,8 @@ const PublicRdoApproval = () => {
   
   const sigPad = useRef<any>(null);
   const [isSigning, setIsSigning] = useState(false);
+  const [clientName, setClientName] = useState("");
+  const [clientRole, setClientRole] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -66,6 +69,10 @@ const PublicRdoApproval = () => {
     });
   }, [rdo?.clima_condicoes]);
 
+  const canApprove = useMemo(() => {
+    return clientName.trim().length >= 3 && clientRole.trim().length >= 2 && isSigning;
+  }, [clientName, clientRole, isSigning]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-accent/5">
@@ -87,8 +94,8 @@ const PublicRdoApproval = () => {
   }
 
   const handleApprove = async () => {
-    if (sigPad.current?.isEmpty()) {
-      showError("Por favor, desenhe sua assinatura para aprovar.");
+    if (sigPad.current?.isEmpty() || !canApprove) {
+      showError("Por favor, preencha sua identificação e desenhe sua assinatura.");
       return;
     }
     setIsProcessing(true);
@@ -99,7 +106,22 @@ const PublicRdoApproval = () => {
       const { error: uploadError } = await supabase.storage.from('documentos_financeiros').upload(filePath, blob, { contentType: 'image/png' });
       if (uploadError) throw uploadError;
       const { data: publicUrlData } = supabase.storage.from('documentos_financeiros').getPublicUrl(filePath);
-      await approveMutation.mutateAsync({ token: token!, signatureUrl: publicUrlData.publicUrl });
+      
+      const metadata = {
+          signer_name: clientName,
+          signer_role: clientRole,
+          user_agent: window.navigator.userAgent,
+          signed_at: new Date().toISOString(),
+          ip_captured: "via-server-audit"
+      };
+
+      await approveMutation.mutateAsync({ 
+          token: token!, 
+          signatureUrl: publicUrlData.publicUrl,
+          signerName: clientName,
+          signerRole: clientRole,
+          metadata
+      });
       confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
       showSuccess("Relatório aprovado com sucesso!");
     } catch (err: any) { showError(err.message || "Erro ao aprovar."); } finally { setIsProcessing(false); }
@@ -165,265 +187,314 @@ const PublicRdoApproval = () => {
         </Button>
       </header>
 
-      <main className="max-w-5xl mx-auto w-full p-4 sm:p-8 space-y-10 pb-32">
+      <main className="max-w-5xl mx-auto w-full pb-32">
         
-        {/* CABEÇALHO TÉCNICO COMPLETO */}
-        <section className="bg-white rounded-[2rem] p-6 sm:p-10 shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between gap-8 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
-                <Building className="w-64 h-64 -rotate-12" />
-            </div>
-            <div className="space-y-4 flex-1 z-10">
-                <div className="flex items-center gap-3">
-                    <Badge className={cn("uppercase font-black tracking-widest px-4 py-1.5 rounded-full text-[10px]", 
-                        rdo.status === 'approved' ? "bg-emerald-600" : 
-                        rdo.status === 'pending' ? "bg-orange-500" : "bg-red-600")}>
-                        {rdo.status === 'approved' ? '✓ Relatório Aprovado' : 
-                         rdo.status === 'pending' ? 'Aguardando Conferência' : 'Correção Solicitada'}
-                    </Badge>
+        {/* CABEÇALHO HERO IMERSIVO */}
+        <section className="relative h-[300px] sm:h-[400px] w-full overflow-hidden flex items-end p-6 sm:p-12 mb-10 group">
+            {rdo.obras?.foto_url ? (
+                <img src={rdo.obras.foto_url} className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" alt="Obra" />
+            ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-[#066abc] to-[#044a83]"></div>
+            )}
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"></div>
+            <div className="relative z-10 w-full animate-in slide-in-from-bottom-8 duration-700">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
+                    <div className="space-y-4">
+                        <Badge className={cn("uppercase font-black tracking-widest px-4 py-1.5 rounded-full text-[10px] border-none", 
+                            rdo.status === 'approved' ? "bg-emerald-500 text-white" : 
+                            rdo.status === 'pending' ? "bg-orange-500 text-white" : "bg-red-500 text-white")}>
+                            {rdo.status === 'approved' ? '✓ Relatório Aprovado' : 
+                             rdo.status === 'pending' ? 'Aguardando Sua Conferência' : 'Correção em Andamento'}
+                        </Badge>
+                        <h1 className="text-4xl sm:text-6xl font-black uppercase text-white tracking-tighter leading-none drop-shadow-2xl">
+                            {rdo.obras?.nome}
+                        </h1>
+                        <div className="space-y-2">
+                            <p className="text-white/90 font-black text-xs sm:text-sm uppercase tracking-widest flex items-center">
+                                <Building className="w-4 h-4 mr-2 text-primary fill-primary" /> Cliente: {rdo.obras?.dono_cliente || "N/A"}
+                            </p>
+                            <p className="text-white/70 font-bold text-xs sm:text-sm uppercase tracking-wider flex items-center">
+                                <MapPin className="w-4 h-4 mr-2" /> {rdo.obras?.endereco || "Endereço não informado"}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 text-white shrink-0">
+                        <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1">Data do Diário</p>
+                        <p className="text-xl font-black">{format(parseISO(rdo.data_rdo), "dd 'de' MMMM", { locale: ptBR })}</p>
+                        <p className="text-[10px] font-bold opacity-80">{format(parseISO(rdo.data_rdo), "EEEE", { locale: ptBR }).toUpperCase()}</p>
+                    </div>
                 </div>
-                <h1 className="text-3xl sm:text-5xl font-black uppercase text-slate-900 tracking-tighter leading-none">{rdo.obras?.nome}</h1>
-                <div className="space-y-2">
-                    <div className="flex items-start text-xs sm:text-sm text-muted-foreground font-bold uppercase tracking-wider max-w-2xl">
-                        <MapPin className="w-4 h-4 mr-2 text-primary shrink-0 mt-0.5" /> {rdo.obras?.endereco || "Endereço não informado"}
-                    </div>
-                    <div className="flex items-center text-xs sm:text-sm text-muted-foreground font-bold uppercase tracking-wider">
-                        <Calendar className="w-4 h-4 mr-2 text-primary" /> {format(parseISO(rdo.data_rdo), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                    </div>
-                </div>
             </div>
         </section>
 
-        {/* BLOCO CLIMA */}
-        <section className="space-y-4">
-            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 ml-4 flex items-center gap-2">
-                <Cloud className="w-4 h-4" /> Monitoramento Climático
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {parsedClima.map((item, i) => (
-                    <Card key={i} className="border-none shadow-sm rounded-2xl overflow-hidden">
-                        <CardHeader className="p-4 pb-0 flex flex-row items-center justify-between">
-                            <span className="text-[10px] font-black uppercase text-slate-400">{item.label}</span>
-                            {item.val !== "N/T" && getWeatherIcon(item.val)}
-                        </CardHeader>
-                        <CardContent className="p-4 pt-2">
-                            {item.val === "N/T" ? (
-                                <p className="text-sm font-bold text-slate-300 italic uppercase">Sem Registro</p>
-                            ) : (
-                                <div className="space-y-2">
-                                    <p className="text-lg font-black text-slate-800 uppercase leading-none">{item.val}</p>
-                                    <Badge variant={item.status === 'Operacional' ? 'secondary' : 'destructive'} className="text-[9px] font-black uppercase py-0.5 rounded-full">
-                                        {item.status}
-                                    </Badge>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
-        </section>
-
-        {/* BLOCO RECURSOS */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="px-4 sm:px-8 space-y-12">
+            {/* BLOCO CLIMA */}
             <section className="space-y-4">
-                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 ml-4 flex items-center gap-2">
-                    <Users className="w-4 h-4" /> Recursos Humanos
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
+                    <Cloud className="w-4 h-4" /> Monitoramento Climático
                 </h3>
-                <Card className="border-none shadow-sm rounded-[2rem] p-6 h-full">
-                    <div className="space-y-3">
-                        {rdo.rdo_mao_de_obra?.length ? rdo.rdo_mao_de_obra.map((m, i) => (
-                            <div key={i} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-100">
-                                        <HardHat className="w-4 h-4 text-primary" />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {parsedClima.map((item, i) => (
+                        <Card key={i} className="border-none shadow-sm rounded-2xl overflow-hidden bg-white">
+                            <CardHeader className="p-4 pb-0 flex flex-row items-center justify-between">
+                                <span className="text-[10px] font-black uppercase text-slate-400">{item.label}</span>
+                                {item.val !== "N/T" && getWeatherIcon(item.val)}
+                            </CardHeader>
+                            <CardContent className="p-4 pt-2">
+                                {item.val === "N/T" ? (
+                                    <p className="text-sm font-bold text-slate-300 italic uppercase">Sem Registro</p>
+                                ) : (
+                                    <div className="space-y-2">
+                                        <p className="text-lg font-black text-slate-800 uppercase leading-none">{item.val}</p>
+                                        <Badge variant={item.status === 'Operacional' ? 'secondary' : 'destructive'} className="text-[9px] font-black uppercase py-0.5 rounded-full">
+                                            {item.status}
+                                        </Badge>
                                     </div>
-                                    <span className="text-xs font-bold text-slate-700 uppercase">{m.funcao}</span>
-                                </div>
-                                <Badge variant="outline" className="font-black text-sm text-primary border-primary/20">{m.quantidade}</Badge>
-                            </div>
-                        )) : <p className="text-center py-10 text-slate-400 text-sm italic">Nenhum registro de equipe.</p>}
-                    </div>
-                </Card>
-            </section>
-
-            <section className="space-y-4">
-                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 ml-4 flex items-center gap-2">
-                    <Truck className="w-4 h-4" /> Máquinas e Equipamentos
-                </h3>
-                <Card className="border-none shadow-sm rounded-[2rem] p-6 h-full">
-                    <div className="space-y-3">
-                        {rdo.rdo_equipamentos?.length ? rdo.rdo_equipamentos.map((e, i) => (
-                            <div key={i} className="flex flex-col p-3 bg-slate-50 rounded-xl gap-2">
-                                <div className="flex justify-between items-center">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-100">
-                                            <Truck className="w-4 h-4 text-primary" />
-                                        </div>
-                                        <span className="text-xs font-bold text-slate-700 uppercase">{e.equipamento}</span>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <Badge variant="secondary" className="text-[10px] font-black">{e.horas_trabalhadas}h Trab.</Badge>
-                                        {e.horas_paradas > 0 && <Badge variant="outline" className="text-[10px] font-black text-red-500 border-red-100">{e.horas_paradas}h Par.</Badge>}
-                                    </div>
-                                </div>
-                            </div>
-                        )) : <p className="text-center py-10 text-slate-400 text-sm italic">Nenhum registro de maquinário.</p>}
-                    </div>
-                </Card>
-            </section>
-        </div>
-
-        {/* BLOCO PRODUÇÃO */}
-        <section className="space-y-4">
-            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 ml-4 flex items-center gap-2">
-                <ListChecks className="w-4 h-4" /> Registro de Atividades
-            </h3>
-            <div className="space-y-4">
-                {rdo.rdo_atividades_detalhe?.map((atv, i) => (
-                    <Card key={i} className="border-none shadow-sm rounded-3xl overflow-hidden">
-                        <div className="p-6 flex flex-col md:flex-row md:items-center gap-6">
-                            <div className="flex-1 space-y-3">
-                                <h4 className="text-lg font-black text-slate-800 uppercase tracking-tight">{atv.descricao_servico}</h4>
-                                {atv.observacao && <p className="text-xs text-muted-foreground font-medium bg-slate-50 p-2 rounded-lg border-l-4 border-slate-200">{atv.observacao}</p>}
-                                <div className="space-y-1.5">
-                                    <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">
-                                        <span>Avanço</span>
-                                        <span className="text-primary">{atv.avanco_percentual}%</span>
-                                    </div>
-                                    <Progress value={atv.avanco_percentual} className="h-2" />
-                                </div>
-                            </div>
-                            {atv.foto_anexo_url && (
-                                <div className="w-full md:w-32 h-20 rounded-2xl overflow-hidden cursor-zoom-in border shrink-0" onClick={() => setSelectedPhoto({ url: atv.foto_anexo_url!, desc: atv.descricao_servico })}>
-                                    <img src={atv.foto_anexo_url} className="w-full h-full object-cover" alt="Evidência" />
-                                </div>
-                            )}
-                        </div>
-                    </Card>
-                ))}
-            </div>
-        </section>
-
-        {/* BLOCO CRÍTICO: SEGURANÇA E NOTAS */}
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <div className="lg:col-span-4 space-y-4">
-                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 ml-4 flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4" /> Segurança (HSE)
-                </h3>
-                <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden">
-                    <div className="bg-emerald-600 px-6 py-3 flex items-center justify-between">
-                        <span className="text-white font-black text-[10px] uppercase tracking-[0.15em]">Conformidade NR</span>
-                        <CheckCircle2 className="w-4 h-4 text-emerald-100" />
-                    </div>
-                    <CardContent className="p-6 space-y-4">
-                        {[
-                            { label: "Trabalho em Altura", val: rdo.safety_nr35 },
-                            { label: "Uso de EPIs", val: rdo.safety_epi },
-                            { label: "Limpeza de Obra", val: rdo.safety_cleaning },
-                            { label: "DDS Realizado", val: rdo.safety_dds },
-                        ].map((item, i) => (
-                            <div key={i} className="flex items-center justify-between text-xs">
-                                <span className="font-bold text-slate-600 uppercase">{item.label}</span>
-                                {item.val ? <Check className="w-4 h-4 text-emerald-600" /> : <X className="w-4 h-4 text-slate-300" />}
-                            </div>
-                        ))}
-                    </CardContent>
-                </Card>
-            </div>
-            <div className="lg:col-span-8 space-y-4">
-                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 ml-4 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4" /> Impedimentos e Notas
-                </h3>
-                <Card className={cn("border-none shadow-sm rounded-[2rem] p-8 h-full", rdo.impedimentos_comentarios ? "bg-red-50/50 ring-1 ring-red-100" : "bg-white")}>
-                    {rdo.impedimentos_comentarios ? (
-                        <p className="text-sm font-medium text-red-800 leading-relaxed bg-white/50 p-4 rounded-2xl border border-red-100">{rdo.impedimentos_comentarios}</p>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center py-10 opacity-30 text-center">
-                            <CheckCircle2 className="w-12 h-12 text-slate-400 mb-2" />
-                            <p className="text-sm font-bold uppercase tracking-widest">Sem ocorrências</p>
-                        </div>
-                    )}
-                    {rdo.observacoes_gerais && (
-                        <div className="mt-8 pt-6 border-t border-slate-100">
-                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Observações Técnicas</p>
-                             <p className="text-sm font-medium text-slate-700 leading-relaxed">{rdo.observacoes_gerais}</p>
-                        </div>
-                    )}
-                </Card>
-            </div>
-        </section>
-
-        {/* GALERIA */}
-        {allPhotos.length > 0 && (
-            <section className="space-y-4">
-                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 ml-4 flex items-center gap-2">
-                    <Camera className="w-4 h-4" /> Galeria de Fotos
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    {allPhotos.map((photo, i) => (
-                        <div key={i} className="aspect-square rounded-[1.5rem] overflow-hidden cursor-zoom-in border shadow-sm" onClick={() => setSelectedPhoto(photo)}>
-                            <img src={photo.url} className="w-full h-full object-cover" alt="Evidência" />
-                        </div>
+                                )}
+                            </CardContent>
+                        </Card>
                     ))}
                 </div>
             </section>
-        )}
 
-        {/* CARIMBO DE VALIDAÇÃO TÉCNICA */}
-        <section className="pt-10 border-t-4 border-slate-100">
-            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 ml-4 mb-4 flex items-center gap-2">
-                <SignatureIcon className="w-4 h-4" /> Responsabilidade Técnica
-            </h3>
-            <Card className="border-none shadow-sm rounded-3xl bg-slate-50 border border-slate-200 overflow-hidden">
-                <div className="p-6 flex flex-col sm:flex-row items-center justify-between gap-6">
-                    <div className="flex items-center gap-4">
-                        <Avatar className="h-16 w-16 border-2 border-white shadow-md">
-                            <AvatarImage src={rdo.profiles?.avatar_url || ""} />
-                            <AvatarFallback className="bg-primary/10 text-primary font-black"><User /></AvatarFallback>
-                        </Avatar>
-                        <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Documento Validado por:</p>
-                            <p className="text-xl font-black text-slate-800 uppercase leading-none">{engineerName}</p>
-                            <p className="text-xs font-bold text-primary uppercase mt-1">{rdo.profiles?.role === 'administrator' ? 'Engenheiro Master' : 'Responsável Técnico'}</p>
+            {/* BLOCO RECURSOS */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <section className="space-y-4">
+                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
+                        <Users className="w-4 h-4" /> Recursos Humanos
+                    </h3>
+                    <Card className="border-none shadow-sm rounded-[2rem] p-6 h-full bg-white">
+                        <div className="space-y-3">
+                            {rdo.rdo_mao_de_obra?.length ? rdo.rdo_mao_de_obra.map((m, i) => (
+                                <div key={i} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-100">
+                                            <HardHat className="w-4 h-4 text-primary" />
+                                        </div>
+                                        <span className="text-xs font-bold text-slate-700 uppercase">{m.funcao}</span>
+                                    </div>
+                                    <Badge variant="outline" className="font-black text-sm text-primary border-primary/20">{m.quantidade}</Badge>
+                                </div>
+                            )) : <p className="text-center py-10 text-slate-400 text-sm italic">Nenhum registro de equipe.</p>}
+                        </div>
+                    </Card>
+                </section>
+
+                <section className="space-y-4">
+                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
+                        <Truck className="w-4 h-4" /> Máquinas e Equipamentos
+                    </h3>
+                    <Card className="border-none shadow-sm rounded-[2rem] p-6 h-full bg-white">
+                        <div className="space-y-3">
+                            {rdo.rdo_equipamentos?.length ? rdo.rdo_equipamentos.map((e, i) => (
+                                <div key={i} className="flex flex-col p-3 bg-slate-50 rounded-xl gap-2">
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-100">
+                                                <Truck className="w-4 h-4 text-primary" />
+                                            </div>
+                                            <span className="text-xs font-bold text-slate-700 uppercase">{e.equipamento}</span>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Badge variant="secondary" className="text-[10px] font-black">{e.horas_trabalhadas}h Trab.</Badge>
+                                            {e.horas_paradas > 0 && <Badge variant="outline" className="text-[10px] font-black text-red-500 border-red-100">{e.horas_paradas}h Par.</Badge>}
+                                        </div>
+                                    </div>
+                                </div>
+                            )) : <p className="text-center py-10 text-slate-400 text-sm italic">Nenhum registro de maquinário.</p>}
+                        </div>
+                    </Card>
+                </section>
+            </div>
+
+            {/* BLOCO PRODUÇÃO */}
+            <section className="space-y-4">
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
+                    <ListChecks className="w-4 h-4" /> Registro de Atividades
+                </h3>
+                <div className="space-y-4">
+                    {rdo.rdo_atividades_detalhe?.map((atv, i) => (
+                        <Card key={i} className="border-none shadow-sm rounded-3xl overflow-hidden bg-white">
+                            <div className="p-6 flex flex-col md:flex-row md:items-center gap-6">
+                                <div className="flex-1 space-y-3">
+                                    <h4 className="text-lg font-black text-slate-800 uppercase tracking-tight">{atv.descricao_servico}</h4>
+                                    {atv.observacao && <p className="text-xs text-muted-foreground font-medium bg-slate-50 p-2 rounded-lg border-l-4 border-slate-200">{atv.observacao}</p>}
+                                    <div className="space-y-1.5">
+                                        <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">
+                                            <span>Avanço Realizado</span>
+                                            <span className="text-primary">{atv.avanco_percentual}%</span>
+                                        </div>
+                                        <Progress value={atv.avanco_percentual} className="h-2" />
+                                    </div>
+                                </div>
+                                {atv.foto_anexo_url && (
+                                    <div className="w-full md:w-32 h-20 rounded-2xl overflow-hidden cursor-zoom-in border shrink-0" onClick={() => setSelectedPhoto({ url: atv.foto_anexo_url!, desc: atv.descricao_servico })}>
+                                        <img src={atv.foto_anexo_url} className="w-full h-full object-cover" alt="Evidência" />
+                                    </div>
+                                )}
+                            </div>
+                        </Card>
+                    ))}
+                </div>
+            </section>
+
+            {/* BLOCO CRÍTICO: SEGURANÇA E NOTAS */}
+            <section className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div className="lg:col-span-4 space-y-4">
+                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4" /> Segurança (HSE)
+                    </h3>
+                    <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden bg-white">
+                        <div className="bg-emerald-600 px-6 py-3 flex items-center justify-between">
+                            <span className="text-white font-black text-[10px] uppercase tracking-[0.15em]">Conformidade NR</span>
+                            <CheckCircle2 className="w-4 h-4 text-emerald-100" />
+                        </div>
+                        <CardContent className="p-6 space-y-4">
+                            {[
+                                { label: "Trabalho em Altura", val: rdo.safety_nr35 },
+                                { label: "Uso de EPIs", val: rdo.safety_epi },
+                                { label: "Limpeza de Obra", val: rdo.safety_cleaning },
+                                { label: "DDS Realizado", val: rdo.safety_dds },
+                            ].map((item, i) => (
+                                <div key={i} className="flex items-center justify-between text-xs">
+                                    <span className="font-bold text-slate-600 uppercase">{item.label}</span>
+                                    {item.val ? <Check className="w-4 h-4 text-emerald-600" /> : <X className="w-4 h-4 text-slate-300" />}
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+                </div>
+                <div className="lg:col-span-8 space-y-4">
+                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4" /> Impedimentos e Notas
+                    </h3>
+                    <Card className={cn("border-none shadow-sm rounded-[2rem] p-8 h-full bg-white", rdo.impedimentos_comentarios ? "ring-1 ring-red-100" : "")}>
+                        {rdo.impedimentos_comentarios ? (
+                            <p className="text-sm font-medium text-red-800 leading-relaxed bg-red-50 p-4 rounded-2xl border border-red-100">{rdo.impedimentos_comentarios}</p>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-10 opacity-30 text-center">
+                                <CheckCircle2 className="w-12 h-12 text-slate-400 mb-2" />
+                                <p className="text-sm font-bold uppercase tracking-widest">Sem ocorrências</p>
+                            </div>
+                        )}
+                        {rdo.observacoes_gerais && (
+                            <div className="mt-8 pt-6 border-t border-slate-100">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Observações Técnicas</p>
+                                <p className="text-sm font-medium text-slate-700 leading-relaxed">{rdo.observacoes_gerais}</p>
+                            </div>
+                        )}
+                    </Card>
+                </div>
+            </section>
+
+            {/* GALERIA */}
+            {allPhotos.length > 0 && (
+                <section className="space-y-4">
+                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
+                        <Camera className="w-4 h-4" /> Galeria de Evidências Fotográficas
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        {allPhotos.map((photo, i) => (
+                            <div key={i} className="aspect-square rounded-[1.5rem] overflow-hidden cursor-zoom-in border shadow-sm bg-white" onClick={() => setSelectedPhoto(photo)}>
+                                <img src={photo.url} className="w-full h-full object-cover" alt="Evidência" />
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {/* CARIMBO DO RESPONSÁVEL TÉCNICO */}
+            <section className="pt-10 border-t-4 border-slate-100 space-y-4">
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
+                    <SignatureIcon className="w-4 h-4" /> Emissão e Responsabilidade Técnica
+                </h3>
+                <Card className="border-none shadow-sm rounded-3xl bg-white border border-slate-100 overflow-hidden">
+                    <div className="p-6 flex flex-col sm:flex-row items-center justify-between gap-6">
+                        <div className="flex items-center gap-4">
+                            <Avatar className="h-16 w-16 border-2 border-white shadow-md">
+                                <AvatarImage src={rdo.profiles?.avatar_url || ""} />
+                                <AvatarFallback className="bg-primary/10 text-primary font-black"><User /></AvatarFallback>
+                            </Avatar>
+                            <div>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Validado Tecnicamente por:</p>
+                                <p className="text-xl font-black text-slate-800 uppercase leading-none">{engineerName}</p>
+                                <p className="text-xs font-bold text-primary uppercase mt-1">Responsável Técnico / CREA</p>
+                            </div>
+                        </div>
+                        <div className="text-right flex flex-col items-center sm:items-end gap-2">
+                            <Badge className="bg-emerald-600 hover:bg-emerald-600 px-4 py-1.5 rounded-full font-black uppercase text-[10px] tracking-widest shadow-lg shadow-emerald-500/20">
+                            <CheckCircle2 className="w-3.5 h-3.5 mr-2" /> Assinado Digitalmente
+                            </Badge>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Validado em: {format(parseISO(rdo.created_at), "dd/MM/yyyy HH:mm")}</p>
                         </div>
                     </div>
-                    <div className="text-right flex flex-col items-center sm:items-end gap-2">
-                        <Badge className="bg-emerald-600 hover:bg-emerald-600 px-4 py-1.5 rounded-full font-black uppercase text-[10px] tracking-widest shadow-lg shadow-emerald-500/20">
-                           <CheckCircle2 className="w-3.5 h-3.5 mr-2" /> Assinado Digitalmente
-                        </Badge>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase">Validado em: {format(parseISO(rdo.created_at), "dd/MM/yyyy HH:mm")}</p>
-                    </div>
-                </div>
-            </Card>
-        </section>
+                </Card>
+            </section>
 
-        {/* ASSINATURA DO CLIENTE */}
-        <section className="pt-20 space-y-8">
-            <div className="text-center space-y-2">
-                <h3 className="text-2xl font-black uppercase tracking-tight text-slate-800">Assinatura do Cliente</h3>
-                <p className="text-sm text-muted-foreground font-medium max-w-xs mx-auto">Desenhe sua assinatura abaixo para validar o recebimento.</p>
-            </div>
-            <div className="flex flex-col items-center gap-6">
-                <div className={cn("border-4 border-dashed rounded-[2.5rem] bg-white relative w-full max-w-[500px] aspect-[16/7] shadow-inner", isSigning ? "border-primary" : "border-slate-200")}>
-                    <SignatureCanvas ref={sigPad} penColor='#066abc' canvasProps={{ className: 'sigCanvas w-full h-full cursor-crosshair' }} onBegin={() => setIsSigning(true)} />
-                    {!isSigning && <div className="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none"><span className="text-xs font-black uppercase tracking-[0.4em]">Assine Aqui</span></div>}
-                    {isSigning && <button onClick={() => { sigPad.current.clear(); setIsSigning(false); }} className="absolute top-4 right-4 p-2 rounded-full bg-slate-100 text-destructive"><X className="w-4 h-4" /></button>}
-                </div>
-            </div>
-            
-            {/* RODAPÉ DE DADOS CADASTRAIS */}
-            <div className="max-w-[500px] mx-auto pt-6 border-t border-slate-100">
-                <div className="grid grid-cols-2 gap-6">
-                    <div>
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Cliente / Contratante</p>
-                        <p className="text-xs font-bold text-slate-700 uppercase">{rdo.obras?.dono_cliente || "N/A"}</p>
+            {/* PROTOCOLO DE ASSINATURA IDENTIFICADA */}
+            <section className="pt-20 border-t-4 border-slate-100 space-y-8">
+                <div className="text-center space-y-2">
+                    <div className="bg-primary/10 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-4">
+                        <SignatureIcon className="w-10 h-10 text-primary" />
                     </div>
-                    <div>
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Fiscalização</p>
-                        <p className="text-xs font-bold text-slate-700 uppercase">Validado via Digital ID</p>
-                    </div>
+                    <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-slate-800">Protocolo de Assinatura do Cliente</h3>
+                    <p className="text-sm text-muted-foreground font-medium max-w-sm mx-auto">Identifique-se e desenhe sua assinatura abaixo para validar juridicamente este recebimento.</p>
                 </div>
-            </div>
-        </section>
+
+                <div className="max-w-[500px] mx-auto space-y-6">
+                    <div className="grid grid-cols-1 gap-4">
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Nome Completo do Responsável</Label>
+                            <Input 
+                                placeholder="Quem está assinando este documento?" 
+                                value={clientName} 
+                                onChange={(e) => setClientName(e.target.value)}
+                                className="h-12 rounded-xl bg-white border-slate-200"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Cargo / Função / Vínculo</Label>
+                            <Input 
+                                placeholder="Ex: Proprietário, Engenheiro Fiscal, Arquiteta..." 
+                                value={clientRole} 
+                                onChange={(e) => setClientRole(e.target.value)}
+                                className="h-12 rounded-xl bg-white border-slate-200"
+                            />
+                        </div>
+                    </div>
+
+                    <div className={cn(
+                        "border-4 border-dashed rounded-[2.5rem] bg-white overflow-hidden relative aspect-[16/7] transition-all shadow-inner",
+                        isSigning ? "ring-8 ring-primary/5 border-primary" : "border-slate-200"
+                    )}>
+                        <SignatureCanvas 
+                            ref={sigPad} 
+                            penColor='#066abc' 
+                            canvasProps={{ className: 'sigCanvas w-full h-full cursor-crosshair' }} 
+                            onBegin={() => setIsSigning(true)} 
+                        />
+                        {!isSigning && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-20">
+                                <span className="text-[10px] font-black uppercase tracking-[0.4em] mb-2">Área de Assinatura</span>
+                                <span className="text-xs font-medium">Toque ou use o mouse</span>
+                            </div>
+                        )}
+                        {isSigning && (
+                            <button 
+                                onClick={() => { sigPad.current.clear(); setIsSigning(false); }} 
+                                className="absolute top-4 right-4 p-2.5 rounded-full bg-slate-100 text-destructive hover:bg-red-50 transition-colors shadow-lg"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        )}
+                    </div>
+
+                    <p className="text-[10px] text-center text-muted-foreground uppercase font-black tracking-widest leading-relaxed">
+                        Ao assinar, declaro estar ciente e de acordo com as atividades e recursos reportados neste diário de obra.
+                    </p>
+                </div>
+            </section>
+        </div>
       </main>
 
       <footer className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-md border-t shadow-[0_-4px_30px_rgba(0,0,0,0.05)] z-[60]">
@@ -431,23 +502,49 @@ const PublicRdoApproval = () => {
             {!showRejectForm ? (
                 <>
                     <div className="hidden md:flex items-center gap-3">
-                        <Clock className="w-5 h-5 text-slate-400" />
-                        <p className="text-sm font-black text-slate-700 uppercase">Aguardando Validação</p>
+                        <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center"><Clock className="w-5 h-5 text-slate-400" /></div>
+                        <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Aguardando Aprovação</p>
+                            <p className="text-sm font-black text-slate-700 uppercase tracking-tight">{rdo.status === 'approved' ? 'Relatório Concluído' : 'Conferência de Campo'}</p>
+                        </div>
                     </div>
                     <div className="flex items-center gap-4 w-full md:w-auto">
-                        <Button variant="ghost" onClick={() => setShowRejectForm(true)} className="text-[10px] font-black text-slate-400 uppercase flex-1 md:flex-none">Solicitar Correção</Button>
-                        <Button onClick={handleApprove} disabled={isProcessing} className="bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-xs tracking-widest h-12 px-10 rounded-xl flex-1 md:flex-none shadow-lg">Aprovar e Assinar</Button>
+                        <Button 
+                            variant="ghost" 
+                            onClick={() => setShowRejectForm(true)} 
+                            className="text-[10px] font-black text-slate-400 uppercase hover:text-red-500 rounded-xl h-12 flex-1 md:flex-none"
+                            disabled={rdo.status === 'approved'}
+                        >
+                            Solicitar Correção
+                        </Button>
+                        <Button 
+                            onClick={handleApprove} 
+                            disabled={isProcessing || !canApprove || rdo.status === 'approved'} 
+                            className={cn(
+                                "font-black uppercase text-xs tracking-widest h-12 px-10 rounded-xl flex-1 md:flex-none shadow-lg transition-all",
+                                canApprove ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20" : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
+                            )}
+                        >
+                            {isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />} 
+                            Aprovar RDO
+                        </Button>
                     </div>
                 </>
             ) : (
                 <div className="w-full flex flex-col md:flex-row gap-3 items-end animate-in slide-in-from-bottom-2">
                     <div className="w-full">
-                        <Label className="text-[10px] font-black text-red-500 ml-2">Motivo da reprovação</Label>
-                        <Textarea placeholder="O que precisa ser ajustado?" value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)} className="bg-red-50/30 border-red-100 rounded-xl min-h-[50px] mt-1" autoFocus />
+                        <Label className="text-[10px] font-black uppercase text-red-500 ml-2">Qual o motivo da reprovação?</Label>
+                        <Textarea 
+                            placeholder="Descreva detalhadamente o que precisa ser ajustado..." 
+                            value={rejectionReason} 
+                            onChange={(e) => setRejectionReason(e.target.value)} 
+                            className="bg-red-50/30 border-red-100 rounded-xl min-h-[50px] font-medium text-sm mt-1 focus:ring-red-500" 
+                            autoFocus 
+                        />
                     </div>
                     <div className="flex gap-2 w-full md:w-auto">
                         <Button variant="outline" onClick={() => setShowRejectForm(false)} className="h-12 rounded-xl px-6 font-bold">Voltar</Button>
-                        <Button variant="destructive" onClick={handleReject} disabled={isProcessing} className="h-12 rounded-xl px-8 font-black uppercase text-xs shadow-lg">Enviar</Button>
+                        <Button variant="destructive" onClick={handleReject} disabled={isProcessing} className="h-12 rounded-xl px-8 font-black uppercase text-xs shadow-lg shadow-red-500/20">Enviar Solicitação</Button>
                     </div>
                 </div>
             )}

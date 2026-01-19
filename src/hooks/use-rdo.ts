@@ -89,12 +89,13 @@ export interface DiarioObra {
   // Signatures
   signer_name: string | null;
   signer_registration: string | null;
+  approval_metadata?: any;
 
   rdo_atividades_detalhe?: RdoAtividadeDetalhe[];
   rdo_mao_de_obra?: RdoMaoDeObra[];
   rdo_equipamentos?: RdoEquipamento[];
   rdo_materiais?: RdoMaterial[];
-  obras?: { nome: string; dono_cliente: string | null; endereco: string | null };
+  obras?: { nome: string; dono_cliente: string | null; endereco: string | null; foto_url: string | null };
   profiles?: { first_name: string | null; last_name: string | null; avatar_url: string | null; role: string | null; company_name: string | null };
 }
 
@@ -127,7 +128,7 @@ const fetchRdoByToken = async (token: string): Promise<DiarioObra | null> => {
       rdo_mao_de_obra (*),
       rdo_equipamentos (*),
       rdo_materiais (*),
-      obras (nome, dono_cliente, endereco),
+      obras (nome, dono_cliente, endereco, foto_url),
       profiles (first_name, last_name, avatar_url, role, company_name)
     `)
     .eq('approval_token', token)
@@ -247,6 +248,7 @@ export interface RdoInput {
   // Signer
   signer_name?: string | null;
   signer_registration?: string | null;
+  approval_metadata?: any;
 
   atividades: Omit<RdoAtividadeDetalhe, 'id' | 'diario_id'>[];
   mao_de_obra: Omit<RdoMaoDeObra, 'id' | 'diario_id' | 'cargo_id'>[]; 
@@ -359,13 +361,16 @@ export const useResubmitRdo = () => {
 
 export const useApproveRdo = () => {
   const queryClient = useQueryClient();
-  return useMutation<void, Error, { token: string, signatureUrl: string }>({
-    mutationFn: async ({ token, signatureUrl }) => {
+  return useMutation<void, Error, { token: string, signatureUrl: string, signerName: string, signerRole: string, metadata: any }>({
+    mutationFn: async ({ token, signatureUrl, signerName, signerRole, metadata }) => {
       const { error } = await supabase
         .from('diarios_obra')
         .update({ 
             status: 'approved', 
             client_signature_url: signatureUrl,
+            signer_name: signerName,
+            signer_registration: signerRole,
+            approval_metadata: metadata,
             approved_at: new Date().toISOString()
         })
         .eq('approval_token', token);
