@@ -39,7 +39,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
   const queryClient = useQueryClient();
 
   const updateProStatus = (p: Profile | null) => {
-    const status = p?.subscription_status === 'active' || p?.plan_type === 'pro';
+    const status = p?.subscription_status === 'active' || p?.plan_type === 'pro' || p?.role === 'administrator';
     setIsPro(status);
     localStorage.setItem(PRO_CACHE_KEY, status ? 'true' : 'false');
   };
@@ -115,7 +115,6 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
     };
   }, [navigate, queryClient, location.pathname]);
 
-  // Bypass para rota pública
   const isPublicRoute = location.pathname.startsWith('/rdo/share/');
 
   if (isLoading && !isPublicRoute) {
