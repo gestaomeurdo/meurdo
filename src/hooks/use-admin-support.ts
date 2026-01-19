@@ -16,6 +16,7 @@ export const useAdminTickets = () => {
   return useQuery<AdminTicket[], Error>({
     queryKey: ['adminTickets'],
     queryFn: async () => {
+      // Query limpa sem filtro de user_id para o Admin ver TUDO
       const { data, error } = await supabase
         .from('support_tickets')
         .select(`
@@ -50,26 +51,21 @@ export const useAdminReply = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ ticketId, message }: { ticketId: string; message: string }) => {
-      // 1. Inserir resposta do suporte
       const { error: msgError } = await supabase
         .from('support_messages')
         .insert({ ticket_id: ticketId, sender_role: 'support', message });
       
       if (msgError) throw msgError;
 
-      // 2. Atualizar status do ticket para 'resolved' (ou custom 'answered' se preferir)
-      // Vou usar 'resolved' para simplificar o schema original ou manter conforme prompt
-      const { error: ticketError } = await supabase
+      await supabase
         .from('support_tickets')
         .update({ status: 'resolved' }) 
         .eq('id', ticketId);
-
-      if (ticketError) throw ticketError;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['adminTickets'] });
       queryClient.invalidateQueries({ queryKey: ['adminTicketMessages', variables.ticketId] });
-      queryClient.invalidateQueries({ queryKey: ['supportTickets'] }); // Para o usuário ver o feedback
+      queryClient.invalidateQueries({ queryKey: ['supportTickets'] });
     },
   });
 };
