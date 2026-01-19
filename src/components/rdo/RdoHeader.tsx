@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { DollarSign, FileDown, Loader2, Save, Check, Lock, Send, Copy, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +15,6 @@ import { useFormContext } from "react-hook-form";
 import { showSuccess, showError } from "@/utils/toast";
 
 interface RdoHeaderProps {
-  estimatedDailyCost: number;
   currentStatus: string;
   statusConfig: any;
   isApproved: boolean;
@@ -32,12 +32,24 @@ interface RdoHeaderProps {
 }
 
 const RdoHeader = ({ 
-  estimatedDailyCost, currentStatus, statusConfig, isApproved, isEditing, 
+  currentStatus, statusConfig, isApproved, isEditing, 
   obraId, obraNome, approvalToken, rdoId, initialData, profile, selectedObra, rdoList, isPending,
   onCopyPrevious
 }: RdoHeaderProps) => {
-  const { handleSubmit } = useFormContext();
+  const { handleSubmit, watch } = useFormContext();
   const resubmitMutation = useResubmitRdo();
+
+  // Monitora os campos de custo em tempo real, inclusive no carregamento (reset)
+  const maoDeObra = watch("mao_de_obra") || [];
+  const equipamentos = watch("equipamentos") || [];
+
+  const estimatedDailyCost = useMemo(() => {
+    const mCost = maoDeObra.reduce((sum: number, item: any) => 
+        sum + (Number(item.quantidade || 0) * Number(item.custo_unitario || 0)), 0);
+    const eCost = equipamentos.reduce((sum: number, item: any) => 
+        sum + (Number(item.horas_trabalhadas || 0) * Number(item.custo_hora || 0)), 0);
+    return mCost + eCost;
+  }, [maoDeObra, equipamentos]);
 
   const isRejected = currentStatus === 'rejected';
 
@@ -75,7 +87,6 @@ const RdoHeader = ({
         </div>
         
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-          {/* Botão Copiar Anterior - Apenas se estiver criando um novo ou rascunho */}
           {!isApproved && onCopyPrevious && (
             <Button 
                 type="button" 

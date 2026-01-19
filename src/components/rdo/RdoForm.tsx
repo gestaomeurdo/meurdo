@@ -1,11 +1,10 @@
 "use client";
 
-import { useForm, FormProvider, useWatch } from "react-hook-form";
+import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { showError, showSuccess } from "@/utils/toast";
-import { AlertCircle, Lock, Signature, Clock, Smartphone, Info, ShieldCheck, ListTodo, Users, Truck, Package, MessageSquare } from "lucide-react";
+import { Clock, Smartphone, Info, ShieldCheck, ListTodo, Users, Truck, Package, MessageSquare } from "lucide-react";
 import { DiarioObra, useCreateRdo, useUpdateRdo, useRdoList } from "@/hooks/use-rdo";
 import { RdoSchema, RdoFormValues } from "@/schemas/rdo-schema";
 import RdoHeader from "./RdoHeader";
@@ -17,14 +16,14 @@ import RdoMaterialsForm from "./RdoMaterialsForm";
 import RdoSafetyForm from "./RdoSafetyForm";
 import RdoSignaturePad from "./RdoSignaturePad";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useMemo, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useObras } from "@/hooks/use-obras";
 import { useAuth } from "@/integrations/supabase/auth-provider";
 import UpgradeModal from "../subscription/UpgradeModal";
 import { format } from "date-fns";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 
 interface RdoFormProps {
   obraId: string;
@@ -58,6 +57,12 @@ const RdoForm = ({ obraId, initialData, onSuccess, selectedDate, previousRdoData
 
   const methods = useForm<RdoFormValues>({
     resolver: zodResolver(RdoSchema),
+    defaultValues: {
+        mao_de_obra: [],
+        equipamentos: [],
+        atividades: [],
+        materiais: []
+    }
   });
 
   const parseSavedClima = (data: string | null) => {
@@ -100,15 +105,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, selectedDate, previousRdoData
     });
   }, [initialData, obraId, profile, methods, selectedDate]);
 
-  const maoDeObra = useWatch({ control: methods.control, name: "mao_de_obra" });
-  const equipamentos = useWatch({ control: methods.control, name: "equipamentos" });
-
-  const estimatedDailyCost = useMemo(() => {
-    const mCost = maoDeObra?.reduce((sum, item) => (sum + (Number(item.quantidade || 0) * Number(item.custo_unitario || 0))), 0) || 0;
-    const eCost = equipamentos?.reduce((sum, item) => (sum + (Number(item.horas_trabalhadas || 0) * Number(item.custo_hora || 0))), 0) || 0;
-    return mCost + eCost;
-  }, [maoDeObra, equipamentos]);
-
   const handleCopyPrevious = () => {
     if (!previousRdoData) {
         showError("Não encontramos um diário anterior para copiar.");
@@ -116,10 +112,10 @@ const RdoForm = ({ obraId, initialData, onSuccess, selectedDate, previousRdoData
     }
     methods.setValue('mao_de_obra', previousRdoData.rdo_mao_de_obra?.map(m => ({
         funcao: m.funcao, quantidade: m.quantidade, custo_unitario: m.custo_unitario, tipo: m.tipo, observacao: null
-    })) || []);
+    })) || [], { shouldDirty: true });
     methods.setValue('equipamentos', previousRdoData.rdo_equipamentos?.map(e => ({
         equipamento: e.equipamento, horas_trabalhadas: 0, horas_paradas: 0, custo_hora: e.custo_hora, observacao: null
-    })) || []);
+    })) || [], { shouldDirty: true });
     showSuccess("Dados de equipe e máquinas copiados!");
   };
 
@@ -147,7 +143,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, selectedDate, previousRdoData
         <UpgradeModal open={showUpgrade} onOpenChange={setShowUpgrade} />
 
         <RdoHeader 
-          estimatedDailyCost={estimatedDailyCost}
           currentStatus={currentStatus}
           statusConfig={statusConfig}
           isApproved={isApproved}
