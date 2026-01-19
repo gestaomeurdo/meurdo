@@ -16,7 +16,7 @@ const colors = {
   border: '#e2e8f0',
   success: '#10b981',
   danger: '#ef4444',
-  highlight: '#f1f5f9', // Fundo cinza para blocos de texto
+  highlight: '#f1f5f9',
   tableHeader: '#066abc',
 };
 
@@ -28,7 +28,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 9,
   },
-  // --- HEADER SECTION ---
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -73,8 +72,6 @@ const styles = StyleSheet.create({
     color: colors.textLight,
     textTransform: 'uppercase',
   },
-
-  // --- INFO CARDS ---
   infoBar: {
     flexDirection: 'row',
     gap: 10,
@@ -99,8 +96,6 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontFamily: 'Helvetica-Bold',
   },
-
-  // --- SECTIONS ---
   section: {
     marginBottom: 15,
   },
@@ -116,8 +111,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
     paddingVertical: 4,
   },
-
-  // --- TABLES ---
   table: {
     width: '100%',
     borderWidth: 1,
@@ -144,8 +137,6 @@ const styles = StyleSheet.create({
   tableCell: {
     fontSize: 8,
   },
-
-  // --- LISTS ---
   activityItem: {
     flexDirection: 'row',
     marginBottom: 6,
@@ -162,8 +153,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica-Bold',
     color: colors.primary,
   },
-
-  // --- TEXT BLOCKS ---
   fullWidthBox: {
     width: '100%',
     backgroundColor: colors.highlight,
@@ -176,15 +165,13 @@ const styles = StyleSheet.create({
     fontSize: 9,
     lineHeight: 1.4,
   },
-
-  // --- PHOTO GRID ---
   photoGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
   },
   photoWrapper: {
-    width: '31%', // 3 colunas
+    width: '31%',
     marginBottom: 10,
   },
   photo: {
@@ -201,8 +188,6 @@ const styles = StyleSheet.create({
     marginTop: 3,
     textAlign: 'center',
   },
-
-  // --- FOOTER ---
   signatureRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -239,13 +224,16 @@ interface RdoPdfTemplateProps {
   obra?: Obra;
 }
 
-const SYSTEM_LOGO = "https://meurdo.com.br/wp-content/uploads/2026/01/Logo-MEU-RDO-scaled.png";
+const DEFAULT_SYSTEM_LOGO = "https://meurdo.com.br/wp-content/uploads/2026/01/Logo-MEU-RDO-scaled.png";
 
 export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra }: RdoPdfTemplateProps) => {
-  // Hierarquia de Logos: Obra > Perfil Empresa > Sistema
-  const logoUrl = obra?.foto_url || profile?.avatar_url || SYSTEM_LOGO;
+  // AJUSTE CRÍTICO: Lógica de Fallback da Logo
+  // 1. Prioridade 1: Logo da Obra (obra.foto_url)
+  // 2. Prioridade 2 (Default): Logo Oficial Meu RDO
+  const logoUrl = (obra?.foto_url && obra.foto_url.trim().length > 0) 
+    ? obra.foto_url 
+    : DEFAULT_SYSTEM_LOGO;
 
-  // Formatação de Data
   let dateStr = '---';
   let dayStr = '---';
   try {
@@ -256,7 +244,6 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra }: RdoPdfTemplateP
     }
   } catch (e) {}
 
-  // Agrupamento de Fotos (Atividades + Segurança)
   const allPhotos = [
     ...(rdo.rdo_atividades_detalhe?.filter(a => a.foto_anexo_url).map(a => ({ url: a.foto_anexo_url!, desc: a.descricao_servico })) || []),
     { url: rdo.safety_nr35_photo, desc: "Segurança: Trabalho em Altura" },
@@ -270,7 +257,6 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra }: RdoPdfTemplateP
     <Document>
       <Page size="A4" style={styles.page}>
         
-        {/* CABEÇALHO BRANDING */}
         <View style={styles.headerRow}>
           <View style={styles.brandArea}>
             <Image src={logoUrl} style={styles.logo} />
@@ -284,7 +270,6 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra }: RdoPdfTemplateP
           </View>
         </View>
 
-        {/* BARRA DE INFORMAÇÕES RÁPIDAS */}
         <View style={styles.infoBar}>
           <View style={styles.infoCard}>
             <Text style={styles.infoLabel}>Obra</Text>
@@ -302,7 +287,6 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra }: RdoPdfTemplateP
           </View>
         </View>
 
-        {/* SEÇÃO 1: MÃO DE OBRA (STAFF) */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Efetivo e Equipe em Campo</Text>
           {rdo.rdo_mao_de_obra && rdo.rdo_mao_de_obra.length > 0 ? (
@@ -325,7 +309,6 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra }: RdoPdfTemplateP
           )}
         </View>
 
-        {/* SEÇÃO 2: EQUIPAMENTOS */}
         {rdo.rdo_equipamentos && rdo.rdo_equipamentos.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Máquinas e Equipamentos</Text>
@@ -346,7 +329,6 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra }: RdoPdfTemplateP
           </View>
         )}
 
-        {/* SEÇÃO 3: SERVIÇOS EXECUTADOS */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Atividades e Evolução do Dia</Text>
           {rdo.rdo_atividades_detalhe && rdo.rdo_atividades_detalhe.length > 0 ? (
@@ -366,7 +348,6 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra }: RdoPdfTemplateP
           )}
         </View>
 
-        {/* SEÇÃO 4: MATERIAIS */}
         {rdo.rdo_materiais && rdo.rdo_materiais.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Insumos e Recebimentos</Text>
@@ -387,7 +368,6 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra }: RdoPdfTemplateP
           </View>
         )}
 
-        {/* SEÇÃO 5: OCORRÊNCIAS E COMENTÁRIOS */}
         {(rdo.impedimentos_comentarios || rdo.observacoes_gerais) && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Ocorrências e Observações Gerais</Text>
@@ -408,7 +388,6 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra }: RdoPdfTemplateP
           </View>
         )}
 
-        {/* SEÇÃO 6: GALERIA FOTOGRÁFICA */}
         {allPhotos.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Evidências Fotográficas</Text>
@@ -423,7 +402,6 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra }: RdoPdfTemplateP
           </View>
         )}
 
-        {/* ASSINATURAS */}
         <View style={styles.signatureRow} wrap={false}>
           <View style={styles.signatureCol}>
             {rdo.responsible_signature_url && <Image src={rdo.responsible_signature_url} style={styles.signatureImage} />}
@@ -438,7 +416,6 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra }: RdoPdfTemplateP
           </View>
         </View>
 
-        {/* RODAPÉ SISTEMA */}
         <Text style={{ position: 'absolute', bottom: 15, left: 0, right: 0, textAlign: 'center', fontSize: 7, color: colors.textLight }}>
           Este documento é um registro técnico oficial gerado pela plataforma Meu RDO.
         </Text>
