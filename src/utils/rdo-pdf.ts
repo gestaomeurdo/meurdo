@@ -4,28 +4,28 @@ import { DiarioObra } from "@/hooks/use-rdo";
 import { Profile } from "@/hooks/use-profile";
 import { Obra } from "@/hooks/use-obras";
 import { RdoPdfTemplate } from "@/components/rdo/RdoPdfTemplate";
-import { format } from "date-fns";
+import { format, parseISO, isValid } from "date-fns";
 
 async function urlToBase64(url: string | null | undefined): Promise<string | null> {
-  if (!url || typeof url !== 'string' || url.trim() === '') return null;
+  if (!url || typeof url !== 'string' || url.trim() === '' || url.includes('null')) return null;
   
   try {
     const response = await fetch(url, { 
       mode: 'cors',
-      cache: 'no-cache'
+      cache: 'default'
     });
     
     if (!response.ok) return null;
     
     const blob = await response.blob();
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = () => reject(new Error("Erro ao ler blob"));
+      reader.onerror = () => resolve(null);
       reader.readAsDataURL(blob);
     });
   } catch (error) {
-    console.warn(`[PDF Preflight] Falha ao processar imagem: ${url}`);
+    console.warn(`[PDF Preflight] Ignorando imagem com erro: ${url}`);
     return null;
   }
 }
@@ -38,7 +38,9 @@ export const generateRdoPdf = async (
   rdoList?: DiarioObra[]
 ) => {
   try {
-    // 1. Número Sequencial
+    console.log("[PDF Generator] Iniciando processamento resiliente...");
+
+    // 1. Sanitização de Data (Evita erro de 'Invalid Date')
     let sequenceNumber = "01";
     if (rdoList && rdoList.length > 0) {
         const sorted = [...rdoList].sort((a, b) => a.data_rdo.localeCompare(b.data_rdo));
@@ -64,24 +66,26 @@ export const generateRdoPdf = async (
         { url: (rdo as any).safety_epi_photo, desc: "Segurança: Uso de EPIs" },
         { url: (rdo as any).safety_cleaning_photo, desc: "Segurança: Limpeza" },
         { url: (rdo as any).safety_dds_photo, desc: "Segurança: Registro de DDS" }
-    ].filter(p => p.url && typeof p.url === 'string');
+    ].filter(p => p.url && typeof p.url === 'string' && p.url.startsWith('http'));
 
-    // 3. CONVERSÃO EM MASSA
-    const [logoBase64, responsibleSigBase64, clientSigBase64, processedPhotos] = await Promise.all([
-        urlToBase64(profile?.avatar_url), // Logo do cliente (opcional)
+    // 3. CONVERSÃO EM MASSA (Resiliente: não trava se uma falhar)
+    const [logoBase64, responsibleSigBase64, clientSigBase64] = await Promise.all([
+        urlToBase64(profile?.avatar_url),
         urlToBase64(rdo.responsible_signature_url),
-        urlToBase64(rdo.client_signature_url),
-        Promise.all(rawPhotos.map(async (p) => ({
-            desc: p.desc,
-            base64: await urlToBase64(p.url)
-        })))
+        urlToBase64(rdo.client_signature_url)
     ]);
+
+    const processedPhotos = [];
+    for (const p of rawPhotos) {
+        const b64 = await urlToBase64(p.url);
+        if (b64) processedPhotos.push({ desc: p.desc, base64: b64 });
+    }
 
     // 4. Renderização
     const blob = await pdf(
       React.createElement(RdoPdfTemplate, { 
         rdo, 
-        obraNome, 
+        obraNome: obraNome || "Obra sem nome", 
         profile, 
         obra, 
         sequenceNumber,
@@ -92,6 +96,7 @@ export const generateRdoPdf = async (
       })
     ).toBlob();
 
+    const fileNameDate = typeof rdo.data_rdo === 'string' ? rdo.data_rdo : 'relatorio';
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -102,7 +107,7 @@ export const generateRdoPdf = async (
     URL.revokeObjectURL(url);
     
   } catch (error) {
-    console.error("[PDF Generator] Erro:", error);
-    throw new Error("Erro técnico ao gerar o PDF. Verifique os dados.");
+    console.error("[PDF Generator] Erro Fatal:", error);
+    throw new Error("Ocorreu um erro ao processar o PDF. Verifique se as imagens anexadas são válidas.");
   }
 };
