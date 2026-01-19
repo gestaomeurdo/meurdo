@@ -1,12 +1,12 @@
-import { Menu, LogOut, Bell, UserCircle, User, AlertCircle } from "lucide-react";
+import { Menu, LogOut, Bell, UserCircle, User, AlertCircle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/integrations/supabase/auth-provider";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useProfile } from "@/hooks/use-profile";
 import { Link } from "react-router-dom";
-import { useRdoAlerts } from "@/hooks/use-alerts"; // Corrigindo import para o hook correto
-import { useRdoAlerts as useRdoAlertsHook } from "@/hooks/use-rdo-alerts";
+import { useRdoAlerts } from "@/hooks/use-rdo-alerts";
+import { cn } from "@/lib/utils";
 
 const ICON_URL = "https://meurdo.com.br/wp-content/uploads/2026/01/Icone.png";
 
@@ -17,7 +17,7 @@ interface HeaderProps {
 const Header = ({ setSidebarOpen }: HeaderProps) => {
   const { signOut, user } = useAuth();
   const { data: profile } = useProfile();
-  const { data: alerts } = useRdoAlertsHook();
+  const { data: alerts } = useRdoAlerts();
   const isMobile = useIsMobile();
 
   const userName = profile?.first_name || user?.email?.split('@')[0] || "Usuário";
