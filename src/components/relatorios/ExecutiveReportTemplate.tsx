@@ -5,43 +5,31 @@ import { ptBR } from 'date-fns/locale';
 
 const styles = StyleSheet.create({
   page: { backgroundColor: '#ffffff', padding: 0, fontFamily: 'Helvetica' },
-  
-  // 1. HERO HEADER (1/3 of the page)
   heroContainer: { height: 280, position: 'relative', backgroundColor: '#1e293b', justifyContent: 'flex-end', padding: 40 },
   heroBg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.5, objectFit: 'cover' },
   heroOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'black', opacity: 0.2 },
   heroContent: { position: 'relative', zIndex: 10 },
-  
   healthSeal: { position: 'absolute', top: 40, right: 40, padding: '8 15', borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 5 },
   sealGreen: { backgroundColor: '#10b981' },
   sealRed: { backgroundColor: '#ef4444' },
   sealText: { color: 'white', fontSize: 8, fontWeight: 'bold', textTransform: 'uppercase' },
-
   titleGiant: { color: '#ffffff', fontSize: 28, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: -1, marginBottom: 5 },
   subTitle: { color: '#94a3b8', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 },
-  
   dateBox: { backgroundColor: 'rgba(255, 255, 255, 0.1)', padding: '10 20', borderRadius: 12, marginTop: 20, alignSelf: 'flex-start' },
   dateText: { color: 'white', fontSize: 10, fontWeight: 'bold' },
-
-  // 2. HUD DE MÉTRICAS (KPIs)
   kpiRow: { flexDirection: 'row', padding: '30 40', gap: 15 },
   kpiCard: { flex: 1, backgroundColor: '#f8fafc', borderRadius: 20, padding: 15, borderStyle: 'solid', borderWidth: 1, borderColor: '#e2e8f0' },
   kpiLabel: { fontSize: 7, color: '#64748b', textTransform: 'uppercase', marginBottom: 8, fontWeight: 'bold' },
   kpiValue: { fontSize: 18, fontWeight: 'bold', color: '#0f172a' },
   kpiSub: { fontSize: 7, color: '#94a3b8', marginTop: 4 },
-
-  // 3. PROGRESSO DAS ATIVIDADES
   section: { paddingHorizontal: 40, marginBottom: 30 },
   sectionTitle: { fontSize: 10, fontWeight: 'bold', color: '#1e293b', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#e2e8f0', paddingBottom: 5 },
-  
   activityRow: { marginBottom: 12 },
   activityHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
   activityName: { fontSize: 9, fontWeight: 'bold', color: '#334155' },
   activityPct: { fontSize: 9, fontWeight: 'bold', color: '#066abc' },
   progressBarBg: { height: 8, backgroundColor: '#f1f5f9', borderRadius: 4, overflow: 'hidden' },
   progressBarFill: { height: '100%', backgroundColor: '#066abc', borderRadius: 4 },
-
-  // 4. TIMELINE VISUAL
   timelineContainer: { paddingHorizontal: 40, position: 'relative' },
   timelineLine: { position: 'absolute', left: 45, top: 0, bottom: 0, width: 2, backgroundColor: '#e2e8f0' },
   timelineItem: { flexDirection: 'row', marginBottom: 20, position: 'relative' },
@@ -49,13 +37,16 @@ const styles = StyleSheet.create({
   timelineBullet: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#066abc', borderStyle: 'solid', borderWidth: 2, borderColor: 'white', marginHorizontal: 10, marginTop: 7, zIndex: 10 },
   timelineBox: { flex: 1, backgroundColor: '#f8fafc', borderRadius: 12, padding: 12, borderStyle: 'solid', borderWidth: 1, borderColor: '#e2e8f0' },
   timelineText: { fontSize: 8, color: '#334155', lineHeight: 1.4 },
-
-  // 5. GALERIA MOSAICO
   galleryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   galleryImgLarge: { width: '60%', height: 180, borderRadius: 12, objectFit: 'cover' },
   galleryImgSmall: { width: '38%', height: 85, borderRadius: 12, objectFit: 'cover' },
-  photoLabel: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.5)', padding: 5, borderBottomLeftRadius: 12, borderBottomRightRadius: 12 },
-  photoText: { color: 'white', fontSize: 6, textAlign: 'center' }
+  footerContainer: { marginTop: 'auto', padding: 30, backgroundColor: '#ffffff', borderTopWidth: 1, borderTopColor: '#f1f5f9' },
+  sigRow: { flexDirection: 'row', gap: 40, marginTop: 20 },
+  sigBox: { flex: 1, alignItems: 'center' },
+  sigLine: { width: '100%', borderTopWidth: 1, borderTopColor: '#e2e8f0', marginBottom: 8 },
+  sigImg: { height: 40, objectFit: 'contain', marginBottom: 5 },
+  sigName: { fontSize: 9, fontWeight: 'bold', color: '#1e293b', textTransform: 'uppercase' },
+  sigRole: { fontSize: 7, color: '#64748b' }
 });
 
 export const ExecutiveReportTemplate = ({ 
@@ -64,32 +55,29 @@ export const ExecutiveReportTemplate = ({
   const isDelayed = rdoMetrics.rainDays > 5;
   const periodText = `${format(parseISO(startDate), "dd MMM", { locale: ptBR })} - ${format(parseISO(endDate), "dd MMM yyyy", { locale: ptBR })}`.toUpperCase();
   
-  // Selecionar as 5 fotos mais relevantes para o mosaico
+  const approvedRdosCount = rdoMetrics.allRdos.filter((r: any) => 
+    r.client_signature_url || 
+    ['approved', 'aprovado', 'APROVADO'].includes(r.status)
+  ).length;
+
   const topPhotos = Object.values(activityPhotosMap).slice(0, 5);
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* HERO HEADER */}
         <View style={styles.heroContainer}>
           {obraPhotoBase64 && <Image src={obraPhotoBase64} style={styles.heroBg} />}
           <View style={styles.heroOverlay} />
-          
           <View style={[styles.healthSeal, isDelayed ? styles.sealRed : styles.sealGreen]}>
             <Text style={styles.sealText}>{isDelayed ? "ATENÇÃO" : "OBRA EM DIA"}</Text>
           </View>
-
           <View style={styles.heroContent}>
             <Text style={styles.titleGiant}>Relatório de Performance</Text>
             <Text style={styles.subTitle}>{obra.nome} | {obra.endereco || "Localização não informada"}</Text>
-            
-            <View style={styles.dateBox}>
-              <Text style={styles.dateText}>{periodText}</Text>
-            </View>
+            <View style={styles.dateBox}><Text style={styles.dateText}>{periodText}</Text></View>
           </View>
         </View>
 
-        {/* HUD DE MÉTRICAS */}
         <View style={styles.kpiRow}>
           <View style={styles.kpiCard}>
             <Text style={styles.kpiLabel}>Avanço Físico</Text>
@@ -108,12 +96,11 @@ export const ExecutiveReportTemplate = ({
           </View>
           <View style={styles.kpiCard}>
             <Text style={styles.kpiLabel}>Qualidade</Text>
-            <Text style={styles.kpiValue}>{rdoMetrics.allRdos.filter((r: any) => r.status === 'approved').length}</Text>
+            <Text style={styles.kpiValue}>{approvedRdosCount}</Text>
             <Text style={styles.kpiSub}>Diários Aprovados</Text>
           </View>
         </View>
 
-        {/* PROGRESSO DAS ATIVIDADES */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Progresso das Atividades</Text>
           {rdoMetrics.allRdos[0]?.rdo_atividades_detalhe?.slice(0, 4).map((atv: any, i: number) => (
@@ -129,7 +116,6 @@ export const ExecutiveReportTemplate = ({
           ))}
         </View>
 
-        {/* TIMELINE VISUAL */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Linha do Tempo de Ocorrências</Text>
           <View style={styles.timelineContainer}>
@@ -146,7 +132,6 @@ export const ExecutiveReportTemplate = ({
           </View>
         </View>
 
-        {/* GALERIA DE DESTAQUES */}
         {topPhotos.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Destaques Fotográficos</Text>

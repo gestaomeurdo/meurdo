@@ -1,7 +1,7 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useObras } from "@/hooks/use-obras";
 import { useState, useEffect } from "react";
-import { Loader2, AlertTriangle, FileText, Zap, Calendar as CalendarIcon } from "lucide-react";
+import { Loader2, AlertTriangle, FileText, Zap, Calendar as CalendarIcon, TrendingUp, Presentation } from "lucide-react";
 import ObraSelector from "@/components/financeiro/ObraSelector";
 import { Button } from "@/components/ui/button";
 import { DateRange } from "react-day-picker";
@@ -16,10 +16,10 @@ import { ptBR } from "date-fns/locale";
 import { useAuth } from "@/integrations/supabase/auth-provider";
 import UpgradeButton from "@/components/subscription/UpgradeButton";
 import { useRdoReportData } from "@/hooks/use-rdo-report-data";
-import RdoOccurrenceTimeline from "@/components/relatorios/RdoOccurrenceTimeline";
 import RdoSummaryCards from "@/components/relatorios/RdoSummaryCards";
-import RdoActivityProgressChart from "@/components/relatorios/RdoActivityProgressChart";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import ActivityProgressList from "@/components/relatorios/ActivityProgressList";
+import WorkforceEvolutionChart from "@/components/relatorios/WorkforceEvolutionChart";
+import OccurrenceHorizontalTimeline from "@/components/relatorios/OccurrenceHorizontalTimeline";
 import ActivityStatusTable from "@/components/relatorios/ActivityStatusTable";
 
 const Relatorios = () => {
@@ -71,8 +71,8 @@ const Relatorios = () => {
     if (!selectedObraId || selectedObraId === '00000000-0000-0000-0000-000000000000') {
       return (
         <div className="text-center py-20 border border-dashed rounded-3xl bg-muted/10">
-          <FileText className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
-          <p className="text-muted-foreground font-medium">Selecione uma obra para visualizar os indicadores.</p>
+          <Presentation className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
+          <p className="text-muted-foreground font-medium">Selecione uma obra para gerar o Dashboard Executivo.</p>
         </div>
       );
     }
@@ -81,63 +81,64 @@ const Relatorios = () => {
       return (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-muted-foreground animate-pulse font-bold uppercase tracking-widest text-xs">
-            Processando dados de campo...
-          </p>
+          <p className="text-sm font-black uppercase tracking-[0.2em] animate-pulse">Sincronizando Dados...</p>
         </div>
       );
     }
 
     if (rdoError) {
       return (
-        <Alert variant="destructive" className="mt-6 border-2">
+        <Alert variant="destructive" className="mt-6 border-2 border-destructive/20 rounded-2xl">
           <AlertTriangle className="h-5 w-5" />
-          <AlertTitle className="font-bold">Erro ao gerar relatório</AlertTitle>
-          <AlertDescription>
-            Não conseguimos processar os diários desta obra. Verifique sua conexão ou permissões.
-          </AlertDescription>
+          <AlertTitle className="font-bold">Erro ao processar dados</AlertTitle>
+          <AlertDescription>Houve uma falha na comunicação com o banco de dados de campo.</AlertDescription>
         </Alert>
       );
     }
 
     if (!rdoMetrics || rdoMetrics.allRdos.length === 0) {
       return (
-        <div className="text-center py-20 border border-dashed rounded-3xl bg-accent/5">
+        <div className="text-center py-24 border border-dashed rounded-[3rem] bg-accent/5">
           <FileText className="w-16 h-16 mx-auto text-muted-foreground/20 mb-4" />
-          <h2 className="text-xl font-bold mb-2">Sem registros no período</h2>
-          <p className="text-muted-foreground max-w-xs mx-auto">
-            Não encontramos nenhum RDO entre {periodoString}.
+          <h2 className="text-xl font-bold mb-2">Sem histórico no período</h2>
+          <p className="text-muted-foreground text-sm uppercase font-black tracking-widest">
+            {periodoString}
           </p>
         </div>
       );
     }
 
     return (
-      <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        {/* KPI Cards Section */}
         <RdoSummaryCards metrics={rdoMetrics} isLoading={isFetchingRdoMetrics} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <RdoActivityProgressChart metrics={rdoMetrics} isLoading={isFetchingRdoMetrics} />
-          
-          <Card className="shadow-clean border-none rounded-3xl overflow-hidden">
-            <CardHeader className="bg-muted/30">
-              <CardTitle className="flex items-center gap-2 text-lg font-bold">
-                <AlertTriangle className="w-5 h-5 text-destructive" />
-                Eventos e Impedimentos
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="h-[350px] p-0">
-              <RdoOccurrenceTimeline metrics={rdoMetrics} isLoading={isFetchingRdoMetrics} />
-            </CardContent>
-          </Card>
+        {/* Technical Data Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-10 gap-8">
+          <div className="lg:col-span-6">
+            <ActivityProgressList obraId={selectedObraId} isLoading={isFetchingRdoMetrics} />
+          </div>
+          <div className="lg:col-span-4">
+            <WorkforceEvolutionChart rdos={rdoMetrics.allRdos} isLoading={isFetchingRdoMetrics} />
+          </div>
         </div>
 
-        <ActivityStatusTable obraId={selectedObraId} />
+        {/* Interactive Timeline */}
+        <OccurrenceHorizontalTimeline rdos={rdoMetrics.allRdos} />
 
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 border-t">
-          <div className="text-xs text-muted-foreground font-medium uppercase tracking-widest">
-            {rdoMetrics.allRdos.length} dias analisados neste relatório
+        {/* Detailed Status Table */}
+        <div className="pt-4 border-t border-slate-100">
+          <ActivityStatusTable obraId={selectedObraId} />
+        </div>
+
+        {/* Export Action Bar */}
+        <div className="bg-card p-8 rounded-[2.5rem] border shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="space-y-1 text-center md:text-left">
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Consolidação de Dados</p>
+            <h4 className="text-lg font-bold">Relatório Executivo de Performance</h4>
+            <p className="text-xs text-muted-foreground">{rdoMetrics.allRdos.length} Diários analisados entre {periodoString}</p>
           </div>
+          
           {isPro ? (
             <ExportDialog 
               obraNome={obras?.find(o => o.id === selectedObraId)?.nome || "Obra"} 
@@ -151,10 +152,10 @@ const Relatorios = () => {
               endDate={endDateString}
             />
           ) : (
-            <div className="bg-yellow-500/5 border border-yellow-500/20 p-4 rounded-2xl flex flex-col sm:flex-row items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center gap-4 bg-orange-50 p-4 rounded-2xl border border-orange-100">
               <div className="flex items-center gap-2">
-                <Zap className="h-5 w-5 text-yellow-600 fill-current" />
-                <span className="text-xs font-bold text-yellow-800 uppercase">Exportação Premium exclusiva PRO</span>
+                <Zap className="h-5 w-5 text-orange-600 fill-current" />
+                <span className="text-[10px] font-black text-orange-800 uppercase">Upgrade para Exportar PDF Premium</span>
               </div>
               <UpgradeButton />
             </div>
@@ -166,47 +167,42 @@ const Relatorios = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-4 sm:p-6 space-y-6">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-black uppercase tracking-tighter">Relatórios de Campo</h1>
-          <p className="text-sm text-muted-foreground font-medium">Análise técnica de produtividade e ocorrências.</p>
-        </div>
+      <div className="p-4 sm:p-8 space-y-8 bg-slate-50/30 min-h-screen">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-black uppercase tracking-tighter text-slate-800">Relatórios de Campo</h1>
+            <p className="text-sm text-muted-foreground font-medium">Visão executiva e controle técnico de produtividade.</p>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-card p-4 border rounded-2xl shadow-sm">
-          <ObraSelector selectedObraId={selectedObraId} onSelectObra={setSelectedObraId} />
-          
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant={"outline"}
-                className="w-full justify-start text-left font-normal rounded-xl bg-background"
-              >
-                <CalendarIcon className="mr-2 h-4 w-4 shrink-0 text-primary" />
-                <span className="truncate">
-                  {date?.from ? (
-                    date.to ? (
-                      `${format(date.from, "dd/MM/yy")} - ${format(date.to, "dd/MM/yy")}`
-                    ) : (
-                      format(date.from, "dd/MM/yy")
-                    )
-                  ) : (
-                    <span>Selecione o Período</span>
-                  )}
-                </span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                initialFocus
-                mode="range"
-                defaultMonth={date?.from}
-                selected={date}
-                onSelect={setDate}
-                numberOfMonths={isMobile ? 1 : 2}
-                locale={ptBR}
-              />
-            </PopoverContent>
-          </Popover>
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <div className="w-full sm:w-[300px]">
+              <ObraSelector selectedObraId={selectedObraId} onSelectObra={setSelectedObraId} />
+            </div>
+            
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="h-10 justify-start text-left font-bold rounded-xl bg-white border-slate-200">
+                  <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
+                  <span className="truncate text-xs">
+                    {date?.from ? (
+                      date.to ? `${format(date.from, "dd/MM/yy")} - ${format(date.to, "dd/MM/yy")}` : format(date.from, "dd/MM/yy")
+                    ) : "Filtrar Período"}
+                  </span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 rounded-2xl shadow-2xl border-none" align="end">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={date?.from}
+                  selected={date}
+                  onSelect={setDate}
+                  numberOfMonths={isMobile ? 1 : 2}
+                  locale={ptBR}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
 
         {renderContent()}
