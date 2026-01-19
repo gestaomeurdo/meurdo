@@ -1,4 +1,4 @@
-import { Menu, LogOut, Bell, UserCircle, User, AlertCircle, CheckCircle } from "lucide-react";
+import { Menu, LogOut, Bell, UserCircle, User, AlertCircle, CheckCircle, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/integrations/supabase/auth-provider";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -9,6 +9,7 @@ import { useRdoAlerts } from "@/hooks/use-rdo-alerts";
 import { cn } from "@/lib/utils";
 
 const ICON_URL = "https://meurdo.com.br/wp-content/uploads/2026/01/Icone.png";
+const ADMIN_EMAIL = 'robsonalixandree@gmail.com';
 
 interface HeaderProps {
   setSidebarOpen: (isOpen: boolean) => void;
@@ -22,6 +23,7 @@ const Header = ({ setSidebarOpen }: HeaderProps) => {
 
   const userName = profile?.first_name || user?.email?.split('@')[0] || "Usuário";
   const alertCount = alerts?.length || 0;
+  const isAdmin = user?.email === ADMIN_EMAIL;
 
   return (
     <header className="sticky top-0 z-20 flex items-center justify-between h-16 px-4 bg-background/80 backdrop-blur-md border-b shadow-sm">
@@ -97,6 +99,20 @@ const Header = ({ setSidebarOpen }: HeaderProps) => {
           <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-xl">
             <DropdownMenuLabel className="font-bold">Minha Conta</DropdownMenuLabel>
             <DropdownMenuSeparator />
+            
+            {/* BOTÃO EXCLUSIVO PARA O ROBSON */}
+            {isAdmin && (
+              <>
+                <DropdownMenuItem asChild className="cursor-pointer text-purple-600 focus:text-purple-700 focus:bg-purple-50">
+                  <Link to="/admin/tickets" className="flex items-center py-2 font-bold">
+                    <ShieldCheck className="h-4 w-4 mr-2" />
+                    Backoffice Suporte
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
+
             <DropdownMenuItem asChild className="cursor-pointer">
               <Link to="/profile" className="flex items-center py-2">
                 <UserCircle className="h-4 w-4 mr-2" />

@@ -24,6 +24,7 @@ import UpdatePassword from "./pages/UpdatePassword";
 import AuthCallback from "./pages/AuthCallback";
 import PublicRdoApproval from "./pages/PublicRdoApproval";
 import AdminTickets from "./pages/AdminTickets";
+import AdminRoute from "./components/auth/AdminRoute";
 import { ThemeProvider } from "./components/layout/ThemeProvider";
 
 const queryClient = new QueryClient();
@@ -55,8 +56,10 @@ const App = () => (
               <Route path="/profile" element={<Profile />} />
               <Route path="/update-password" element={<UpdatePassword />} />
               
-              {/* Rotas Administrativas */}
-              <Route path="/admin/tickets" element={<AdminTickets />} />
+              {/* Rotas Administrativas Protegidas */}
+              <Route element={<AdminRoute />}>
+                <Route path="/admin/tickets" element={<AdminTickets />} />
+              </Route>
               
               {/* Rota Pública de Aprovação */}
               <Route path="/rdo/share/:token" element={<PublicRdoApproval />} />
