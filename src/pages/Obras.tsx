@@ -8,6 +8,7 @@ import { useSubscriptionLimits } from "@/hooks/use-subscription-limits";
 import { useState } from "react";
 import UpgradeModal from "@/components/subscription/UpgradeModal";
 import { Link } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 
 const Obras = () => {
   const { data: obras, isLoading } = useObras();
@@ -48,7 +49,7 @@ const Obras = () => {
                 <Link to={`/obras/${obra.id}`} key={obra.id}>
                     <Card className="hover:shadow-xl transition-all cursor-pointer border-none rounded-[2rem] overflow-hidden bg-card p-6 shadow-clean">
                         <h3 className="text-xl font-black uppercase mb-4">{obra.nome}</h3>
-                        <Badge>{obra.status}</Badge>
+                        <Badge variant="outline" className="uppercase font-bold text-[10px] tracking-widest">{obra.status}</Badge>
                     </Card>
                 </Link>
             ))}
