@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { showSuccess, showError } from "@/utils/toast";
 import { Loader2, Save, FileDown, DollarSign, Lock, Sun, Cloud, CloudRain, CloudLightning, CheckCircle2, AlertCircle, Send, Signature } from "lucide-react";
@@ -90,7 +91,7 @@ const RdoSchema = z.object({
   safety_nr35: z.boolean().default(false),
   safety_epi: z.boolean().default(false),
   safety_cleaning: z.boolean().default(false),
-  safety_dds: z.boolean().default(false),
+  safety_dds: boolean.default(false),
   safety_comments: z.string().nullable().optional(),
   
   safety_nr35_photo: z.string().nullable().optional(),
