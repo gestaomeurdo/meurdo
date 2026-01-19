@@ -4,6 +4,7 @@ import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInte
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import RdoDialog from "./RdoDialog";
+import { AlertCircle } from "lucide-react";
 
 interface RdoCalendarProps {
   obraId: string;
@@ -22,7 +23,6 @@ const RdoCalendar = ({ obraId, rdoList, currentDate }: RdoCalendarProps) => {
     end: endDate,
   });
 
-  // Criamos um mapa de números sequenciais baseado na data
   const rdoSequences = React.useMemo(() => {
     const sorted = [...rdoList].sort((a, b) => a.data_rdo.localeCompare(b.data_rdo));
     const map: Record<string, string> = {};
@@ -43,7 +43,7 @@ const RdoCalendar = ({ obraId, rdoList, currentDate }: RdoCalendarProps) => {
         case 'pending': 
             return "bg-orange-500 text-white border-orange-600 hover:bg-orange-600";
         case 'rejected': 
-            return "bg-red-500 text-white border-red-600 hover:bg-red-600";
+            return "bg-red-600 text-white border-red-700 hover:bg-red-700 animate-pulse";
         default: 
             return "bg-white text-slate-600 border-slate-200 hover:bg-slate-50";
     }
@@ -93,10 +93,11 @@ const RdoCalendar = ({ obraId, rdoList, currentDate }: RdoCalendarProps) => {
                       )}>
                         <div className="flex justify-between items-center mb-0.5">
                             <span className="uppercase">RDO #{rdoSequences[rdo.id]}</span>
+                            {rdo.status === 'rejected' && <AlertCircle className="w-2.5 h-2.5" />}
                             {rdo.status === 'approved' && <span className="text-[7px]">✓</span>}
                         </div>
-                        <div className="truncate opacity-70 font-medium">
-                            {rdo.clima_condicoes?.split(',')[0].replace('M:', '') || 'N/T'}
+                        <div className="truncate opacity-70 font-medium italic">
+                            {rdo.status === 'rejected' ? "CORRIGIR" : (rdo.clima_condicoes?.split(',')[0].replace('M:', '') || 'N/T')}
                         </div>
                       </button>
                     }
