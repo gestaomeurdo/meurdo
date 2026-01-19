@@ -40,7 +40,7 @@ const SelectScrollUpButton = React.forwardRef<
       "flex cursor-default items-center justify-center py-1",
       className
     )}
-    ...props
+    {...props}
   >
     <ChevronUp className="h-4 w-4" />
   </SelectPrimitive.ScrollUpButton>
@@ -57,7 +57,7 @@ const SelectScrollDownButton = React.forwardRef<
       "flex cursor-default items-center justify-center py-1",
       className
     )}
-    ...props
+    {...props}
   >
     <ChevronDown className="h-4 w-4" />
   </SelectPrimitive.ScrollDownButton>
