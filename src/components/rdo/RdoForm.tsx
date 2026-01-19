@@ -170,12 +170,15 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
         quantidade: m.quantidade,
         custo_unitario: m.custo_unitario,
         tipo: m.tipo || 'Própria',
+        observacao: (m as any).observacao,
       })) || [],
       equipamentos: initialData?.rdo_equipamentos?.map(e => ({
         equipamento: e.equipamento,
         horas_trabalhadas: e.horas_trabalhadas,
         horas_paradas: e.horas_paradas,
         custo_hora: e.custo_hora || 0,
+        observacao: (e as any).observacao,
+        foto_url: (e as any).foto_url,
       })) || [],
       materiais: initialData?.rdo_materiais?.map(m => ({
         nome_material: m.nome_material,
@@ -376,7 +379,13 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
       onSuccess();
     } catch (error: any) {
       console.error("Erro ao salvar RDO:", error);
-      const errorMessage = error?.message || error?.error_description || "Erro desconhecido ao salvar.";
+      let errorMessage = error?.message || error?.error_description || "Erro desconhecido ao salvar.";
+      
+      // Handle unique constraint violation specifically
+      if (errorMessage.includes("diarios_obra_obra_id_data_rdo_key") || errorMessage.includes("duplicate key")) {
+        errorMessage = "Já existe um RDO registrado para esta data. Edite o existente ou mude a data.";
+      }
+      
       showError(`Erro ao salvar: ${errorMessage}`);
     }
   };
