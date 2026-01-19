@@ -94,7 +94,8 @@ export interface DiarioObra {
   rdo_mao_de_obra?: RdoMaoDeObra[];
   rdo_equipamentos?: RdoEquipamento[];
   rdo_materiais?: RdoMaterial[];
-  obras?: { nome: string; dono_cliente: string | null };
+  obras?: { nome: string; dono_cliente: string | null; endereco: string | null };
+  profiles?: { first_name: string | null; last_name: string | null; avatar_url: string | null; role: string | null; company_name: string | null };
 }
 
 // --- Fetching Single RDO ---
@@ -126,7 +127,8 @@ const fetchRdoByToken = async (token: string): Promise<DiarioObra | null> => {
       rdo_mao_de_obra (*),
       rdo_equipamentos (*),
       rdo_materiais (*),
-      obras (nome, dono_cliente)
+      obras (nome, dono_cliente, endereco),
+      profiles (first_name, last_name, avatar_url, role, company_name)
     `)
     .eq('approval_token', token)
     .maybeSingle();
