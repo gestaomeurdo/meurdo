@@ -6,9 +6,9 @@ export const FREE_PLAN_LIMITS = {
     PHOTOS_PER_RDO: 5
 };
 
-export const useSubscriptionLimits = () => {
-  const { data: profile } = useProfile();
-  const { data: obras } = useObras();
+export const useCanCreateObra = () => {
+  const { data: profile, isLoading: isLoadingProfile } = useProfile();
+  const { data: obras, isLoading: isLoadingObras } = useObras();
 
   const isPro = profile?.subscription_status === 'active' || profile?.plan_type === 'pro';
   const obraCount = obras?.length || 0;
@@ -19,6 +19,10 @@ export const useSubscriptionLimits = () => {
     isPro,
     canCreateObra,
     obraCount,
-    limits: FREE_PLAN_LIMITS
+    limits: FREE_PLAN_LIMITS,
+    isLoading: isLoadingProfile || isLoadingObras
   };
 };
+
+// Exportando também como alias para manter compatibilidade se necessário
+export const useSubscriptionLimits = useCanCreateObra;
