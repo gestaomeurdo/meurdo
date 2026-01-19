@@ -15,13 +15,6 @@ interface RdoListTableProps {
   isLoading: boolean;
 }
 
-const climaIconMap: Record<string, React.ElementType> = {
-  'Sol': Sun,
-  'Nublado': Cloud,
-  'Chuva Leve': CloudRain,
-  'Chuva Forte': CloudLightning,
-};
-
 const getClimaIcon = (climaString: string | null) => {
     if (!climaString) return Cloud;
     if (climaString.includes('Chuva Forte')) return CloudLightning;
@@ -31,18 +24,17 @@ const getClimaIcon = (climaString: string | null) => {
     return Cloud;
 };
 
-const getStatusColor = (status: string): "default" | "secondary" | "destructive" | "outline" => {
-    if (status === 'Operacional' || (status.includes('Operacional') && !status.includes('Não Praticável'))) return "default";
-    if (status.includes('Não Praticável')) return "destructive";
-    return "secondary";
-};
-
-const formatStatusText = (status: string) => {
-    if (status.length > 30) {
-        if (status.includes("Não Praticável")) return "Com Paralisação";
-        if (status.includes("Operacional")) return "Operacional";
+const getStatusConfig = (status: string | undefined) => {
+    switch (status) {
+        case 'approved': 
+            return { label: "Aprovado", variant: "default" as const, class: "bg-emerald-600 hover:bg-emerald-600" };
+        case 'pending': 
+            return { label: "Aguardando", variant: "default" as const, class: "bg-orange-500 hover:bg-orange-500" };
+        case 'rejected': 
+            return { label: "Correção", variant: "destructive" as const, class: "" };
+        default: 
+            return { label: "Rascunho", variant: "outline" as const, class: "bg-slate-50 text-slate-500" };
     }
-    return status;
 };
 
 const RdoListTable = ({ rdoList, obraId, isLoading }: RdoListTableProps) => {
@@ -84,7 +76,7 @@ const RdoListTable = ({ rdoList, obraId, isLoading }: RdoListTableProps) => {
             <TableHead className="w-[120px]">Data</TableHead>
             <TableHead className="w-[140px]">Dia</TableHead>
             <TableHead className="w-[120px]">Clima</TableHead>
-            <TableHead className="min-w-[200px]">Status</TableHead>
+            <TableHead className="min-w-[150px]">Status Aprovação</TableHead>
             <TableHead>Responsável</TableHead>
             <TableHead className="text-right w-[100px]">Ações</TableHead>
           </TableRow>
@@ -94,9 +86,7 @@ const RdoListTable = ({ rdoList, obraId, isLoading }: RdoListTableProps) => {
             const dateObj = parseISO(rdo.data_rdo);
             const dayOfWeek = format(dateObj, 'EEEE', { locale: ptBR });
             const ClimaIcon = getClimaIcon(rdo.clima_condicoes);
-            const statusColor = getStatusColor(rdo.status_dia);
-            const statusText = formatStatusText(rdo.status_dia);
-
+            const statusCfg = getStatusConfig(rdo.status);
             const rdoDate = new Date(rdo.data_rdo + 'T12:00:00');
 
             return (
@@ -109,7 +99,7 @@ const RdoListTable = ({ rdoList, obraId, isLoading }: RdoListTableProps) => {
                     obraId={obraId}
                     date={rdoDate}
                     trigger={
-                      <div className="w-full h-full p-4 flex items-center">
+                      <div className="w-full h-full p-4 flex items-center font-bold">
                         {format(dateObj, 'dd/MM/yyyy')}
                       </div>
                     }
@@ -133,7 +123,7 @@ const RdoListTable = ({ rdoList, obraId, isLoading }: RdoListTableProps) => {
                     trigger={
                       <div className="w-full h-full p-4 flex items-center gap-2">
                         <ClimaIcon className="w-4 h-4 text-primary" />
-                        <span className="text-xs truncate max-w-[100px]">{rdo.clima_condicoes?.split(',')[0] || 'N/A'}</span>
+                        <span className="text-xs truncate max-w-[100px]">{rdo.clima_condicoes?.split(',')[0].replace('M:', '') || 'N/A'}</span>
                       </div>
                     }
                   />
@@ -144,20 +134,20 @@ const RdoListTable = ({ rdoList, obraId, isLoading }: RdoListTableProps) => {
                     date={rdoDate}
                     trigger={
                       <div className="w-full h-full p-4 flex items-center">
-                        <Badge variant={statusColor} className="text-[10px] md:text-xs whitespace-normal text-center">
-                          {statusText}
+                        <Badge variant={statusCfg.variant} className={cn("text-[10px] font-black uppercase tracking-widest px-3 py-1", statusCfg.class)}>
+                          {statusCfg.label}
                         </Badge>
                       </div>
                     }
                   />
                 </TableCell>
-                <TableCell className="text-sm p-0">
+                <TableCell className="text-sm p-0 font-medium">
                    <RdoDialog
                     obraId={obraId}
                     date={rdoDate}
                     trigger={
                       <div className="w-full h-full p-4 flex items-center">
-                        {(rdo as any).responsavel || 'N/A'}
+                        {rdo.responsavel || 'N/A'}
                       </div>
                     }
                   />
@@ -184,7 +174,7 @@ const RdoListTable = ({ rdoList, obraId, isLoading }: RdoListTableProps) => {
                             disabled={deleteMutation.isPending}
                             className="bg-destructive hover:bg-destructive/90"
                           >
-                            {deleteMutation.isPending ? "Excluindo..." : "Excluir"}
+                            Excluir
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>

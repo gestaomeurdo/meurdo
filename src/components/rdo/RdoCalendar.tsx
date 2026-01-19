@@ -26,10 +26,26 @@ const RdoCalendar = ({ obraId, rdoList, currentDate }: RdoCalendarProps) => {
     return rdoList.filter(rdo => isSameDay(parseISO(rdo.data_rdo), day));
   };
 
-  const getStatusColor = (status: string | undefined) => {
-    if (status === 'Operacional') return "bg-green-500 text-white border-green-600";
-    if (status?.includes('Paralisado')) return "bg-red-600 text-white border-red-700";
-    return "bg-slate-200 text-slate-600";
+  const getStatusConfig = (status: string | undefined) => {
+    switch (status) {
+        case 'approved': 
+            return "bg-emerald-500 text-white border-emerald-600 hover:bg-emerald-600";
+        case 'pending': 
+            return "bg-orange-500 text-white border-orange-600 hover:bg-orange-600";
+        case 'rejected': 
+            return "bg-red-500 text-white border-red-600 hover:bg-red-600";
+        default: 
+            return "bg-slate-200 text-slate-600 border-slate-300 hover:bg-slate-300";
+    }
+  };
+
+  const getStatusLabel = (status: string | undefined) => {
+    switch (status) {
+        case 'approved': return "✓ Aprovado";
+        case 'pending': return "⌛ Aguardando";
+        case 'rejected': return "✖ Ajuste";
+        default: return "✎ Rascunho";
+    }
   };
 
   return (
@@ -71,23 +87,25 @@ const RdoCalendar = ({ obraId, rdoList, currentDate }: RdoCalendarProps) => {
                     date={new Date(rdo.data_rdo + 'T12:00:00')}
                     trigger={
                       <button className={cn(
-                        "w-full text-left p-1.5 rounded-md text-[10px] font-bold border shadow-sm transition-transform active:scale-95 hover:brightness-110",
-                        getStatusColor(rdo.status_dia)
+                        "w-full text-left p-1.5 rounded-md text-[9px] font-black border shadow-sm transition-transform active:scale-95",
+                        getStatusConfig(rdo.status)
                       )}>
-                        <div className="truncate">RDO #{rdo.id.slice(0, 4)}</div>
-                        <div className="truncate opacity-90">{rdo.clima_condicoes || 'Clima N/A'}</div>
+                        <div className="truncate">{getStatusLabel(rdo.status)}</div>
+                        <div className="truncate opacity-80 uppercase tracking-tighter">
+                            {rdo.clima_condicoes?.split(',')[0].replace('M:', '') || 'Sem Clima'}
+                        </div>
                       </button>
                     }
                   />
                 ))}
 
-                {isCurrentMonth && day <= new Date() && (
+                {isCurrentMonth && day <= new Date() && rdos.length === 0 && (
                   <RdoDialog
                     obraId={obraId}
                     date={day}
                     trigger={
                       <button className="w-full text-left p-1.5 rounded-md text-[10px] font-medium border border-dashed bg-orange-500/5 text-orange-600/70 hover:bg-orange-500/10 border-orange-200/50 transition-colors">
-                        + Novo Registro
+                        + Registrar
                       </button>
                     }
                   />
