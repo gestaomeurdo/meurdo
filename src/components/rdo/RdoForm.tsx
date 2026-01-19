@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { showSuccess, showError } from "@/utils/toast";
-import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, Sun, Clock, Upload, Image as ImageIcon, X, MessageSquare, AlertOctagon, Cloud, CloudRain, CloudLightning, CheckCircle2, AlertCircle, Moon, Power } from "lucide-react";
+import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, Sun, Clock, Upload, Image as ImageIcon, X, MessageSquare, AlertOctagon, Cloud, CloudRain, CloudLightning, CheckCircle2, AlertCircle, Moon, Power, SunMedium } from "lucide-react";
 import { DiarioObra, useCreateRdo, useUpdateRdo, WorkforceType, useRdoList } from "@/hooks/use-rdo";
 import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
@@ -76,7 +76,6 @@ const RdoSchema = z.object({
   work_stopped: z.boolean().default(false),
   hours_lost: z.coerce.number().min(0).max(24).default(0),
   
-  // Períodos individuais
   morning_enabled: z.boolean().default(true),
   morning_clima: z.string().default("Sol"),
   morning_status: z.string().default("Operacional"),
@@ -226,8 +225,16 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
 
       const climaString = `${getP(values.morning_enabled, values.morning_clima, values.morning_status, "M")}, ${getP(values.afternoon_enabled, values.afternoon_clima, values.afternoon_status, "T")}, ${getP(values.night_enabled, values.night_clima, values.night_status, "N")}`;
       
+      // Separamos os campos de UI (que não existem no banco) dos dados de banco
+      const {
+        morning_enabled, morning_clima, morning_status,
+        afternoon_enabled, afternoon_clima, afternoon_status,
+        night_enabled, night_clima, night_status,
+        ...databaseValues
+      } = values;
+
       const dataToSubmit = {
-        ...values,
+        ...databaseValues,
         data_rdo: format(values.data_rdo, 'yyyy-MM-dd'),
         clima_condicoes: climaString,
       };
@@ -241,7 +248,8 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
       }
       onSuccess();
     } catch (error: any) {
-      showError("Falha ao salvar.");
+      console.error("Erro ao salvar RDO:", error);
+      showError(error.message || "Falha ao salvar.");
     }
   };
 
