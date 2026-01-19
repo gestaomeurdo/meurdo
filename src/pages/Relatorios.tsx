@@ -29,7 +29,6 @@ const Relatorios = () => {
   const [selectedObraId, setSelectedObraId] = useState<string | undefined>(undefined);
   const isMobile = useIsMobile();
 
-  // Inicializa SEMPRE com o mês atual para garantir performance e relevância
   const [date, setDate] = useState<DateRange | undefined>({
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
@@ -96,9 +95,6 @@ const Relatorios = () => {
           <AlertTitle className="font-bold">Erro ao gerar relatório</AlertTitle>
           <AlertDescription>
             Não conseguimos processar os diários desta obra. Verifique sua conexão ou permissões.
-            <div className="mt-2 text-[10px] font-mono opacity-70 bg-black/5 p-2 rounded">
-              {rdoError.message}
-            </div>
           </AlertDescription>
         </Alert>
       );
@@ -110,7 +106,7 @@ const Relatorios = () => {
           <FileText className="w-16 h-16 mx-auto text-muted-foreground/20 mb-4" />
           <h2 className="text-xl font-bold mb-2">Sem registros no período</h2>
           <p className="text-muted-foreground max-w-xs mx-auto">
-            Não encontramos nenhum RDO entre {periodoString}. Tente alterar o filtro de datas acima.
+            Não encontramos nenhum RDO entre {periodoString}.
           </p>
         </div>
       );
@@ -136,7 +132,6 @@ const Relatorios = () => {
           </Card>
         </div>
 
-        {/* Tabela de Progresso Detalhado */}
         <ActivityStatusTable obraId={selectedObraId} />
 
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 border-t">
@@ -152,12 +147,14 @@ const Relatorios = () => {
               kmCost={0} 
               isLoading={isFetchingRdoMetrics} 
               selectedObra={obras?.find(o => o.id === selectedObraId)} 
+              startDate={startDateString}
+              endDate={endDateString}
             />
           ) : (
             <div className="bg-yellow-500/5 border border-yellow-500/20 p-4 rounded-2xl flex flex-col sm:flex-row items-center gap-4">
               <div className="flex items-center gap-2">
                 <Zap className="h-5 w-5 text-yellow-600 fill-current" />
-                <span className="text-xs font-bold text-yellow-800 uppercase">Exportação em PDF exclusiva PRO</span>
+                <span className="text-xs font-bold text-yellow-800 uppercase">Exportação Premium exclusiva PRO</span>
               </div>
               <UpgradeButton />
             </div>
