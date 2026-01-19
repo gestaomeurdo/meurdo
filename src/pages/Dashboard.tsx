@@ -71,19 +71,19 @@ const Dashboard = () => {
           </Alert>
         )}
 
-        {/* Status KPIs */}
+        {/* Status KPIs com Efeito Glow translúcido */}
         <div className="grid gap-6 grid-cols-2 lg:grid-cols-4">
           {[
-            { label: "Aprovações Pendentes", value: metrics?.pendingCount ?? 0, icon: FileClock, color: "bg-orange-500", textColor: "text-orange-600", bgColor: "bg-orange-50" },
-            { label: "RDOs Aprovados", value: metrics?.approvedCount ?? 0, icon: FileCheck, color: "bg-emerald-500", textColor: "text-emerald-600", bgColor: "bg-emerald-50" },
-            { label: "Rascunhos em Aberto", value: metrics?.draftCount ?? 0, icon: FileEdit, color: "bg-slate-400", textColor: "text-slate-500", bgColor: "bg-slate-100" },
-            { label: "Efetivo Médio", value: metrics?.averageManpower ?? 0, icon: HardHat, color: "bg-blue-500", textColor: "text-blue-600", bgColor: "bg-blue-50" },
+            { label: "Aprovações Pendentes", value: metrics?.pendingCount ?? 0, icon: FileClock, color: "bg-orange-500", textColor: "text-orange-600", borderColor: "border-orange-500/20", glow: "bg-orange-500/10" },
+            { label: "RDOs Aprovados", value: metrics?.approvedCount ?? 0, icon: FileCheck, color: "bg-emerald-500", textColor: "text-emerald-600", borderColor: "border-emerald-500/20", glow: "bg-emerald-500/10" },
+            { label: "Rascunhos em Aberto", value: metrics?.draftCount ?? 0, icon: FileEdit, color: "bg-slate-400", textColor: "text-slate-500", borderColor: "border-slate-400/20", glow: "bg-slate-400/10" },
+            { label: "Efetivo Médio", value: metrics?.averageManpower ?? 0, icon: HardHat, color: "bg-blue-500", textColor: "text-blue-600", borderColor: "border-blue-500/20", glow: "bg-blue-500/10" },
           ].map((stat, i) => (
             <Card key={i} className="shadow-md border-none bg-card overflow-hidden hover:shadow-lg transition-all rounded-3xl group">
                 <div className={cn("h-1.5 w-full", stat.color)}></div>
                 <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-4">
-                        <div className={cn("p-3 rounded-2xl transition-transform group-hover:scale-110", stat.bgColor)}>
+                        <div className={cn("p-3 rounded-2xl transition-transform group-hover:scale-110 border", stat.glow, stat.borderColor)}>
                             <stat.icon className={cn("w-6 h-6", stat.textColor)} />
                         </div>
                     </div>

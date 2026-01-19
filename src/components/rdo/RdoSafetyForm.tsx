@@ -54,16 +54,16 @@ const RdoSafetyForm = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2 border-b pb-2">
-        <ShieldCheck className="w-5 h-5 text-green-600" />
-        <h3 className="text-lg font-bold uppercase tracking-tight">Checklist de Segurança</h3>
+      <div className="flex items-center gap-2 border-b pb-2 dark:border-slate-700">
+        <ShieldCheck className="w-5 h-5 text-green-600 dark:text-emerald-400" />
+        <h3 className="text-lg font-bold uppercase tracking-tight dark:text-slate-200">Checklist de Segurança</h3>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {safetyItems.map((item) => {
           const photoUrl = watch(item.photoField);
           return (
-            <div key={item.id} className="p-4 border rounded-2xl bg-secondary/5 space-y-3">
+            <div key={item.id} className="p-4 border rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 dark:border-slate-700 space-y-3 transition-all hover:border-emerald-500/30">
               <FormField
                 control={control}
                 name={item.id}
@@ -73,11 +73,11 @@ const RdoSafetyForm = () => {
                       <Checkbox
                         checked={field.value}
                         onCheckedChange={field.onChange}
-                        className="h-5 w-5"
+                        className="h-5 w-5 data-[state=checked]:bg-emerald-600"
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel className="text-sm font-bold uppercase cursor-pointer">
+                      <FormLabel className="text-sm font-black uppercase cursor-pointer dark:text-slate-300">
                         {item.label}
                       </FormLabel>
                     </div>
@@ -95,9 +95,9 @@ const RdoSafetyForm = () => {
                 />
                 
                 {photoUrl ? (
-                  <div className="flex items-center gap-2 bg-white p-1 pr-3 rounded-lg border">
+                  <div className="flex items-center gap-2 bg-white dark:bg-slate-950 p-1 pr-3 rounded-lg border dark:border-slate-800">
                     <img src={photoUrl} className="w-8 h-8 rounded object-cover" alt="Safety" />
-                    <span className="text-[10px] font-bold text-green-600 uppercase">Anexado</span>
+                    <span className="text-[10px] font-black text-green-600 dark:text-emerald-400 uppercase">Anexado</span>
                     <Button 
                       type="button" 
                       variant="ghost" 
@@ -113,7 +113,7 @@ const RdoSafetyForm = () => {
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-8 text-[10px] font-bold uppercase border-dashed border-primary/30"
+                    className="h-8 text-[10px] font-black uppercase border-dashed border-primary/30 dark:border-slate-600 dark:bg-slate-950"
                     onClick={() => document.getElementById(item.photoField)?.click()}
                     disabled={uploadingField === item.photoField}
                   >
@@ -132,12 +132,12 @@ const RdoSafetyForm = () => {
       </div>
 
       <div className="space-y-2">
-        <Label className="text-xs font-bold uppercase text-muted-foreground">Observações Técnicas de Segurança</Label>
+        <Label className="text-xs font-black uppercase text-muted-foreground">Observações Técnicas de Segurança</Label>
         <Textarea 
           placeholder="Registre aqui diálogos de segurança, advertências ou observações sobre riscos..."
           {...register("safety_comments")}
           rows={3}
-          className="bg-white rounded-xl"
+          className="bg-white dark:bg-slate-950 rounded-xl"
         />
       </div>
     </div>

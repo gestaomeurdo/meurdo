@@ -24,6 +24,7 @@ import { format } from "date-fns";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 interface RdoFormProps {
   obraId: string;
@@ -159,22 +160,23 @@ const RdoForm = ({ obraId, initialData, onSuccess, selectedDate, previousRdoData
           onCopyPrevious={!isApproved ? handleCopyPrevious : undefined}
         />
 
-        <div className="bg-white border rounded-[2rem] p-2 space-y-0 overflow-hidden shadow-sm">
+        {/* Container de Clima Corrigido para Dark Mode */}
+        <div className="bg-slate-50 dark:bg-slate-800/50 border dark:border-slate-700 rounded-[2rem] p-2 space-y-0 overflow-hidden shadow-sm">
           <RdoPeriodRow label="Manhã" enabledName="morning_enabled" climaName="morning_clima" statusName="morning_status" isApproved={isApproved} />
-          <div className="h-px bg-slate-100 mx-6" />
+          <div className="h-px bg-slate-100 dark:bg-slate-700 mx-6" />
           <RdoPeriodRow label="Tarde" enabledName="afternoon_enabled" climaName="afternoon_clima" statusName="afternoon_status" isApproved={isApproved} />
-          <div className="h-px bg-slate-100 mx-6" />
+          <div className="h-px bg-slate-100 dark:bg-slate-700 mx-6" />
           <RdoPeriodRow label="Noite" enabledName="night_enabled" climaName="night_clima" statusName="night_status" isApproved={isApproved} />
         </div>
 
         <Tabs defaultValue="atividades" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 md:grid-cols-7 h-auto bg-muted/40 p-1 rounded-2xl gap-1 border">
-            <TabsTrigger value="atividades" className="rounded-xl text-[9px] uppercase font-black py-3 data-[state=active]:bg-white flex items-center gap-1.5"><ListTodo className="w-3 h-3" /> Serviços</TabsTrigger>
-            <TabsTrigger value="mao_de_obra" className="rounded-xl text-[9px] uppercase font-black py-3 data-[state=active]:bg-white flex items-center gap-1.5"><Users className="w-3 h-3" /> Equipe</TabsTrigger>
-            <TabsTrigger value="equipamentos" className="rounded-xl text-[9px] uppercase font-black py-3 data-[state=active]:bg-white flex items-center gap-1.5"><Truck className="w-3 h-3" /> Máquinas</TabsTrigger>
-            <TabsTrigger value="materiais" className="rounded-xl text-[9px] uppercase font-black py-3 data-[state=active]:bg-white flex items-center gap-1.5"><Package className="w-3 h-3" /> Insumos</TabsTrigger>
-            <TabsTrigger value="seguranca" className="rounded-xl text-[9px] uppercase font-black py-3 data-[state=active]:bg-white flex items-center gap-1.5"><ShieldCheck className="w-3 h-3" /> Segurança</TabsTrigger>
-            <TabsTrigger value="ocorrencias" className="rounded-xl text-[9px] uppercase font-black py-3 data-[state=active]:bg-white flex items-center gap-1.5"><MessageSquare className="w-3 h-3" /> Notas</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-7 h-auto bg-muted/40 p-1 rounded-2xl gap-1 border dark:border-slate-700">
+            <TabsTrigger value="atividades" className="rounded-xl text-[9px] uppercase font-black py-3 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 flex items-center gap-1.5"><ListTodo className="w-3 h-3" /> Serviços</TabsTrigger>
+            <TabsTrigger value="mao_de_obra" className="rounded-xl text-[9px] uppercase font-black py-3 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 flex items-center gap-1.5"><Users className="w-3 h-3" /> Equipe</TabsTrigger>
+            <TabsTrigger value="equipamentos" className="rounded-xl text-[9px] uppercase font-black py-3 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 flex items-center gap-1.5"><Truck className="w-3 h-3" /> Máquinas</TabsTrigger>
+            <TabsTrigger value="materiais" className="rounded-xl text-[9px] uppercase font-black py-3 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 flex items-center gap-1.5"><Package className="w-3 h-3" /> Insumos</TabsTrigger>
+            <TabsTrigger value="seguranca" className="rounded-xl text-[9px] uppercase font-black py-3 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 flex items-center gap-1.5"><ShieldCheck className="w-3 h-3" /> Segurança</TabsTrigger>
+            <TabsTrigger value="ocorrencias" className="rounded-xl text-[9px] uppercase font-black py-3 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 flex items-center gap-1.5"><MessageSquare className="w-3 h-3" /> Notas</TabsTrigger>
             <TabsTrigger value="assinaturas" className="rounded-xl text-[9px] uppercase font-black py-3 data-[state=active]:bg-[#066abc] data-[state=active]:text-white flex items-center gap-1.5"><Signature className="w-3 h-3" /> Validar</TabsTrigger>
           </TabsList>
           
@@ -187,11 +189,11 @@ const RdoForm = ({ obraId, initialData, onSuccess, selectedDate, previousRdoData
             <TabsContent value="ocorrencias" className="space-y-6">
                 <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase text-destructive tracking-widest ml-1">Relato de Impedimentos / Ocorrências</Label>
-                    <Textarea {...methods.register("impedimentos_comentarios")} rows={6} className="bg-red-50/10 rounded-2xl border-red-100" placeholder="Houve quebra de máquina? Falta de material? Descreva aqui..." disabled={isApproved} />
+                    <Textarea {...methods.register("impedimentos_comentarios")} rows={6} className="bg-red-50/10 dark:bg-red-950/10 rounded-2xl border-red-100 dark:border-red-900" placeholder="Houve quebra de máquina? Falta de material? Descreva aqui..." disabled={isApproved} />
                 </div>
                 <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Observações Gerais</Label>
-                    <Textarea {...methods.register("observacoes_gerais")} rows={6} className="rounded-2xl" placeholder="Notas técnicas adicionais sobre a execução..." disabled={isApproved} />
+                    <Textarea {...methods.register("observacoes_gerais")} rows={6} className="rounded-2xl dark:bg-slate-900 dark:border-slate-700" placeholder="Notas técnicas adicionais sobre a execução..." disabled={isApproved} />
                 </div>
             </TabsContent>
             <TabsContent value="assinaturas">
@@ -203,9 +205,9 @@ const RdoForm = ({ obraId, initialData, onSuccess, selectedDate, previousRdoData
                     <div className="space-y-3">
                         <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-2">Validação do Cliente (Contratante)</Label>
                         {!isApproved && !isManualClientSig ? (
-                            <Card className="border-dashed border-2 bg-slate-50 min-h-[220px] flex flex-col items-center justify-center p-8 rounded-[2rem]">
+                            <Card className="border-dashed border-2 bg-slate-50 dark:bg-slate-900 min-h-[220px] flex flex-col items-center justify-center p-8 rounded-[2rem] dark:border-slate-700">
                                 <Clock className="w-10 h-10 text-orange-400 mb-4 animate-pulse" />
-                                <h4 className="font-bold text-sm uppercase">Aguardando Envio</h4>
+                                <h4 className="font-bold text-sm uppercase dark:text-slate-200">Aguardando Envio</h4>
                                 <Button variant="link" onClick={() => setIsManualClientSig(true)} className="text-[10px] font-black uppercase text-primary mt-4">Assinar Agora (Presencial)</Button>
                             </Card>
                         ) : (

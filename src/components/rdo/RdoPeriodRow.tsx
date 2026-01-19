@@ -34,7 +34,7 @@ const RdoPeriodRow = ({ label, enabledName, climaName, statusName, isApproved }:
     )}>
       {/* Label + Switch */}
       <div className="flex items-center gap-6 w-full sm:w-48 shrink-0 mb-4 sm:mb-0">
-        <span className="text-sm font-bold text-slate-500 w-16 uppercase tracking-tight">{label}</span>
+        <span className="text-sm font-bold text-slate-500 dark:text-slate-400 w-16 uppercase tracking-tight">{label}</span>
         <FormField control={control} name={enabledName} render={({ field }) => (
           <Switch 
             checked={field.value} 
@@ -47,7 +47,7 @@ const RdoPeriodRow = ({ label, enabledName, climaName, statusName, isApproved }:
 
       <div className="flex flex-1 items-center justify-center sm:justify-end gap-2 sm:gap-6 w-full">
           {/* Weather Icons Group */}
-          <div className="flex items-center gap-1 bg-slate-100/50 p-1 rounded-full border border-slate-100">
+          <div className="flex items-center gap-1 bg-slate-100/50 dark:bg-slate-900/50 p-1 rounded-full border border-slate-100 dark:border-slate-700">
             {WEATHER_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
@@ -57,8 +57,8 @@ const RdoPeriodRow = ({ label, enabledName, climaName, statusName, isApproved }:
                 className={cn(
                   "w-10 h-8 flex items-center justify-center rounded-full transition-all",
                   currentClima === opt.value 
-                    ? "bg-slate-400 text-white shadow-sm" 
-                    : "text-slate-400 hover:text-slate-600"
+                    ? "bg-slate-400 dark:bg-[#066abc] text-white shadow-sm" 
+                    : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                 )}
               >
                 <opt.icon className="w-5 h-5" />
@@ -66,10 +66,10 @@ const RdoPeriodRow = ({ label, enabledName, climaName, statusName, isApproved }:
             ))}
           </div>
 
-          <div className="hidden sm:block h-6 w-px bg-slate-200" />
+          <div className="hidden sm:block h-6 w-px bg-slate-200 dark:bg-slate-700" />
 
           {/* Status Group */}
-          <div className="flex items-center gap-2 bg-slate-100/50 p-1 rounded-full border border-slate-100">
+          <div className="flex items-center gap-2 bg-slate-100/50 dark:bg-slate-900/50 p-1 rounded-full border border-slate-100 dark:border-slate-700">
             <button
               type="button"
               disabled={!isEnabled || isApproved}
@@ -77,8 +77,8 @@ const RdoPeriodRow = ({ label, enabledName, climaName, statusName, isApproved }:
               className={cn(
                 "flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all",
                 currentStatus === "Operacional" 
-                    ? "bg-slate-400 text-white shadow-sm" 
-                    : "text-slate-400 hover:text-slate-600"
+                    ? "bg-slate-400 dark:bg-emerald-600 text-white shadow-sm" 
+                    : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
               )}
             >
               <Check className="w-3 h-3" /> OP.
@@ -90,8 +90,8 @@ const RdoPeriodRow = ({ label, enabledName, climaName, statusName, isApproved }:
               className={cn(
                 "flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all",
                 currentStatus === "Paralisado" 
-                    ? "bg-slate-400 text-white shadow-sm" 
-                    : "text-slate-400 hover:text-slate-600"
+                    ? "bg-slate-400 dark:bg-red-600 text-white shadow-sm" 
+                    : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
               )}
             >
               <AlertCircle className="w-3 h-3" /> PAR.

@@ -74,6 +74,18 @@
   body {
     @apply bg-background text-foreground antialiased;
   }
+  
+  /* Forçar inputs e selects globais no dark mode */
+  .dark input, 
+  .dark select, 
+  .dark textarea {
+    @apply bg-slate-950 border-slate-700 text-slate-100 !important;
+  }
+  
+  .dark input::placeholder, 
+  .dark textarea::placeholder {
+    @apply text-slate-500 !important;
+  }
 }
 
 .shadow-clean {

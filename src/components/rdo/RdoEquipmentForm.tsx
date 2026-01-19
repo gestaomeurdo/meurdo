@@ -74,17 +74,17 @@ const RdoEquipmentForm = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center border-b pb-2">
-        <h3 className="text-lg font-semibold">Equipamentos/Ferramentas</h3>
-        <div className="text-xs font-medium text-muted-foreground flex items-center bg-accent px-2 py-1 rounded-full">
-            <DollarSign className="w-3 h-3 mr-1 text-primary" />
+      <div className="flex justify-between items-center border-b pb-2 dark:border-slate-700">
+        <h3 className="text-lg font-semibold dark:text-slate-200">Equipamentos/Ferramentas</h3>
+        <div className="text-xs font-medium text-muted-foreground flex items-center bg-accent dark:bg-slate-800 px-2 py-1 rounded-full">
+            <DollarSign className="w-3 h-3 mr-1 text-primary dark:text-blue-400" />
             Custo Calculado
         </div>
       </div>
       
       {maquinas && maquinas.length === 0 && (
-        <div className="text-center p-4 bg-yellow-50 border border-yellow-200 rounded-xl mb-4">
-            <p className="text-xs text-yellow-800 mb-2">Nenhuma máquina cadastrada no banco.</p>
+        <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-900 rounded-xl mb-4">
+            <p className="text-xs text-yellow-800 dark:text-yellow-400 mb-2">Nenhuma máquina cadastrada no banco.</p>
             <Button variant="outline" size="sm" className="h-8 text-xs" asChild>
                 <Link to="/maquinas">Cadastrar Máquinas</Link>
             </Button>
@@ -106,8 +106,8 @@ const RdoEquipmentForm = () => {
                 <div 
                     key={field.id} 
                     className={cn(
-                        "p-4 border rounded-2xl bg-white shadow-sm space-y-4 relative group",
-                        fieldErrors ? "border-destructive/50 bg-destructive/5" : "border-border"
+                        "p-4 border rounded-2xl bg-slate-50/30 dark:bg-slate-900/50 shadow-sm space-y-4 relative group",
+                        fieldErrors ? "border-destructive/50 bg-destructive/5" : "border-border dark:border-slate-700"
                     )}
                 >
                     <Button
@@ -130,10 +130,10 @@ const RdoEquipmentForm = () => {
                                     value={equipamentos?.[index]?.equipamento} 
                                     onValueChange={(val) => handleMachineSelect(index, val)}
                                 >
-                                    <SelectTrigger className={cn("bg-secondary/20 rounded-xl border-transparent hover:border-border h-10 text-xs w-1/3 min-w-[120px]", fieldErrors?.equipamento && "border-destructive")}>
+                                    <SelectTrigger className={cn("bg-white dark:bg-slate-950 rounded-xl border-slate-200 dark:border-slate-700 h-10 text-xs w-1/3 min-w-[120px]", fieldErrors?.equipamento && "border-destructive")}>
                                         <SelectValue placeholder="Selecione..." />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent className="dark:bg-slate-900">
                                         {maquinas?.map(m => (
                                             <SelectItem key={m.id} value={m.nome} className="text-xs">
                                                 {m.nome} ({formatCurrency(m.custo_hora)}/h)
@@ -145,7 +145,7 @@ const RdoEquipmentForm = () => {
                             <Input
                                 placeholder={maquinas && maquinas.length > 0 ? "Ou digite..." : "Nome do equipamento..."}
                                 {...register(`equipamentos.${index}.equipamento`)}
-                                className={cn("bg-secondary/10 rounded-xl h-10 border-transparent hover:border-input focus:bg-background transition-all flex-1 text-sm", fieldErrors?.equipamento && "border-destructive")}
+                                className={cn("bg-white dark:bg-slate-950 rounded-xl h-10 border-slate-200 dark:border-slate-700 transition-all flex-1 text-sm", fieldErrors?.equipamento && "border-destructive")}
                             />
                         </div>
                     </div>
@@ -159,7 +159,7 @@ const RdoEquipmentForm = () => {
                                 step="0.5"
                                 {...register(`equipamentos.${index}.horas_trabalhadas`, { valueAsNumber: true })}
                                 min={0}
-                                className="bg-secondary/10 rounded-xl h-10 text-center font-bold text-sm border-transparent hover:border-input"
+                                className="bg-white dark:bg-slate-950 rounded-xl h-10 text-center font-bold text-sm border-slate-200 dark:border-slate-700"
                             />
                         </div>
 
@@ -171,7 +171,7 @@ const RdoEquipmentForm = () => {
                                 step="0.5"
                                 {...register(`equipamentos.${index}.horas_paradas`, { valueAsNumber: true })}
                                 min={0}
-                                className="bg-yellow-50 rounded-xl border-yellow-200 h-10 text-center text-sm"
+                                className="bg-yellow-50 dark:bg-yellow-950/20 rounded-xl border-yellow-200 dark:border-yellow-900 h-10 text-center text-sm"
                             />
                         </div>
 
@@ -181,20 +181,20 @@ const RdoEquipmentForm = () => {
                                 type="number"
                                 step="0.01"
                                 {...register(`equipamentos.${index}.custo_hora`, { valueAsNumber: true })}
-                                className="bg-secondary/10 rounded-xl h-10 text-center text-xs border-transparent hover:border-input"
+                                className="bg-white dark:bg-slate-950 rounded-xl h-10 text-center text-xs border-slate-200 dark:border-slate-700"
                                 placeholder="0.00"
                             />
                         </div>
 
                         <div className="space-y-1.5">
-                            <Label className="text-[10px] font-black uppercase text-primary block text-center">Subtotal</Label>
-                            <div className="h-10 flex items-center justify-center px-2 bg-primary/10 border border-primary/20 rounded-xl font-black text-primary text-xs whitespace-nowrap overflow-hidden">
+                            <Label className="text-[10px] font-black uppercase text-primary dark:text-blue-400 block text-center">Subtotal</Label>
+                            <div className="h-10 flex items-center justify-center px-2 bg-primary/10 border border-primary/20 dark:border-blue-900/50 rounded-xl font-black text-primary dark:text-blue-400 text-xs whitespace-nowrap overflow-hidden">
                                 {formatCurrency(subtotal)}
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex gap-4 pt-2 border-t border-dashed">
+                    <div className="flex gap-4 pt-2 border-t border-dashed dark:border-slate-700">
                         <div className="flex items-center gap-2">
                             <Switch id={`note-${index}`} checked={showNote} onCheckedChange={() => toggleExtra(field.id, 'note')} />
                             <Label htmlFor={`note-${index}`} className="text-[10px] font-bold uppercase text-muted-foreground cursor-pointer flex items-center gap-1"><StickyNote className="w-3 h-3" /> Nota</Label>
@@ -206,11 +206,11 @@ const RdoEquipmentForm = () => {
                     </div>
 
                     {showNote && (
-                        <Textarea placeholder="Observação sobre o uso..." {...register(`equipamentos.${index}.observacao`)} rows={1} className="text-xs bg-muted/30" />
+                        <Textarea placeholder="Observação sobre o uso..." {...register(`equipamentos.${index}.observacao`)} rows={1} className="text-xs bg-white dark:bg-slate-950" />
                     )}
 
                     {showPhoto && (
-                        <div className="flex items-center gap-3 bg-muted/20 p-2 rounded-lg">
+                        <div className="flex items-center gap-3 bg-slate-100 dark:bg-slate-800 p-2 rounded-lg">
                              <Input
                                 id={`equip-file-${index}`}
                                 type="file"
@@ -223,7 +223,7 @@ const RdoEquipmentForm = () => {
                                 type="button" 
                                 variant="outline" 
                                 size="sm" 
-                                className="h-8 text-xs" 
+                                className="h-8 text-xs font-bold bg-white dark:bg-slate-950" 
                                 onClick={() => document.getElementById(`equip-file-${index}`)?.click()}
                                 disabled={uploadingIndex === index}
                             >
@@ -232,7 +232,7 @@ const RdoEquipmentForm = () => {
                             </Button>
                             {hasPhoto && (
                                 <div className="flex items-center gap-2">
-                                    <a href={equipamentos[index].foto_url} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-primary hover:underline flex items-center">
+                                    <a href={equipamentos[index].foto_url} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-primary dark:text-blue-400 hover:underline flex items-center">
                                         <ImageIcon className="w-3 h-3 mr-1" /> Ver
                                     </a>
                                     <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setValue(`equipamentos.${index}.foto_url`, null)}><X className="w-3 h-3" /></Button>
@@ -245,7 +245,7 @@ const RdoEquipmentForm = () => {
         })}
       </div>
       
-      <Button type="button" variant="outline" className="w-full border-dashed border-primary/40 py-6 rounded-2xl hover:bg-primary/5 hover:text-primary transition-all font-bold uppercase text-xs tracking-widest mt-4" onClick={() => append({ equipamento: "", horas_trabalhadas: 0, horas_paradas: 0, custo_hora: 0 })}>
+      <Button type="button" variant="outline" className="w-full border-dashed border-primary/40 dark:border-slate-700 py-6 rounded-2xl hover:bg-primary/5 hover:text-primary transition-all font-bold uppercase text-xs tracking-widest mt-4" onClick={() => append({ equipamento: "", horas_trabalhadas: 0, horas_paradas: 0, custo_hora: 0 })}>
         <Plus className="w-4 h-4 mr-2" /> Adicionar Equipamento
       </Button>
     </div>

@@ -33,7 +33,6 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
     setUploadingIndex(index);
     
     try {
-      // Compressing image before upload
       const compressedFile = await compressImage(file);
       
       const fileExt = compressedFile.name.split('.').pop();
@@ -70,8 +69,8 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between border-b pb-2">
-        <h3 className="text-lg font-semibold">Serviços do Dia</h3>
+      <div className="flex items-center justify-between border-b pb-2 dark:border-slate-700">
+        <h3 className="text-lg font-semibold dark:text-slate-200">Serviços do Dia</h3>
         <p className="text-xs text-muted-foreground flex items-center">
             <CheckSquare className="w-3 h-3 mr-1 text-primary" />
             Vincule atividades do cronograma.
@@ -84,14 +83,13 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
         const currentProgress = watch(`atividades.${index}.avanco_percentual`) || 0;
         const fieldErrors = (errors as any)?.atividades?.[index];
 
-        // Find linked activity to show previous progress
         const linkedActivity = atividadesCronograma?.find(a => a.descricao === currentDesc);
         const baseProgress = linkedActivity?.progresso_atual || 0;
 
         return (
-          <div key={field.id} className={cn("p-4 border rounded-xl space-y-4 bg-secondary/5", fieldErrors ? "border-destructive/50 bg-destructive/5" : "")}>
+          <div key={field.id} className={cn("p-4 border rounded-xl space-y-4 bg-slate-50/50 dark:bg-slate-900/50 dark:border-slate-700", fieldErrors ? "border-destructive/50 bg-destructive/5" : "")}>
             <div className="flex justify-between items-start">
-              <Label className={cn("text-xs font-black uppercase tracking-widest", fieldErrors ? "text-destructive" : "text-primary")}>
+              <Label className={cn("text-xs font-black uppercase tracking-widest", fieldErrors ? "text-destructive" : "text-primary dark:text-blue-400")}>
                 Atividade #{index + 1}
               </Label>
               <Button variant="ghost" size="icon" onClick={() => remove(index)} className="h-6 w-6 text-destructive">
@@ -101,7 +99,7 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
               <div className="md:col-span-8 space-y-2">
-                <Label className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-1">
                     <ListTodo className="w-3 h-3" /> Selecionar do Cronograma
                 </Label>
                 
@@ -110,10 +108,10 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
                         value={currentDesc} 
                         onValueChange={(val) => handleSelectActivity(index, val)}
                     >
-                        <SelectTrigger className="bg-white h-10 text-sm border-primary/20 focus:ring-primary/20">
+                        <SelectTrigger className="bg-white dark:bg-slate-950 h-10 text-sm border-primary/20 dark:border-slate-700 focus:ring-primary/20">
                             <SelectValue placeholder="Selecione uma atividade..." />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="dark:bg-slate-900">
                             {atividadesCronograma.map(atv => (
                                 <SelectItem key={atv.id} value={atv.descricao} className="text-xs">
                                     <div className="flex justify-between w-full gap-4">
@@ -133,7 +131,7 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
                 )}
 
                 <div className="mt-2">
-                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">Nota / Observação (Opcional)</Label>
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground">Nota / Observação (Opcional)</Label>
                     <Textarea
                         placeholder="Detalhes do que foi feito hoje..."
                         {...register(`atividades.${index}.observacao`)}
@@ -144,14 +142,14 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
               </div>
 
               <div className="md:col-span-4 space-y-2">
-                <Label className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-1">
                     <TrendingUp className="w-3 h-3" /> Avanço Físico Total
                 </Label>
                 
-                <div className="bg-white p-3 rounded-xl border border-input space-y-3">
+                <div className="bg-white dark:bg-slate-950 p-3 rounded-xl border border-input dark:border-slate-700 space-y-3">
                     <div className="flex justify-between items-center">
                         <span className="text-xs font-medium text-muted-foreground">Anterior: {baseProgress}%</span>
-                        <span className="text-lg font-black text-primary">{currentProgress}%</span>
+                        <span className="text-lg font-black text-primary dark:text-blue-400">{currentProgress}%</span>
                     </div>
                     
                     <Progress value={currentProgress} className="h-2 bg-primary/20" />
@@ -173,7 +171,7 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
             <div className="flex items-center gap-3 pt-2">
                 <Label htmlFor={`foto-${index}`} className={cn(
                     "flex items-center justify-center px-4 py-2 border rounded-xl cursor-pointer transition-all text-xs font-bold uppercase tracking-wider h-10",
-                    uploadingIndex === index ? "bg-muted cursor-not-allowed" : "hover:bg-accent border-dashed border-primary/30 text-primary"
+                    uploadingIndex === index ? "bg-muted cursor-not-allowed" : "hover:bg-accent border-dashed border-primary/30 dark:border-slate-600 text-primary dark:text-blue-400"
                 )}>
                     {uploadingIndex === index ? <Loader2 className="w-3 h-3 mr-2 animate-spin" /> : <Upload className="w-3 h-3 mr-2" />}
                     {photoUrl ? "Alterar Anexo" : "Anexar Foto"}
@@ -188,7 +186,7 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
 
                 {photoUrl && (
                     <div className="flex items-center gap-2">
-                        <a href={photoUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-primary hover:underline flex items-center">
+                        <a href={photoUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-primary dark:text-blue-400 hover:underline flex items-center">
                             <ImageIcon className="w-3 h-3 mr-1" /> Ver Foto
                         </a>
                         <Button variant="ghost" size="icon" onClick={() => setValue(`atividades.${index}.foto_anexo_url`, null)} className="h-6 w-6 text-destructive"><X className="w-3 h-3" /></Button>
@@ -199,7 +197,7 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
         );
       })}
       
-      <Button type="button" variant="outline" className="w-full border-dashed py-6" onClick={() => append({ descricao_servico: "", avanco_percentual: 0, foto_anexo_url: null, observacao: "" })}>
+      <Button type="button" variant="outline" className="w-full border-dashed py-6 rounded-2xl dark:border-slate-700" onClick={() => append({ descricao_servico: "", avanco_percentual: 0, foto_anexo_url: null, observacao: "" })}>
         <Plus className="w-4 h-4 mr-2" /> Adicionar Serviço
       </Button>
     </div>
