@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { showSuccess, showError } from "@/utils/toast";
 import { cn } from "@/lib/utils";
+import { compressImage } from "@/utils/image-compression";
 
 const RdoEquipmentForm = () => {
   const { control, setValue, watch, register, formState: { errors } } = useFormContext<any>();
@@ -44,14 +45,17 @@ const RdoEquipmentForm = () => {
   const handleFileUpload = async (file: File, index: number) => {
     if (!file) return;
     setUploadingIndex(index);
-    const fileExt = file.name.split('.').pop();
-    const fileName = `equip-${Date.now()}-${index}.${fileExt}`;
-    const filePath = `rdo_equipamentos/${fileName}`;
-
+    
     try {
+      const compressedFile = await compressImage(file);
+      
+      const fileExt = compressedFile.name.split('.').pop();
+      const fileName = `equip-${Date.now()}-${index}.${fileExt}`;
+      const filePath = `rdo_equipamentos/${fileName}`;
+
       const { error: uploadError } = await supabase.storage
         .from('documentos_financeiros')
-        .upload(filePath, file);
+        .upload(filePath, compressedFile);
 
       if (uploadError) throw uploadError;
 

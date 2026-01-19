@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { useAtividades } from "@/hooks/use-atividades";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
+import { compressImage } from "@/utils/image-compression";
 
 interface RdoActivitiesFormProps {
   obraId: string;
@@ -30,14 +31,18 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
   const handleFileUpload = async (file: File, index: number) => {
     if (!file) return;
     setUploadingIndex(index);
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${index}.${fileExt}`;
-    const filePath = `rdo_atividades/${obraId}/${fileName}`;
-
+    
     try {
+      // Compressing image before upload
+      const compressedFile = await compressImage(file);
+      
+      const fileExt = compressedFile.name.split('.').pop();
+      const fileName = `${Date.now()}-${index}.${fileExt}`;
+      const filePath = `rdo_atividades/${obraId}/${fileName}`;
+
       const { error: uploadError } = await supabase.storage
         .from('documentos_financeiros')
-        .upload(filePath, file);
+        .upload(filePath, compressedFile);
 
       if (uploadError) throw uploadError;
 
@@ -46,8 +51,9 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
         .getPublicUrl(filePath);
 
       setValue(`atividades.${index}.foto_anexo_url`, publicUrlData.publicUrl, { shouldDirty: true });
-      showSuccess("Foto anexada!");
+      showSuccess("Foto comprimida e anexada!");
     } catch (error) {
+      console.error(error);
       showError("Erro no upload.");
     } finally {
       setUploadingIndex(null);
@@ -175,7 +181,7 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
                 <Input
                     id={`foto-${index}`}
                     type="file"
-                    accept="image/*,application/pdf"
+                    accept="image/*"
                     className="hidden"
                     onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], index)}
                 />

@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { useCreateReceipt, ReceiptStatus } from "@/hooks/use-material-receipts";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { compressImage } from "@/utils/image-compression";
 
 const ReceiptSchema = z.object({
   obra_id: z.string().uuid(),
@@ -59,14 +60,17 @@ const ReceiptForm = ({ obraId, onSuccess }: ReceiptFormProps) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setIsUploading(true);
-    const fileExt = file.name.split('.').pop();
-    const fileName = `material-${Date.now()}.${fileExt}`;
-    const filePath = `materiais/${obraId}/${fileName}`;
-
+    
     try {
+      const compressedFile = await compressImage(file);
+      
+      const fileExt = compressedFile.name.split('.').pop();
+      const fileName = `material-${Date.now()}.${fileExt}`;
+      const filePath = `materiais/${obraId}/${fileName}`;
+
       const { error: uploadError } = await supabase.storage
         .from('documentos_financeiros')
-        .upload(filePath, file);
+        .upload(filePath, compressedFile);
 
       if (uploadError) throw uploadError;
 

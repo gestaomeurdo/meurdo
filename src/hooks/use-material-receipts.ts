@@ -23,9 +23,10 @@ export interface MaterialReceipt {
 const fetchReceipts = async (obraId: string, date?: string): Promise<MaterialReceipt[]> => {
   if (!obraId) return [];
 
+  // Otimização: Selecionando colunas explícitas
   let query = supabase
     .from('recebimento_materiais')
-    .select('*')
+    .select('id, obra_id, user_id, data_recebimento, material, quantidade, unidade, fornecedor, numero_nf, foto_url, status, observacoes, criado_em')
     .eq('obra_id', obraId);
 
   if (date) {
@@ -43,8 +44,8 @@ export const useMaterialReceipts = (obraId: string | undefined, date?: string) =
     queryKey: ['materialReceipts', obraId, date],
     queryFn: () => fetchReceipts(obraId!, date),
     enabled: !!obraId && obraId !== '',
-    staleTime: 1000 * 60 * 5, // 5 minutos de dados 'quentes'
-    gcTime: 1000 * 60 * 30, // Mantém no cache por 30 min
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
   });
 };
 

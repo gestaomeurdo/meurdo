@@ -6,6 +6,7 @@ import Sidebar from "./Sidebar";
 import Header from "./Header";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { usePageTitle } from "@/hooks/use-page-title";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -16,6 +17,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
+  // Ativa títulos dinâmicos
+  usePageTitle();
 
   useEffect(() => {
     if (!isLoading && !session) {

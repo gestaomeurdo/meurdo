@@ -8,7 +8,7 @@ export interface Atividade {
   id: string;
   user_id: string;
   obra_id: string;
-  data_activity: string; 
+  data_atividade: string; 
   data_prevista: string | null;
   descricao: string;
   responsavel_nome: string | null;
@@ -21,9 +21,10 @@ export interface Atividade {
 }
 
 const fetchAtividades = async (obraId: string): Promise<Atividade[]> => {
+  // Otimização: Selecionando apenas campos necessários para a lista/cards
   const { data, error } = await supabase
     .from('atividades_obra')
-    .select('*')
+    .select('id, user_id, obra_id, data_atividade, data_prevista, descricao, responsavel_nome, progresso_atual, etapa, status, pedagio, km_rodado, created_at')
     .eq('obra_id', obraId)
     .order('data_atividade', { ascending: false });
 
@@ -58,6 +59,8 @@ export const useCreateAtividade = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['atividades', data.obra_id] });
+      // Força atualização do progresso geral da obra
+      queryClient.invalidateQueries({ queryKey: ['obrasProgress'] });
     },
   });
 };
@@ -87,6 +90,7 @@ export const useBulkCreateAtividades = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['atividades', variables.obraId] });
+      queryClient.invalidateQueries({ queryKey: ['obrasProgress'] });
     },
   });
 };
@@ -107,6 +111,7 @@ export const useUpdateAtividade = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['atividades', data.obra_id] });
+      queryClient.invalidateQueries({ queryKey: ['obrasProgress'] });
     },
   });
 };
@@ -120,6 +125,7 @@ export const useDeleteAtividade = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['atividades', variables.obraId] });
+      queryClient.invalidateQueries({ queryKey: ['obrasProgress'] });
     },
   });
 };
@@ -136,6 +142,7 @@ export const useBulkDeleteAtividades = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['atividades', variables.obraId] });
+      queryClient.invalidateQueries({ queryKey: ['obrasProgress'] });
     },
   });
 };
