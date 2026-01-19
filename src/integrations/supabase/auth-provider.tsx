@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "./client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Profile, fetchProfile } from "@/hooks/use-profile";
 import { Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -35,6 +35,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
   });
   
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
 
   const updateProStatus = (p: Profile | null) => {
@@ -46,7 +47,6 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
-      // Clearing local state immediately for better UX
       setSession(null);
       setUser(null);
       setProfile(null);
@@ -72,7 +72,6 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
           const userProfile = await fetchProfile(currentUser.id);
           setProfile(userProfile);
           updateProStatus(userProfile);
-          queryClient.invalidateQueries({ queryKey: ['profile'] });
         }
       } catch (err) {
         console.error("Auth init error:", err);
@@ -90,18 +89,18 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
             const userProfile = await fetchProfile(currentUser.id);
             setProfile(userProfile);
             updateProStatus(userProfile);
-            queryClient.invalidateQueries({ queryKey: ['profile'] });
           } else {
             setProfile(null);
             updateProStatus(null);
-            queryClient.invalidateQueries({ queryKey: ['profile'] });
           }
 
+          const isPublicRoute = location.pathname.startsWith('/rdo/share/');
+
           if (event === 'SIGNED_IN') {
-            if (!window.location.href.includes('type=recovery')) {
+            if (!window.location.href.includes('type=recovery') && !isPublicRoute) {
                 navigate("/dashboard", { replace: true });
             }
-          } else if (event === 'SIGNED_OUT') {
+          } else if (event === 'SIGNED_OUT' && !isPublicRoute) {
             navigate("/login", { replace: true });
           } else if (event === 'PASSWORD_RECOVERY') {
             navigate("/update-password", { replace: true });
@@ -117,7 +116,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
     return () => {
       listenerPromise.then(res => res?.subscription.unsubscribe());
     };
-  }, [navigate, queryClient]);
+  }, [navigate, queryClient, location.pathname]);
 
   if (isLoading) {
     return (

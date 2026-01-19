@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { showError, showSuccess } from "@/utils/toast";
-import { AlertCircle, Lock, Signature, Clock, MessageSquare, UserCheck, Smartphone } from "lucide-react";
+import { AlertCircle, Lock, Signature, Clock, Smartphone, Info, ShieldCheck, ListTodo, Users, Truck, Package, MessageSquare } from "lucide-react";
 import { DiarioObra, useCreateRdo, useUpdateRdo, useRdoList } from "@/hooks/use-rdo";
 import { RdoSchema, RdoFormValues } from "@/schemas/rdo-schema";
 import RdoHeader from "./RdoHeader";
@@ -32,25 +32,26 @@ interface RdoFormProps {
   initialData?: DiarioObra;
   onSuccess: () => void;
   selectedDate?: Date;
+  previousRdoData?: DiarioObra | null;
 }
 
 const statusStyles: Record<string, { bg: string, text: string, label: string, border: string }> = {
-    'draft': { bg: 'bg-slate-100', text: 'text-slate-600', label: 'Rascunho', border: 'border-slate-200' },
+    'draft': { bg: 'bg-slate-300', text: 'text-slate-900', label: 'Rascunho', border: 'border-slate-300' },
     'pending': { bg: 'bg-orange-100', text: 'text-orange-600', label: 'Aguardando Cliente', border: 'border-orange-200' },
-    'approved': { bg: 'bg-green-100', text: 'text-green-700', label: 'Aprovado ✅', border: 'border-green-300' },
-    'rejected': { bg: 'bg-red-100', text: 'text-red-600', label: 'Correção Solicitada', border: 'border-red-200' },
+    'approved': { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'Aprovado ✓', border: 'border-emerald-300' },
+    'rejected': { bg: 'bg-red-100', text: 'text-red-600', label: 'Correção Requerida', border: 'border-red-200' },
 };
 
-const RdoForm = ({ obraId, initialData, onSuccess, selectedDate }: RdoFormProps) => {
+const RdoForm = ({ obraId, initialData, onSuccess, selectedDate, previousRdoData }: RdoFormProps) => {
   const { profile } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [isManualClientSig, setIsManualClientSig] = useState(false);
+  
   const isEditing = !!initialData;
   const currentStatus = initialData?.status || 'draft';
   const statusConfig = statusStyles[currentStatus];
   const isApproved = currentStatus === 'approved';
   
-  const isPro = profile?.subscription_status === 'active' || profile?.plan_type === 'pro';
   const createMutation = useCreateRdo();
   const updateMutation = useUpdateRdo();
   const { data: obras } = useObras();
@@ -69,10 +70,9 @@ const RdoForm = ({ obraId, initialData, onSuccess, selectedDate }: RdoFormProps)
         if (!raw || raw.includes("N/T")) return { c: "Sol", s: "Operacional", e: false };
         const climaMatch = raw.match(/:\s*([^(\n,]*)/);
         const statusMatch = raw.match(/\((.*?)\)/);
-        return { c: climaMatch ? climaMatch[1].trim() : "Sol", s: statusMatch && statusMatch[1] === "Par" ? "Paralisado" : "Operacional", e: true };
+        return { c: climaMatch ? climaMatch[1].trim() : "Sol", s: statusMatch && (statusMatch[1] === "Par" || statusMatch[1] === "Paralisado") ? "Paralisado" : "Operacional", e: true };
     };
-    const m = getVal(0); const a = getVal(1); const n = getVal(2);
-    return { me: m.e, m: m.c, ms: m.s, ae: a.e, a: a.c, as: a.s, ne: n.e, n: n.c, ns: n.s };
+    return { me: getVal(0).e, m: getVal(0).c, ms: getVal(0).s, ae: getVal(1).e, a: getVal(1).c, as: getVal(1).s, ne: getVal(2).e, n: getVal(2).c, ns: getVal(2).s };
   };
 
   useEffect(() => {
@@ -94,14 +94,10 @@ const RdoForm = ({ obraId, initialData, onSuccess, selectedDate }: RdoFormProps)
       safety_cleaning: initialData?.safety_cleaning || false,
       safety_dds: initialData?.safety_dds || false,
       safety_comments: initialData?.safety_comments || "",
-      safety_nr35_photo: (initialData as any)?.safety_nr35_photo || null,
-      safety_epi_photo: (initialData as any)?.safety_epi_photo || null,
-      safety_cleaning_photo: (initialData as any)?.safety_cleaning_photo || null,
-      safety_dds_photo: (initialData as any)?.safety_dds_photo || null,
-      atividades: initialData?.rdo_atividades_detalhe?.map(a => ({ descricao_servico: a.descricao_servico, avanco_percentual: a.avanco_percentual, foto_anexo_url: a.foto_anexo_url, observacao: a.observacao })) || [],
-      mao_de_obra: initialData?.rdo_mao_de_obra?.map(m => ({ funcao: m.funcao, quantidade: m.quantidade, custo_unitario: m.custo_unitario, tipo: m.tipo || 'Própria', observacao: (m as any).observacao })) || [],
-      equipamentos: initialData?.rdo_equipamentos?.map(e => ({ equipamento: e.equipamento, horas_trabalhadas: e.horas_trabalhadas, horas_paradas: e.horas_paradas, custo_hora: e.custo_hora || 0, observacao: (e as any).observacao, foto_url: (e as any).foto_url })) || [],
-      materiais: initialData?.rdo_materiais?.map(m => ({ nome_material: m.nome_material, unidade: m.unidade, quantidade_entrada: m.quantidade_entrada || 0, quantidade_consumida: m.quantidade_consumida, observacao: m.observacao })) || [],
+      atividades: initialData?.rdo_atividades_detalhe || [],
+      mao_de_obra: initialData?.rdo_mao_de_obra || [],
+      equipamentos: initialData?.rdo_equipamentos || [],
+      materiais: initialData?.rdo_materiais || [],
     });
   }, [initialData, obraId, profile, methods, selectedDate]);
 
@@ -114,6 +110,20 @@ const RdoForm = ({ obraId, initialData, onSuccess, selectedDate }: RdoFormProps)
     return mCost + eCost;
   }, [maoDeObra, equipamentos]);
 
+  const handleCopyPrevious = () => {
+    if (!previousRdoData) {
+        showError("Não encontramos um diário anterior para copiar.");
+        return;
+    }
+    methods.setValue('mao_de_obra', previousRdoData.rdo_mao_de_obra?.map(m => ({
+        funcao: m.funcao, quantidade: m.quantidade, custo_unitario: m.custo_unitario, tipo: m.tipo, observacao: null
+    })) || []);
+    methods.setValue('equipamentos', previousRdoData.rdo_equipamentos?.map(e => ({
+        equipamento: e.equipamento, horas_trabalhadas: 0, horas_paradas: 0, custo_hora: e.custo_hora, observacao: null
+    })) || []);
+    showSuccess("Dados de equipe e máquinas copiados!");
+  };
+
   const onSubmit = async (values: RdoFormValues) => {
     try {
       const getP = (en: boolean, c: string, s: string, prefix: string) => en ? `${prefix}: ${c} (${s === "Operacional" ? "Op" : "Par"})` : `${prefix}: N/T`;
@@ -123,13 +133,13 @@ const RdoForm = ({ obraId, initialData, onSuccess, selectedDate }: RdoFormProps)
 
       if (isEditing && initialData) {
         await updateMutation.mutateAsync({ ...data, id: initialData.id } as any);
-        showSuccess("RDO atualizado!");
+        showSuccess("Atualizado!");
       } else {
         await createMutation.mutateAsync(data as any);
-        showSuccess("RDO criado!");
+        showSuccess("Criado!");
       }
       onSuccess();
-    } catch (error: any) { showError(error.message || "Falha ao salvar."); }
+    } catch (error: any) { showError(error.message); }
   };
 
   return (
@@ -152,19 +162,10 @@ const RdoForm = ({ obraId, initialData, onSuccess, selectedDate }: RdoFormProps)
           selectedObra={obras?.find(o => o.id === obraId)}
           rdoList={rdoList}
           isPending={updateMutation.isPending || createMutation.isPending}
+          onCopyPrevious={!isApproved ? handleCopyPrevious : undefined}
         />
 
-        {initialData?.status === 'rejected' && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-3 animate-in slide-in-from-top-2">
-            <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
-            <div className="space-y-1">
-              <p className="text-xs font-black text-red-800 uppercase">Correção Solicitada</p>
-              <p className="text-sm text-red-700 font-medium italic">"{initialData.rejection_reason}"</p>
-            </div>
-          </div>
-        )}
-
-        <div className="bg-card border rounded-3xl p-5 space-y-1">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <RdoPeriodRow label="Manhã" enabledName="morning_enabled" climaName="morning_clima" statusName="morning_status" isApproved={isApproved} />
           <RdoPeriodRow label="Tarde" enabledName="afternoon_enabled" climaName="afternoon_clima" statusName="afternoon_status" isApproved={isApproved} />
           <RdoPeriodRow label="Noite" enabledName="night_enabled" climaName="night_clima" statusName="night_status" isApproved={isApproved} />
@@ -172,101 +173,52 @@ const RdoForm = ({ obraId, initialData, onSuccess, selectedDate }: RdoFormProps)
 
         <Tabs defaultValue="atividades" className="w-full">
           <TabsList className="grid w-full grid-cols-3 md:grid-cols-7 h-auto bg-muted/40 p-1 rounded-2xl gap-1 border">
-            <TabsTrigger value="atividades" className="rounded-xl text-[9px] uppercase font-black py-2.5 data-[state=active]:bg-white">Serviços</TabsTrigger>
-            <TabsTrigger value="mao_de_obra" className="rounded-xl text-[9px] uppercase font-black py-2.5 data-[state=active]:bg-white">Equipe</TabsTrigger>
-            <TabsTrigger value="equipamentos" className="rounded-xl text-[9px] uppercase font-black py-2.5 data-[state=active]:bg-white">Máquinas</TabsTrigger>
-            <TabsTrigger value="materiais" className="rounded-xl text-[9px] uppercase font-black py-2.5 data-[state=active]:bg-white">Materiais</TabsTrigger>
-            <TabsTrigger value="seguranca" className="rounded-xl text-[9px] uppercase font-black py-2.5 data-[state=active]:bg-white">Segurança</TabsTrigger>
-            <TabsTrigger value="ocorrencias" className="rounded-xl text-[9px] uppercase font-black py-2.5 data-[state=active]:bg-white">Ocorrências</TabsTrigger>
-            <TabsTrigger value="assinaturas" className="rounded-xl text-[9px] uppercase font-black py-2.5 data-[state=active]:bg-[#066abc] data-[state=active]:text-white">Assinar</TabsTrigger>
+            <TabsTrigger value="atividades" className="rounded-xl text-[9px] uppercase font-black py-3 data-[state=active]:bg-white flex items-center gap-1.5"><ListTodo className="w-3 h-3" /> Serviços</TabsTrigger>
+            <TabsTrigger value="mao_de_obra" className="rounded-xl text-[9px] uppercase font-black py-3 data-[state=active]:bg-white flex items-center gap-1.5"><Users className="w-3 h-3" /> Equipe</TabsTrigger>
+            <TabsTrigger value="equipamentos" className="rounded-xl text-[9px] uppercase font-black py-3 data-[state=active]:bg-white flex items-center gap-1.5"><Truck className="w-3 h-3" /> Máquinas</TabsTrigger>
+            <TabsTrigger value="materiais" className="rounded-xl text-[9px] uppercase font-black py-3 data-[state=active]:bg-white flex items-center gap-1.5"><Package className="w-3 h-3" /> Insumos</TabsTrigger>
+            <TabsTrigger value="seguranca" className="rounded-xl text-[9px] uppercase font-black py-3 data-[state=active]:bg-white flex items-center gap-1.5"><ShieldCheck className="w-3 h-3" /> HSE</TabsTrigger>
+            <TabsTrigger value="ocorrencias" className="rounded-xl text-[9px] uppercase font-black py-3 data-[state=active]:bg-white flex items-center gap-1.5"><MessageSquare className="w-3 h-3" /> Notas</TabsTrigger>
+            <TabsTrigger value="assinaturas" className="rounded-xl text-[9px] uppercase font-black py-3 data-[state=active]:bg-[#066abc] data-[state=active]:text-white flex items-center gap-1.5"><Signature className="w-3 h-3" /> Validar</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="atividades" className="pt-6"><RdoActivitiesForm obraId={obraId} /></TabsContent>
-          <TabsContent value="mao_de_obra" className="pt-6"><RdoManpowerForm /></TabsContent>
-          <TabsContent value="equipamentos" className="pt-6"><RdoEquipmentForm /></TabsContent>
-          <TabsContent value="materiais" className="pt-6"><RdoMaterialsForm /></TabsContent>
-          <TabsContent value="seguranca" className="pt-6"><RdoSafetyForm /></TabsContent>
-          <TabsContent value="ocorrencias" className="pt-6 space-y-5">
-            <FormField control={methods.control} name="impedimentos_comentarios" render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-[10px] font-black uppercase text-destructive tracking-widest ml-2">Impedimentos</FormLabel>
-                <FormControl><Textarea {...field} value={field.value || ""} rows={4} className="bg-red-50/5 rounded-2xl" placeholder="Descreva problemas..." disabled={isApproved} /></FormControl>
-              </FormItem>
-            )} />
-            <FormField control={methods.control} name="observacoes_gerais" render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-[10px] font-black uppercase text-primary tracking-widest ml-2">Observações Gerais</FormLabel>
-                <FormControl><Textarea {...field} value={field.value || ""} rows={4} className="rounded-2xl" placeholder="Notas adicionais..." disabled={isApproved} /></FormControl>
-              </FormItem>
-            )} />
-          </TabsContent>
-          <TabsContent value="assinaturas" className="pt-6">
-            <div className="space-y-6">
-              {isPro ? (
+          <div className="min-h-[550px] pt-6">
+            <TabsContent value="atividades"><RdoActivitiesForm obraId={obraId} /></TabsContent>
+            <TabsContent value="mao_de_obra"><RdoManpowerForm /></TabsContent>
+            <TabsContent value="equipamentos"><RdoEquipmentForm /></TabsContent>
+            <TabsContent value="materiais"><RdoMaterialsForm /></TabsContent>
+            <TabsContent value="seguranca"><RdoSafetyForm /></TabsContent>
+            <TabsContent value="ocorrencias" className="space-y-6">
+                <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase text-destructive tracking-widest ml-1">Relato de Impedimentos / Ocorrências</Label>
+                    <Textarea {...methods.register("impedimentos_comentarios")} rows={6} className="bg-red-50/10 rounded-2xl border-red-100" placeholder="Houve quebra de máquina? Falta de material? Descreva aqui..." disabled={isApproved} />
+                </div>
+                <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Observações Gerais</Label>
+                    <Textarea {...methods.register("observacoes_gerais")} rows={6} className="rounded-2xl" placeholder="Notas técnicas adicionais sobre a execução..." disabled={isApproved} />
+                </div>
+            </TabsContent>
+            <TabsContent value="assinaturas">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-2">Assinatura Responsável (Você)</Label>
-                    <RdoSignaturePad diarioId={initialData?.id || 'new'} obraId={obraId} currentSignatureUrl={methods.watch('responsible_signature_url') || null} onSignatureSave={(url) => methods.setValue('responsible_signature_url', url, { shouldDirty: true })} disabled={isApproved} />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-2">Assinatura do Cliente</Label>
-                    
-                    {!isApproved && !isManualClientSig ? (
-                        <Card className="border-dashed border-2 bg-slate-50/50 min-h-[220px] flex flex-col items-center justify-center text-center p-6 rounded-2xl transition-all hover:bg-slate-50">
-                            <Clock className="w-10 h-10 text-orange-400 mb-4 animate-pulse" />
-                            <h4 className="font-bold text-sm text-slate-800 uppercase tracking-tight">Aguardando Validação Remota</h4>
-                            <p className="text-[10px] text-muted-foreground mt-1 max-w-[200px]">
-                                O cliente deve assinar através do link enviado pelo WhatsApp.
-                            </p>
-                            
-                            <div className="mt-6 w-full space-y-3">
-                                <RdoShareMenu 
-                                    obraId={obraId} 
-                                    obraNome={obras?.find(o => o.id === obraId)?.nome || "Obra"} 
-                                    approvalToken={initialData?.approval_token} 
-                                    isEditing={isEditing} 
-                                    isApproved={isApproved} 
-                                    rdoId={initialData?.id} 
-                                />
-                                <button 
-                                    type="button"
-                                    onClick={() => setIsManualClientSig(true)}
-                                    className="text-[9px] font-black text-primary uppercase tracking-widest hover:underline block w-full text-center"
-                                >
-                                    <Smartphone className="w-3 h-3 inline mr-1" /> Assinar Presencialmente
-                                </button>
-                            </div>
-                        </Card>
-                    ) : (
-                        <div className="relative">
-                            <RdoSignaturePad 
-                                diarioId={initialData?.id || 'new-client'} 
-                                obraId={obraId} 
-                                currentSignatureUrl={methods.watch('client_signature_url') || null} 
-                                onSignatureSave={(url) => methods.setValue('client_signature_url', url, { shouldDirty: true })} 
-                                disabled={isApproved} 
-                            />
-                            {isManualClientSig && !isApproved && (
-                                <button 
-                                    onClick={() => setIsManualClientSig(false)}
-                                    className="absolute -top-2 -right-2 bg-slate-200 text-slate-600 rounded-full p-1 hover:bg-slate-300"
-                                >
-                                    <X className="w-3 h-3" />
-                                </button>
-                            )}
-                        </div>
-                    )}
-                  </div>
+                    <div className="space-y-3">
+                        <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-2">Responsável Técnico (Construtora)</Label>
+                        <RdoSignaturePad diarioId={initialData?.id || 'new'} obraId={obraId} currentSignatureUrl={methods.watch('responsible_signature_url') || null} onSignatureSave={(url) => methods.setValue('responsible_signature_url', url)} disabled={isApproved} />
+                    </div>
+                    <div className="space-y-3">
+                        <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-2">Validação do Cliente (Contratante)</Label>
+                        {!isApproved && !isManualClientSig ? (
+                            <Card className="border-dashed border-2 bg-slate-50 min-h-[220px] flex flex-col items-center justify-center p-8 rounded-[2rem]">
+                                <Clock className="w-10 h-10 text-orange-400 mb-4 animate-pulse" />
+                                <h4 className="font-bold text-sm uppercase">Aguardando Envio</h4>
+                                <Button variant="link" onClick={() => setIsManualClientSig(true)} className="text-[10px] font-black uppercase text-primary mt-4">Assinar Agora (Presencial)</Button>
+                            </Card>
+                        ) : (
+                            <RdoSignaturePad diarioId={initialData?.id || 'client'} obraId={obraId} currentSignatureUrl={methods.watch('client_signature_url') || null} onSignatureSave={(url) => methods.setValue('client_signature_url', url)} disabled={isApproved} />
+                        )}
+                    </div>
                 </div>
-              ) : (
-                <div className="p-10 text-center bg-muted/10 rounded-[2.5rem] border-dashed border-2 cursor-pointer" onClick={() => setShowUpgrade(true)}>
-                  <Lock className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                  <p className="text-[10px] font-black uppercase tracking-widest">Assinaturas Digitais Exclusivas PRO</p>
-                </div>
-              )}
-            </div>
-          </TabsContent>
+            </TabsContent>
+          </div>
         </Tabs>
       </form>
     </FormProvider>

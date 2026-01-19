@@ -7,10 +7,10 @@ import { Sun, Cloud, CloudRain, CloudLightning, CheckCircle2, AlertCircle } from
 import { cn } from "@/lib/utils";
 
 const WEATHER_OPTIONS = [
-  { value: "Sol", icon: Sun },
-  { value: "Nublado", icon: Cloud },
-  { value: "Chuva Leve", icon: CloudRain },
-  { value: "Chuva Forte", icon: CloudLightning },
+  { value: "Sol", icon: Sun, label: "Limpo", color: "text-orange-500" },
+  { value: "Nublado", icon: Cloud, label: "Nublado", color: "text-slate-400" },
+  { value: "Chuva Leve", icon: CloudRain, label: "Chuva", color: "text-blue-400" },
+  { value: "Chuva Forte", icon: CloudLightning, label: "Tempestade", color: "text-indigo-600" },
 ];
 
 interface RdoPeriodRowProps {
@@ -29,68 +29,78 @@ const RdoPeriodRow = ({ label, enabledName, climaName, statusName, isApproved }:
 
   return (
     <div className={cn(
-      "flex flex-col sm:flex-row sm:items-center justify-between py-4 border-b border-border last:border-0 transition-all",
-      (!isEnabled || isApproved) && "opacity-40 grayscale pointer-events-none"
+      "p-5 border rounded-2xl transition-all mb-3 flex flex-col gap-4",
+      !isEnabled ? "bg-slate-50 border-slate-100 opacity-60" : "bg-white border-slate-200 shadow-sm",
+      isApproved && "pointer-events-none"
     )}>
-      <div className="flex items-center justify-between sm:justify-start gap-4 mb-3 sm:mb-0 pointer-events-auto">
-        <span className="text-sm font-bold text-foreground w-16">{label}</span>
-        <FormField control={control} name={enabledName} render={({ field }) => (
-          <Switch 
-            checked={field.value} 
-            onCheckedChange={field.onChange} 
-            className="data-[state=checked]:bg-primary h-5 w-9"
-            disabled={isApproved}
-          />
-        )} />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+            <FormField control={control} name={enabledName} render={({ field }) => (
+                <Switch 
+                    checked={field.value} 
+                    onCheckedChange={field.onChange} 
+                    className="data-[state=checked]:bg-[#066abc]"
+                />
+            )} />
+            <span className="text-xs font-black uppercase tracking-widest text-slate-800">{label}</span>
+        </div>
+        
+        {isEnabled && (
+            <div className="flex items-center gap-2">
+                <span className={cn("text-[8px] font-black uppercase tracking-widest", currentStatus === 'Operacional' ? "text-emerald-600" : "text-red-500")}>
+                    Status: {currentStatus}
+                </span>
+            </div>
+        )}
       </div>
 
-      <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-6">
-        <div className="flex gap-1.5 items-center bg-muted/30 p-1 rounded-xl">
-          {WEATHER_OPTIONS.map((opt) => (
-            <button 
-              key={opt.value}
-              type="button"
-              onClick={() => setValue(climaName, opt.value, { shouldDirty: true })}
-              className={cn(
-                "w-8 h-8 flex items-center justify-center rounded-lg transition-all",
-                currentClima === opt.value 
-                  ? "bg-primary text-white shadow-sm scale-110" 
-                  : "text-muted-foreground hover:bg-muted/60"
-              )}
-              disabled={isApproved}
-            >
-              <opt.icon className="w-4 h-4" />
-            </button>
-          ))}
-        </div>
+      {isEnabled && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+              {/* Clima Selection */}
+              <div className="flex gap-1.5 p-1 bg-slate-50 rounded-xl border">
+                  {WEATHER_OPTIONS.map((opt) => (
+                    <button 
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setValue(climaName, opt.value, { shouldDirty: true })}
+                      className={cn(
+                        "flex-1 flex flex-col items-center justify-center gap-1.5 py-2 rounded-lg transition-all",
+                        currentClima === opt.value 
+                          ? "bg-white shadow-md scale-105 border border-slate-200" 
+                          : "opacity-40 grayscale hover:opacity-100 hover:grayscale-0"
+                      )}
+                    >
+                      <opt.icon className={cn("w-5 h-5", currentClima === opt.value ? opt.color : "text-slate-400")} />
+                      <span className="text-[7px] font-black uppercase tracking-tighter">{opt.label}</span>
+                    </button>
+                  ))}
+              </div>
 
-        <div className="w-[1px] h-6 bg-border hidden sm:block" />
-
-        <div className="flex bg-muted/40 p-1 rounded-xl border border-border/50 min-w-[140px]">
-          <button 
-            type="button"
-            onClick={() => setValue(statusName, "Operacional", { shouldDirty: true })}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg font-black text-[9px] uppercase tracking-wider transition-all",
-              currentStatus === "Operacional" ? "bg-green-600 text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
-            )}
-            disabled={isApproved}
-          >
-            <CheckCircle2 className="w-3 h-3" /> Op.
-          </button>
-          <button 
-            type="button"
-            onClick={() => setValue(statusName, "Paralisado", { shouldDirty: true })}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg font-black text-[9px] uppercase tracking-wider transition-all",
-              currentStatus === "Paralisado" ? "bg-destructive text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
-            )}
-            disabled={isApproved}
-          >
-            <AlertCircle className="w-3 h-3" /> Par.
-          </button>
-        </div>
-      </div>
+              {/* Status Selection */}
+              <div className="flex gap-2 p-1 bg-slate-50 rounded-xl border">
+                <button 
+                    type="button"
+                    onClick={() => setValue(statusName, "Operacional", { shouldDirty: true })}
+                    className={cn(
+                      "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all",
+                      currentStatus === "Operacional" ? "bg-emerald-600 text-white shadow-lg" : "text-slate-400 hover:text-slate-600"
+                    )}
+                >
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Operacional
+                </button>
+                <button 
+                    type="button"
+                    onClick={() => setValue(statusName, "Paralisado", { shouldDirty: true })}
+                    className={cn(
+                      "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all",
+                      currentStatus === "Paralisado" ? "bg-red-500 text-white shadow-lg" : "text-slate-400 hover:text-slate-600"
+                    )}
+                >
+                    <AlertCircle className="w-3.5 h-3.5" /> Paralisado
+                </button>
+              </div>
+          </div>
+      )}
     </div>
   );
 };
