@@ -5,7 +5,7 @@ import { Profile } from "@/hooks/use-profile";
 import { Obra } from "@/hooks/use-obras";
 import { format, parseISO, isValid } from "date-fns";
 
-const DEFAULT_LOGO = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAACOEfKtAAAACXBIWXMAAAsTAAALEwEAmpwYAAAD3ElEQVR4nO2bz2sTQRSAX8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE+T/8A80eXfL0NAnVAAAAABJRU5ErkJggg==";
+const DEFAULT_LOGO = "https://meurdo.com.br/wp-content/uploads/2026/01/Logo-MEU-RDO-scaled.png";
 
 const styles = StyleSheet.create({
   page: { padding: 30, backgroundColor: '#ffffff', fontFamily: 'Helvetica', fontSize: 9, color: '#1e293b' },
@@ -13,7 +13,7 @@ const styles = StyleSheet.create({
   headerLeft: { width: '30%' },
   headerCenter: { width: '40%', textAlign: 'center' },
   headerRight: { width: '30%', textAlign: 'right' },
-  logo: { width: 80, height: 35, objectFit: 'contain' },
+  logo: { width: 90, height: 40, objectFit: 'contain' },
   projectName: { fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#066abc', marginBottom: 2, textTransform: 'uppercase' },
   address: { fontSize: 7, color: '#64748b' },
   rdoNumber: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#1e293b' },
@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
   caption: { fontSize: 7, padding: 3, color: '#64748b', textAlign: 'center', height: 22 },
   signatureRow: { flexDirection: 'row', marginTop: 20, gap: 40 },
   sigBox: { flex: 1, alignItems: 'center' },
-  sigImg: { height: 35, width: 90, objectFit: 'contain', marginBottom: 4 },
+  sigImg: { height: 40, width: 100, objectFit: 'contain', marginBottom: 4 },
   sigLine: { width: '100%', borderTopWidth: 1, borderTopColor: '#cbd5e1', marginBottom: 2 },
   sigLabel: { fontSize: 7, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase' }
 });
@@ -56,17 +56,13 @@ interface Props {
 }
 
 export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra, sequenceNumber, logoBase64, photosBase64, responsibleSigBase64, clientSigBase64 }: Props) => {
-  // Tratamento seguro de data
   let dateStr = "N/A";
   if (rdo.data_rdo) {
       const parsed = typeof rdo.data_rdo === 'string' ? parseISO(rdo.data_rdo) : rdo.data_rdo;
-      if (isValid(parsed)) {
-          dateStr = format(parsed, "dd/MM/yyyy");
-      }
+      if (isValid(parsed)) dateStr = format(parsed, "dd/MM/yyyy");
   }
 
   const totalEquipe = rdo.rdo_mao_de_obra?.reduce((sum, m) => sum + (Number(m.quantidade) || 0), 0) || 0;
-  const statusLimpo = rdo.status_dia && rdo.status_dia.includes(':') ? rdo.status_dia.split(': ')[1] : (rdo.status_dia || 'Operacional');
 
   return (
     <Document>
@@ -74,30 +70,30 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra, sequenceNumber, l
         
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Image src={logoBase64 || DEFAULT_LOGO} style={styles.logo} />
+            {logoBase64 ? <Image src={logoBase64} style={styles.logo} /> : <Text style={{ fontSize: 10, color: '#ccc' }}>LOGO</Text>}
           </View>
           <View style={styles.headerCenter}>
-            <Text style={styles.projectName}>{obraNome || "PROJETO"}</Text>
+            <Text style={styles.projectName}>{obraNome}</Text>
             <Text style={styles.address}>{obra?.endereco || "Local não informado"}</Text>
           </View>
           <View style={styles.headerRight}>
-            <Text style={styles.rdoNumber}>RDO nº {sequenceNumber || '01'}</Text>
+            <Text style={styles.rdoNumber}>RDO nº {sequenceNumber}</Text>
             <Text style={styles.rdoDate}>{dateStr}</Text>
           </View>
         </View>
 
         <View style={styles.summaryRow}>
-          <View style={styles.kpiCard}><Text style={styles.kpiLabel}>Clima</Text><Text style={styles.kpiValue}>{rdo.clima_condicoes?.split(',')[0] || 'Sol'}</Text></View>
-          <View style={styles.kpiCard}><Text style={styles.kpiLabel}>Efetivo</Text><Text style={styles.kpiValue}>{totalEquipe} Colaboradores</Text></View>
-          <View style={styles.kpiCard}><Text style={styles.kpiLabel}>Status</Text><Text style={styles.kpiValue}>{statusLimpo}</Text></View>
+          <View style={styles.kpiCard}><Text style={styles.kpiLabel}>Período</Text><Text style={styles.kpiValue}>{rdo.periodo}</Text></View>
+          <View style={styles.kpiCard}><Text style={styles.kpiLabel}>Clima</Text><Text style={styles.kpiValue}>{rdo.clima_condicoes || 'Sol'}</Text></View>
+          <View style={styles.kpiCard}><Text style={styles.kpiLabel}>Efetivo</Text><Text style={styles.kpiValue}>{totalEquipe} Func.</Text></View>
         </View>
 
         {(rdo.impedimentos_comentarios || rdo.observacoes_gerais) && (
           <View style={styles.section} wrap={false}>
-            <Text style={styles.sectionTitle}>Ocorrências e Notas do Dia</Text>
+            <Text style={styles.sectionTitle}>Ocorrências e Notas</Text>
             <View style={styles.alertBox}>
-              {rdo.impedimentos_comentarios && <Text style={[styles.alertText, { fontFamily: 'Helvetica-Bold', marginBottom: 3 }]}>IMPEDIMENTOS: {rdo.impedimentos_comentarios}</Text>}
-              {rdo.observacoes_gerais && <Text style={styles.alertText}>NOTAS: {rdo.observacoes_gerais}</Text>}
+              {rdo.impedimentos_comentarios && <Text style={[styles.alertText, { fontFamily: 'Helvetica-Bold' }]}>IMPEDIMENTOS: {rdo.impedimentos_comentarios}</Text>}
+              {rdo.observacoes_gerais && <Text style={styles.alertText}>OBSERVAÇÕES: {rdo.observacoes_gerais}</Text>}
             </View>
           </View>
         )}
@@ -107,17 +103,14 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra, sequenceNumber, l
             <Text style={styles.sectionTitle}>Serviços Executados</Text>
             <View style={styles.table}>
                 <View style={styles.tableHeader}>
-                <Text style={styles.colDesc}>Descrição do Serviço</Text>
-                <Text style={styles.colQty}>Avanço</Text>
+                    <Text style={styles.colDesc}>Descrição do Serviço</Text>
+                    <Text style={styles.colQty}>Avanço</Text>
                 </View>
                 {rdo.rdo_atividades_detalhe.map((atv, i) => (
-                <View key={i} style={{ borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}>
-                    <View style={[styles.tableRow, { borderBottomWidth: 0 }]}>
+                    <View key={i} style={styles.tableRow}>
                         <Text style={styles.colDesc}>{atv.descricao_servico}</Text>
                         <Text style={styles.colQty}>{atv.avanco_percentual}%</Text>
                     </View>
-                    {atv.observacao && <Text style={styles.itemNote}>Nota: {atv.observacao}</Text>}
-                </View>
                 ))}
             </View>
             </View>
@@ -128,52 +121,29 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra, sequenceNumber, l
             <Text style={styles.sectionTitle}>Mão de Obra</Text>
             <View style={styles.table}>
                 <View style={styles.tableHeader}>
-                <Text style={{ flex: 3, fontSize: 8 }}>Função</Text>
-                <Text style={{ flex: 1, fontSize: 8, textAlign: 'center' }}>Qtd.</Text>
-                <Text style={{ flex: 1, fontSize: 8, textAlign: 'right' }}>Vínculo</Text>
+                    <Text style={{ flex: 3 }}>Função</Text>
+                    <Text style={{ flex: 1, textAlign: 'center' }}>Qtd.</Text>
+                    <Text style={{ flex: 1, textAlign: 'right' }}>Vínculo</Text>
                 </View>
                 {rdo.rdo_mao_de_obra.map((m, i) => (
-                <View key={i} style={styles.tableRow}>
-                    <Text style={{ flex: 3, fontSize: 8 }}>{m.funcao}</Text>
-                    <Text style={{ flex: 1, fontSize: 8, textAlign: 'center' }}>{m.quantidade}</Text>
-                    <Text style={{ flex: 1, fontSize: 8, textAlign: 'right', color: '#64748b' }}>{m.tipo}</Text>
-                </View>
+                    <View key={i} style={styles.tableRow}>
+                        <Text style={{ flex: 3 }}>{m.funcao}</Text>
+                        <Text style={{ flex: 1, textAlign: 'center' }}>{m.quantidade}</Text>
+                        <Text style={{ flex: 1, textAlign: 'right' }}>{m.tipo}</Text>
+                    </View>
                 ))}
             </View>
             </View>
         )}
 
-        {rdo.rdo_equipamentos && rdo.rdo_equipamentos.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Máquinas e Equipamentos</Text>
-            <View style={styles.table}>
-              <View style={styles.tableHeader}>
-                <Text style={{ flex: 3, fontSize: 8 }}>Equipamento</Text>
-                <Text style={{ flex: 1, fontSize: 8, textAlign: 'center' }}>H. Trab</Text>
-                <Text style={{ flex: 1, fontSize: 8, textAlign: 'center' }}>H. Par.</Text>
-              </View>
-              {rdo.rdo_equipamentos.map((e, i) => (
-                <View key={i} style={{ borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}>
-                    <View style={[styles.tableRow, { borderBottomWidth: 0 }]}>
-                        <Text style={{ flex: 3, fontSize: 8 }}>{e.equipamento}</Text>
-                        <Text style={{ flex: 1, fontSize: 8, textAlign: 'center' }}>{e.horas_trabalhadas}h</Text>
-                        <Text style={{ flex: 1, fontSize: 8, textAlign: 'center' }}>{e.horas_paradas}h</Text>
-                    </View>
-                    {(e as any).observacao && <Text style={styles.itemNote}>Nota: {(e as any).observacao}</Text>}
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
         {photosBase64.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Registro Fotográfico ({photosBase64.length} imagens)</Text>
+            <Text style={styles.sectionTitle}>Evidências Fotográficas</Text>
             <View style={styles.grid}>
               {photosBase64.map((photo, idx) => (
                 <View key={idx} style={styles.photoCard} wrap={false}>
-                  <Image src={photo.base64 || DEFAULT_LOGO} style={styles.image} />
-                  <Text style={styles.caption} numberOfLines={2}>{photo.desc}</Text>
+                  <Image src={photo.base64!} style={styles.image} />
+                  <Text style={styles.caption}>{photo.desc}</Text>
                 </View>
               ))}
             </View>

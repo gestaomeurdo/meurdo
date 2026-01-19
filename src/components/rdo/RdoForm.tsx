@@ -15,6 +15,7 @@ import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
 import RdoEquipmentForm from "./RdoEquipmentForm";
 import RdoMaterialsForm from "./RdoMaterialsForm";
+import RdoSafetyForm from "./RdoSafetyForm";
 import RdoSignaturePad from "./RdoSignaturePad";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMemo, useState, useEffect } from "react";
@@ -26,9 +27,7 @@ import UpgradeModal from "../subscription/UpgradeModal";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
 import { Label } from "@/components/ui/label";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const workforceTypes: WorkforceType[] = ['Própria', 'Terceirizada'];
 
@@ -67,7 +66,7 @@ const MaterialSchema = z.object({
 const RdoSchema = z.object({
   obra_id: z.string().uuid("Obra inválida."),
   data_rdo: z.date({ required_error: "A data é obrigatória." }),
-  periodo: z.string().min(1, "Selecione pelo menos um período."),
+  periodo: z.string().min(1, "Selecione o período."),
   clima_condicoes: z.string().nullable().optional(),
   status_dia: z.string().optional(), 
   observacoes_gerais: z.string().nullable().optional(),
@@ -119,9 +118,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
   const { data: rdoList } = useRdoList(obraId);
   const currentObra = obras?.find(o => o.id === obraId);
   const obraNome = currentObra?.nome || "Obra";
-  
-  const [weatherMap, setWeatherMap] = useState<Record<string, string>>({});
-  const [statusMap, setStatusMap] = useState<Record<string, string>>({});
 
   const methods = useForm<RdoFormValues>({
     resolver: zodResolver(RdoSchema),
@@ -130,8 +126,8 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
       data_rdo: initialData?.data_rdo 
         ? new Date(initialData.data_rdo + 'T12:00:00') 
         : (selectedDate || new Date()),
-      periodo: initialData?.periodo || "Manhã, Tarde",
-      clima_condicoes: initialData?.clima_condicoes || "",
+      periodo: initialData?.periodo || "Integral",
+      clima_condicoes: initialData?.clima_condicoes || "Sol",
       status_dia: (initialData?.status_dia as string) || 'Operacional',
       observacoes_gerais: initialData?.observacoes_gerais || "",
       impedimentos_comentarios: initialData?.impedimentos_comentarios || "",
@@ -184,42 +180,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
 
   const maoDeObra = useWatch({ control: methods.control, name: "mao_de_obra" });
   const equipamentos = useWatch({ control: methods.control, name: "equipamentos" });
-  const activePeriods = methods.watch("periodo");
-
-  useEffect(() => {
-    if (initialData?.clima_condicoes) {
-      const weatherString = initialData.clima_condicoes;
-      if (weatherString.includes(':')) {
-        const parts = weatherString.split(', ');
-        const map: Record<string, string> = {};
-        parts.forEach(p => {
-          const [period, condition] = p.split(': ');
-          if (period && condition) map[period] = condition;
-        });
-        setWeatherMap(map);
-      }
-    }
-    if (initialData?.status_dia) {
-        const statusString = initialData.status_dia as string;
-        if (statusString.includes(':')) {
-            const parts = statusString.split(', ');
-            const map: Record<string, string> = {};
-            parts.forEach(p => {
-                const [period, status] = p.split(': ');
-                if (period && status) map[period] = status;
-            });
-            setStatusMap(map);
-        }
-    }
-  }, [initialData]);
-
-  useEffect(() => {
-    const selectedPeriods = activePeriods.split(', ').filter(p => p !== '');
-    const weatherString = selectedPeriods.map(p => `${p}: ${weatherMap[p] || 'Sol'}`).join(', ');
-    methods.setValue('clima_condicoes', weatherString, { shouldDirty: true });
-    const statusString = selectedPeriods.map(p => `${p}: ${statusMap[p] || 'Operacional'}`).join(', ');
-    methods.setValue('status_dia', statusString as any, { shouldDirty: true });
-  }, [weatherMap, statusMap, activePeriods, methods]);
 
   const estimatedDailyCost = useMemo(() => {
     const manpowerCost = maoDeObra?.reduce((sum, item) => (sum + (Number(item.quantidade) * Number(item.custo_unitario || 0))), 0) || 0;
@@ -266,7 +226,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
       }
       onSuccess();
     } catch (error: any) {
-      showError("Falha ao salvar. Verifique se já existe RDO nesta data.");
+      showError("Falha ao salvar.");
     }
   };
 
@@ -275,42 +235,83 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
       <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-6">
         <UpgradeModal open={showUpgrade} onOpenChange={setShowUpgrade} />
 
-        <div className="flex flex-col gap-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-primary/10 rounded-2xl border border-primary/20 gap-4">
-              <div className="flex items-center gap-3">
-                <div className="bg-primary p-2 rounded-lg text-primary-foreground"><DollarSign className="w-5 h-5" /></div>
-                <div>
-                  <p className="text-xs font-black text-primary uppercase">Custo Estimado</p>
-                  <h2 className="text-2xl font-black">{formatCurrency(estimatedDailyCost)}</h2>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                {isEditing && (
-                  <Button type="button" variant="outline" onClick={handleExportPdf} disabled={isGeneratingPdf} className="flex-1 sm:flex-none rounded-xl font-bold uppercase text-xs">
-                    {isGeneratingPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileDown className="w-4 h-4 mr-2" />}
-                    PDF
-                  </Button>
-                )}
-                <Button type="submit" disabled={updateMutation.isPending || createMutation.isPending} className="flex-1 sm:flex-none rounded-xl bg-primary hover:bg-primary/90 font-bold uppercase text-xs">
-                  {(updateMutation.isPending || createMutation.isPending) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                  Salvar
-                </Button>
-              </div>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-primary/10 rounded-2xl border border-primary/20 gap-4">
+          <div className="flex items-center gap-3">
+            <div className="bg-primary p-2 rounded-lg text-primary-foreground"><DollarSign className="w-5 h-5" /></div>
+            <div>
+              <p className="text-xs font-black text-primary uppercase">Custo Estimado</p>
+              <h2 className="text-2xl font-black">{formatCurrency(estimatedDailyCost)}</h2>
             </div>
+          </div>
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            {isEditing && (
+              <Button type="button" variant="outline" onClick={handleExportPdf} disabled={isGeneratingPdf} className="flex-1 sm:flex-none rounded-xl font-bold uppercase text-xs">
+                {isGeneratingPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileDown className="w-4 h-4 mr-2" />}
+                PDF
+              </Button>
+            )}
+            <Button type="submit" disabled={updateMutation.isPending || createMutation.isPending} className="flex-1 sm:flex-none rounded-xl bg-primary hover:bg-primary/90 font-bold uppercase text-xs">
+              {(updateMutation.isPending || createMutation.isPending) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+              Salvar
+            </Button>
+          </div>
         </div>
 
-        <Card className="border-none shadow-clean bg-accent/20">
-          <CardContent className="p-4 space-y-4">
-            <div className="flex gap-2">
-                {['Manhã', 'Tarde', 'Noite'].map((p) => {
-                    const isSelected = activePeriods.includes(p);
-                    return (
-                        <button key={p} type="button" onClick={() => methods.setValue('periodo', isSelected ? activePeriods.replace(p, '').replace(', ,', ',') : activePeriods + ', ' + p)} className={cn("flex-1 px-3 py-2 rounded-xl border text-xs font-bold uppercase transition-all", isSelected ? "bg-primary text-white" : "bg-white text-muted-foreground")}>{p}</button>
-                    );
-                })}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <FormField
+            control={methods.control}
+            name="periodo"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs font-black uppercase">Período</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl><SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger></FormControl>
+                  <SelectContent>
+                    <SelectItem value="Integral">Integral</SelectItem>
+                    <SelectItem value="Manhã">Manhã</SelectItem>
+                    <SelectItem value="Tarde">Tarde</SelectItem>
+                    <SelectItem value="Noite">Noite</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={methods.control}
+            name="clima_condicoes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs font-black uppercase">Clima</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value || "Sol"}>
+                  <FormControl><SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger></FormControl>
+                  <SelectContent>
+                    <SelectItem value="Sol">Sol</SelectItem>
+                    <SelectItem value="Nublado">Nublado</SelectItem>
+                    <SelectItem value="Chuva Leve">Chuva Leve</SelectItem>
+                    <SelectItem value="Chuva Forte">Chuva Forte</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={methods.control}
+            name="status_dia"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs font-black uppercase">Status do Dia</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl><SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger></FormControl>
+                  <SelectContent>
+                    <SelectItem value="Operacional">Operacional</SelectItem>
+                    <SelectItem value="Parcialmente Paralisado">Parcialmente Paralisado</SelectItem>
+                    <SelectItem value="Totalmente Paralisado - Não Praticável">Não Praticável</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormItem>
+            )}
+          />
+        </div>
 
         <Tabs defaultValue="atividades" className="w-full">
           <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 h-auto bg-muted/50 p-1 rounded-xl gap-1">
@@ -326,7 +327,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
           <TabsContent value="mao_de_obra" className="pt-4"><RdoManpowerForm /></TabsContent>
           <TabsContent value="equipamentos" className="pt-4"><RdoEquipmentForm /></TabsContent>
           <TabsContent value="materiais" className="pt-4"><RdoMaterialsForm /></TabsContent>
-          <TabsContent value="seguranca" className="pt-4"><div className="p-4 text-center text-muted-foreground">Checklist de Segurança</div></TabsContent>
+          <TabsContent value="seguranca" className="pt-4"><RdoSafetyForm /></TabsContent>
           <TabsContent value="ocorrencias" className="pt-4 space-y-6">
             <FormField control={methods.control} name="impedimentos_comentarios" render={({ field }) => (
                 <FormItem>
@@ -336,7 +337,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                     </FormLabel>
                     <FormControl>
                         <Textarea 
-                            placeholder="Descreva problemas que travaram a obra (ex: Falta de energia, Greve, Chuva torrencial...)" 
+                            placeholder="Descreva problemas que travaram a obra..." 
                             {...field} 
                             value={field.value || ""} 
                             rows={4} 
@@ -354,7 +355,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                     </FormLabel>
                     <FormControl>
                         <Textarea 
-                            placeholder="Notas diversas (ex: Sumiço de materiais, visita de fiscalização, entrega de documentos...)" 
+                            placeholder="Notas diversas..." 
                             {...field} 
                             value={field.value || ""} 
                             rows={4} 
