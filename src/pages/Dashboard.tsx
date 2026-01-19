@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { useObras, useObrasProgress } from "@/hooks/use-obras";
 import { formatDate } from "@/utils/formatters";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import WelcomeFreeModal from "@/components/subscription/WelcomeFreeModal";
 import RdoActionCenter from "@/components/dashboard/RdoActionCenter";
 
