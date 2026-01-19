@@ -4,14 +4,13 @@ import { useFormContext } from "react-hook-form";
 import { FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, Upload, Loader2, Image as ImageIcon, X } from "lucide-react";
+import { ShieldCheck, Upload, Loader2, X } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
 import { compressImage } from "@/utils/image-compression";
-import { cn } from "@/lib/utils";
 
 const RdoSafetyForm = () => {
   const { control, register, setValue, watch } = useFormContext();
