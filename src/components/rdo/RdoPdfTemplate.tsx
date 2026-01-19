@@ -165,26 +165,26 @@ const styles = StyleSheet.create({
     fontSize: 9,
     lineHeight: 1.4,
   },
-  // ESTILOS DO GRID DE FOTOS (Solicitados)
-  galleryContainer: {
+  // --- GRID DE FOTOS CORRIGIDO (Obrigatório) ---
+  photosContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 10,
+    flexWrap: 'wrap', // CRÍTICO: Permite quebrar linha
     gap: 10,
+    marginTop: 10
   },
-  photoBox: {
-    width: '31%',
+  photoWrapper: {
+    width: '30%', // Força 3 colunas (aprox)
     marginBottom: 10,
     borderWidth: 1,
     borderColor: '#eeeeee',
     borderRadius: 4,
     padding: 4,
   },
-  photoImage: {
+  photo: {
     width: '100%',
     height: 100,
-    objectFit: 'cover',
-    borderRadius: 2,
+    objectFit: 'cover', // Corta para caber no quadrado
+    borderRadius: 2
   },
   photoCaption: {
     fontSize: 7,
@@ -192,6 +192,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: 'center',
   },
+  // ---------------------------------------------
   signatureRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -229,13 +230,13 @@ interface RdoPdfTemplateProps {
   sequenceNumber?: string;
 }
 
-const DEFAULT_SYSTEM_LOGO = "https://meurdo.com.br/wp-content/uploads/2026/01/Logo-MEU-RDO-scaled.png";
+const GUARANTEED_LOGO = "https://meurdo.com.br/wp-content/uploads/2026/01/Logo-MEU-RDO-scaled.png";
 
 export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra, sequenceNumber }: RdoPdfTemplateProps) => {
-  // Lógica de Fallback de Logo (Forçada)
+  // Fallback Absoluto de Logo
   const logoUrl = (profile?.avatar_url && profile.avatar_url.trim().length > 0) 
     ? profile.avatar_url 
-    : DEFAULT_SYSTEM_LOGO;
+    : GUARANTEED_LOGO;
 
   let dateStr = '---';
   let dayStr = '---';
@@ -249,26 +250,33 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra, sequenceNumber }:
 
   // Consolidação de todas as fotos para o Grid
   const allPhotos = [
-    ...(rdo.rdo_atividades_detalhe?.filter(a => a.foto_anexo_url).map(a => ({ url: a.foto_anexo_url!, desc: a.descricao_servico })) || []),
-    { url: (rdo as any).safety_nr35_photo, desc: "Trabalho em Altura / NR-35" },
-    { url: (rdo as any).safety_epi_photo, desc: "Uso de EPIs" },
-    { url: (rdo as any).safety_cleaning_photo, desc: "Limpeza e Organização" },
-    { url: (rdo as any).safety_dds_photo, desc: "Registro de DDS" }
+    ...(rdo.rdo_atividades_detalhe?.filter(a => a.foto_anexo_url).map(a => ({ 
+        url: a.foto_anexo_url!, 
+        desc: a.descricao_servico 
+    })) || []),
+    { url: (rdo as any).safety_nr35_photo, desc: "Segurança: NR-35" },
+    { url: (rdo as any).safety_epi_photo, desc: "Segurança: EPIs" },
+    { url: (rdo as any).safety_cleaning_photo, desc: "Segurança: Limpeza" },
+    { url: (rdo as any).safety_dds_photo, desc: "Segurança: DDS" }
   ].filter(p => p.url && p.url.trim() !== "");
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         
-        {/* CABEÇALHO COM LOGO */}
+        {/* CABEÇALHO */}
         <View style={styles.headerRow}>
           <View style={styles.brandArea}>
-            <Image src={logoUrl} style={styles.logo} />
+            <Image 
+                src={logoUrl} 
+                style={styles.logo} 
+                cache={false} // Evita bugs de cache com logos trocadas
+            />
             {profile?.company_name && <Text style={styles.companyName}>{profile.company_name}</Text>}
             {profile?.cnpj && <Text style={styles.companyDetails}>CNPJ: {profile.cnpj}</Text>}
           </View>
           <View style={styles.rdoBadge}>
-            <Text style={styles.rdoNumber}>RDO nº {sequenceNumber || '00'}</Text>
+            <Text style={styles.rdoNumber}>RDO nº {sequenceNumber || '01'}</Text>
             <Text style={styles.rdoDate}>{dateStr}</Text>
             <Text style={styles.rdoDay}>{dayStr}</Text>
           </View>
@@ -398,21 +406,25 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra, sequenceNumber }:
           </View>
         )}
 
-        {/* GRID DE FOTOS CORRIGIDO */}
+        {/* GALERIA DE FOTOS (FIXED GRID) */}
         <View style={styles.section} wrap={false}> 
-          <Text style={styles.sectionTitle}>EVIDÊNCIAS FOTOGRÁFICAS</Text>
-          <View style={styles.galleryContainer}>
+          <Text style={styles.sectionTitle}>REGISTRO FOTOGRÁFICO ({allPhotos.length} fotos)</Text>
+          <View style={styles.photosContainer}>
             {allPhotos.length > 0 ? (
               allPhotos.map((photo, index) => (
-                <View key={index} style={styles.photoBox}>
-                  <Image src={photo.url} style={styles.photoImage} />
+                <View key={index} style={styles.photoWrapper}>
+                  <Image 
+                    src={photo.url} 
+                    style={styles.photo} 
+                    cache={false} 
+                  />
                   <Text style={styles.photoCaption}>
                     {photo.desc || `Registro ${index + 1}`}
                   </Text>
                 </View>
               ))
             ) : (
-              <Text style={{fontSize: 9, color: colors.textLight, fontStyle: 'italic'}}>Nenhuma evidência fotográfica registrada neste dia.</Text>
+              <Text style={{fontSize: 9, color: colors.textLight, fontStyle: 'italic'}}>Nenhuma evidência fotográfica registrada.</Text>
             )}
           </View>
         </View>
