@@ -1,13 +1,14 @@
 import { pdf } from '@react-pdf/renderer';
 import { DiarioObra } from "@/hooks/use-rdo";
 import { Profile } from "@/hooks/use-profile";
+import { Obra } from "@/hooks/use-obras";
 import { RdoPdfTemplate } from "@/components/rdo/RdoPdfTemplate";
 import { formatDate } from "./formatters";
 
-export const generateRdoPdf = async (rdo: DiarioObra, obraNome: string, profile: Profile | null) => {
+export const generateRdoPdf = async (rdo: DiarioObra, obraNome: string, profile: Profile | null, obra?: Obra) => {
   try {
     const blob = await pdf(
-      RdoPdfTemplate({ rdo, obraNome, profile })
+      RdoPdfTemplate({ rdo, obraNome, profile, obra })
     ).toBlob();
 
     const url = URL.createObjectURL(blob);

@@ -1,246 +1,346 @@
 import React from 'react';
-import { Page, Text, View, Document, StyleSheet, Image, Font } from '@react-pdf/renderer';
+import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
 import { DiarioObra } from "@/hooks/use-rdo";
 import { Profile } from "@/hooks/use-profile";
-import { format } from "date-fns";
+import { Obra } from "@/hooks/use-obras";
+import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+// --- Paleta de Cores e Estilos ---
+const colors = {
+  primary: '#066abc',
+  secondary: '#ff9f1c',
+  background: '#f4f7f9',
+  card: '#ffffff',
+  text: '#1f2937',
+  textLight: '#6b7280',
+  border: '#e5e7eb',
+  success: '#10b981',
+  successBg: '#d1fae5',
+  danger: '#ef4444',
+  dangerBg: '#fee2e2',
+  warningBg: '#fffbf0',
+  tableHeader: '#066abc',
+  zebra: '#f9fafb',
+};
 
 const styles = StyleSheet.create({
   page: {
-    padding: 30,
-    backgroundColor: '#ffffff',
+    padding: 24,
+    backgroundColor: colors.background,
     fontFamily: 'Helvetica',
-    color: '#333333',
+    color: colors.text,
     fontSize: 9,
   },
-  header: {
+  // --- Header ---
+  headerContainer: {
+    backgroundColor: colors.card,
+    borderRadius: 8,
+    padding: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
-    borderBottomWidth: 2,
-    borderBottomColor: '#066abc',
-    paddingBottom: 10,
+    borderBottomWidth: 3,
+    borderBottomColor: colors.primary,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    width: '30%',
   },
   logo: {
-    height: 50,
-    width: 100, // Approximate aspect ratio
+    height: 40,
+    maxWidth: 100,
     objectFit: 'contain',
-    marginRight: 10,
+  },
+  headerCenter: {
+    alignItems: 'center',
+    width: '40%',
+  },
+  headerTitle: {
+    fontSize: 14,
+    fontFamily: 'Helvetica-Bold',
+    color: colors.primary,
+    textTransform: 'uppercase',
+  },
+  headerSubTitle: {
+    fontSize: 10,
+    fontFamily: 'Helvetica-Bold',
+    color: colors.textLight,
+    marginTop: 2,
   },
   headerRight: {
     alignItems: 'flex-end',
+    width: '30%',
   },
-  title: {
-    fontSize: 16,
+  dateBox: {
+    alignItems: 'flex-end',
+  },
+  dateText: {
+    fontSize: 12,
     fontFamily: 'Helvetica-Bold',
-    color: '#066abc',
-    textTransform: 'uppercase',
+    color: colors.text,
   },
-  subHeader: {
+  dayText: {
     fontSize: 9,
-    color: '#666666',
-    marginTop: 2,
+    color: colors.textLight,
+    textTransform: 'capitalize',
   },
-  section: {
-    marginTop: 15,
-    marginBottom: 5,
-  },
-  infoCard: {
+  // --- Sub-Header (Compliance) ---
+  complianceRow: {
     flexDirection: 'row',
-    backgroundColor: '#f8f9fa',
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    padding: 10,
     justifyContent: 'space-between',
+    marginBottom: 15,
+    paddingHorizontal: 4,
   },
-  infoCol: {
-    flex: 1,
-    paddingRight: 10,
+  complianceText: {
+    fontSize: 8,
+    color: colors.textLight,
   },
-  label: {
-    fontSize: 7,
-    color: '#888888',
-    textTransform: 'uppercase',
+  bold: {
     fontFamily: 'Helvetica-Bold',
-    marginBottom: 2,
+    color: colors.text,
   },
-  value: {
-    fontSize: 10,
-    fontFamily: 'Helvetica',
-    color: '#333333',
-  },
-  weatherSection: {
-    marginTop: 15,
+  // --- Dashboard Summary Cards ---
+  dashboardRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: '#f4f7f9',
-    borderRadius: 4,
+    gap: 8,
+    marginBottom: 15,
+  },
+  card: {
+    flex: 1,
+    backgroundColor: colors.card,
+    borderRadius: 8,
     padding: 10,
+    borderWidth: 1,
+    borderColor: '#e5e7eb', // Soft border instead of shadow
+  },
+  cardLabel: {
+    fontSize: 7,
+    textTransform: 'uppercase',
+    color: colors.textLight,
+    fontFamily: 'Helvetica-Bold',
+    marginBottom: 4,
+  },
+  cardValueBig: {
+    fontSize: 18,
+    fontFamily: 'Helvetica-Bold',
+    color: colors.primary,
+  },
+  cardContentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  weatherItem: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    flex: 2,
-  },
-  weatherIconText: {
-    fontSize: 9,
-    fontFamily: 'Helvetica-Bold',
-    color: '#066abc',
-  },
   statusBadge: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 10,
-    backgroundColor: '#e6fffa', // Greenish light
-    borderWidth: 1,
-    borderColor: '#b2f5ea',
-    maxWidth: 200,
-  },
-  statusText: {
-    color: '#2c7a7b',
-    fontSize: 8,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 4,
+    fontSize: 7,
     fontFamily: 'Helvetica-Bold',
     textTransform: 'uppercase',
-    textAlign: 'center',
   },
-  statusBadgeDanger: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 10,
-    backgroundColor: '#fff5f5',
-    borderWidth: 1,
-    borderColor: '#feb2b2',
-    maxWidth: 200,
-  },
-  statusTextDanger: {
-    color: '#c53030',
-    fontSize: 8,
-    fontFamily: 'Helvetica-Bold',
-    textTransform: 'uppercase',
-    textAlign: 'center',
-  },
+  // --- Tables ---
   sectionTitle: {
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: 'Helvetica-Bold',
-    color: '#066abc',
+    color: colors.primary,
     marginBottom: 6,
     textTransform: 'uppercase',
+    marginTop: 10,
     borderLeftWidth: 3,
-    borderLeftColor: '#066abc',
+    borderLeftColor: colors.secondary,
     paddingLeft: 6,
   },
   twoColContainer: {
     flexDirection: 'row',
-    gap: 15,
-    marginTop: 15,
+    gap: 12,
+    marginBottom: 10,
   },
   col: {
     flex: 1,
   },
   table: {
     width: '100%',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 4,
+    borderRadius: 6,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#066abc',
-    paddingVertical: 4,
+    backgroundColor: colors.tableHeader,
+    paddingVertical: 5,
     paddingHorizontal: 4,
   },
   tableHeaderCell: {
     color: '#ffffff',
     fontFamily: 'Helvetica-Bold',
-    fontSize: 8,
+    fontSize: 7,
     flex: 1,
-    textAlign: 'left',
-    paddingLeft: 4,
   },
   tableRow: {
     flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    paddingVertical: 4,
+    paddingVertical: 5,
     paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   tableCell: {
     fontSize: 8,
-    color: '#444',
+    color: colors.text,
     flex: 1,
-    textAlign: 'left',
-    paddingLeft: 4,
   },
-  statusDot: {
-    width: 8,
-    height: 8,
+  // --- Activities ---
+  activityRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 6,
+    paddingBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  bullet: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.primary,
+    marginTop: 4,
+    marginRight: 6,
+  },
+  activityContent: {
+    flex: 1,
+  },
+  activityText: {
+    fontSize: 9,
+    fontFamily: 'Helvetica',
+  },
+  activitySub: {
+    fontSize: 8,
+    color: colors.textLight,
+    fontStyle: 'italic',
+    marginTop: 1,
+  },
+  activityStatus: {
+    fontSize: 7,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
     borderRadius: 4,
-    marginRight: 8,
+    marginLeft: 8,
+    fontFamily: 'Helvetica-Bold',
   },
+  // --- Occurrences ---
+  occurrenceBox: {
+    backgroundColor: colors.warningBg,
+    borderRadius: 6,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#fed7aa', // Light orange border
+    marginBottom: 10,
+  },
+  occurrenceText: {
+    fontSize: 9,
+    color: '#9a3412', // Dark orange text
+    lineHeight: 1.4,
+  },
+  // --- Photos ---
   photoGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
-    marginTop: 10,
+    gap: 8,
+    marginTop: 5,
   },
   photoCard: {
-    width: '48%', // 2 per row
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 4,
+    width: '32%', // 3 per row roughly
+    backgroundColor: colors.card,
     padding: 4,
-    backgroundColor: '#ffffff',
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 8,
   },
-  photo: {
+  photoImage: {
     width: '100%',
-    height: 120,
+    height: 100,
     objectFit: 'cover',
-    borderRadius: 2,
-    backgroundColor: '#f0f0f0',
+    borderRadius: 3,
+    backgroundColor: '#e5e7eb',
   },
-  photoDesc: {
+  photoCaption: {
     marginTop: 4,
-    fontSize: 8,
-    fontFamily: 'Helvetica-Oblique', // Italic
-    color: '#666',
+    fontSize: 7,
+    color: colors.textLight,
     textAlign: 'center',
+    maxLines: 2,
   },
-  footer: {
+  // --- Footer ---
+  footerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 20,
     marginTop: 30,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-    paddingTop: 10,
-    alignItems: 'center',
+    borderTopColor: colors.border,
+    paddingTop: 15,
   },
   signatureBox: {
+    flex: 1,
+    height: 70,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: '#9ca3af',
+    borderRadius: 6,
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    marginBottom: 10,
+    paddingBottom: 6,
+    position: 'relative',
   },
-  signatureImage: {
-    height: 40,
-    width: 100,
+  signatureImg: {
+    position: 'absolute',
+    width: '80%',
+    height: '80%',
+    top: 5,
     objectFit: 'contain',
   },
-  footerText: {
-    fontSize: 7,
-    color: '#999',
-    textAlign: 'center',
+  signatureLine: {
+    width: '80%',
+    height: 1,
+    backgroundColor: '#9ca3af',
+    marginBottom: 2,
   },
-  pagination: {
+  signatureText: {
+    fontSize: 7,
+    fontFamily: 'Helvetica-Bold',
+    textTransform: 'uppercase',
+    color: colors.text,
+  },
+  footerMeta: {
     position: 'absolute',
     bottom: 20,
-    right: 30,
+    left: 24,
+    right: 24,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: 6,
+  },
+  metaText: {
     fontSize: 7,
-    color: '#999',
+    color: '#9ca3af',
+  },
+  progressBarContainer: {
+    height: 4,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 2,
+    marginTop: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: colors.primary,
   }
 });
 
@@ -248,232 +348,283 @@ interface RdoPdfTemplateProps {
   rdo: DiarioObra;
   obraNome: string;
   profile: Profile | null;
+  obra?: Obra; // Added obra to access address/start_date
 }
 
 const DEFAULT_LOGO = "https://meurdo.com.br/wp-content/uploads/2026/01/Logo-MEU-RDO-scaled.png";
 
-export const RdoPdfTemplate = ({ rdo, obraNome, profile }: RdoPdfTemplateProps) => {
+export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra }: RdoPdfTemplateProps) => {
   const isPro = profile?.subscription_status === 'active' || profile?.plan_type === 'pro';
-  const logoUrl = (isPro && profile?.avatar_url) ? profile.avatar_url : DEFAULT_LOGO;
+  const logoUrl = (isPro && obra?.foto_url) ? obra.foto_url : ((isPro && profile?.avatar_url) ? profile.avatar_url : DEFAULT_LOGO);
   
-  // Format Date
+  // Dates and Formatting
   let dateFormatted = 'Data inválida';
+  let dayOfWeek = '';
   try {
     const dateObj = new Date(rdo.data_rdo + 'T12:00:00');
     dateFormatted = format(dateObj, "dd/MM/yyyy", { locale: ptBR });
+    dayOfWeek = format(dateObj, "EEEE", { locale: ptBR });
   } catch (e) {}
 
-  const getStatusStyle = (status: string) => {
-    if (status.includes('Não Praticável')) return styles.statusBadgeDanger;
-    return styles.statusBadge;
-  };
+  // Totals Calculation
+  const totalManpower = rdo.rdo_mao_de_obra?.reduce((acc, curr) => acc + curr.quantidade, 0) || 0;
+  const totalEquipment = rdo.rdo_equipamentos?.length || 0;
+  
+  // Progress Calculation (Visual Only)
+  let progressPercent = 0;
+  let deadlineLabel = "Prazo Indefinido";
+  if (obra?.data_inicio && obra?.previsao_entrega) {
+    const start = new Date(obra.data_inicio);
+    const end = new Date(obra.previsao_entrega);
+    const now = new Date(rdo.data_rdo); // Calculate based on RDO date context
+    const totalDays = differenceInDays(end, start);
+    const elapsedDays = differenceInDays(now, start);
+    if (totalDays > 0) {
+      progressPercent = Math.min(100, Math.max(0, (elapsedDays / totalDays) * 100));
+      deadlineLabel = `${elapsedDays}/${totalDays} dias corridos`;
+    }
+  }
 
-  const getStatusTextStyle = (status: string) => {
-    if (status.includes('Não Praticável')) return styles.statusTextDanger;
-    return styles.statusText;
-  };
+  // Safety Status
+  const isZeroAccidents = !rdo.work_stopped && rdo.hours_lost === 0;
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         
-        {/* Header */}
-        <View style={styles.header}>
+        {/* 1. Header (Identidade) */}
+        <View style={styles.headerContainer}>
           <View style={styles.headerLeft}>
             <Image src={logoUrl} style={styles.logo} />
           </View>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>RDO #{rdo.id.slice(0, 4).toUpperCase()}</Text>
+            <Text style={styles.headerSubTitle}>RELATÓRIO DIÁRIO DE OBRA</Text>
+          </View>
           <View style={styles.headerRight}>
-            <Text style={styles.title}>RDO - RELATÓRIO DIÁRIO DE OBRA</Text>
-            <Text style={styles.subHeader}>Relatório #{rdo.id.slice(0, 4)} | Data: {dateFormatted}</Text>
+            <View style={styles.dateBox}>
+              <Text style={styles.dateText}>{dateFormatted}</Text>
+              <Text style={styles.dayText}>{dayOfWeek}</Text>
+            </View>
           </View>
         </View>
 
-        {/* Info Card */}
-        <View style={styles.infoCard}>
-          <View style={styles.infoCol}>
-            <Text style={styles.label}>Obra</Text>
-            <Text style={styles.value}>{obraNome}</Text>
-          </View>
-          <View style={styles.infoCol}>
-            <Text style={styles.label}>Responsável</Text>
-            <Text style={styles.value}>{(rdo as any).responsavel || 'Não informado'}</Text>
-          </View>
-          <View style={styles.infoCol}>
-            <Text style={styles.label}>Período</Text>
-            <Text style={styles.value}>{rdo.periodo}</Text>
-          </View>
+        {/* Sub-Header Compliance Data */}
+        <View style={styles.complianceRow}>
+          <Text style={styles.complianceText}>
+            EMPREENDIMENTO: <Text style={styles.bold}>{obraNome.toUpperCase()}</Text>
+          </Text>
+          <Text style={styles.complianceText}>
+            RESP. TÉCNICO: <Text style={styles.bold}>{(rdo as any).signer_name || (rdo as any).responsavel || 'N/A'}</Text>
+          </Text>
+          <Text style={styles.complianceText}>
+            ART / RRT: <Text style={styles.bold}>{(rdo as any).signer_registration || '___________'}</Text>
+          </Text>
         </View>
 
-        {/* Weather & Status Section */}
-        <View style={styles.weatherSection}>
-          <View style={styles.weatherItem}>
-            <Text style={styles.label}>Clima / Condições</Text>
-            <Text style={styles.weatherIconText}>{rdo.clima_condicoes || 'N/A'}</Text>
-          </View>
+        {/* 2. Dashboard Summary Cards */}
+        <View style={styles.dashboardRow}>
           
-          <View style={getStatusStyle(rdo.status_dia)}>
-            <Text style={getStatusTextStyle(rdo.status_dia)}>{rdo.status_dia}</Text>
+          {/* Card 1: Clima */}
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>Condições Climáticas</Text>
+            <View style={{flexDirection: 'row', justifyContent: 'space-between', marginTop: 4}}>
+               <Text style={{fontSize: 8}}>{rdo.clima_condicoes || 'Não Informado'}</Text>
+            </View>
+            <View style={{marginTop: 6, alignSelf: 'flex-start'}}>
+                <Text style={[
+                    styles.statusBadge, 
+                    { 
+                        backgroundColor: rdo.status_dia === 'Operacional' ? colors.successBg : colors.dangerBg,
+                        color: rdo.status_dia === 'Operacional' ? colors.success : colors.danger
+                    }
+                ]}>
+                    {rdo.status_dia === 'Operacional' ? 'PRATICÁVEL' : 'IMPRATICÁVEL'}
+                </Text>
+            </View>
           </View>
+
+          {/* Card 2: Efetivo */}
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>Total Efetivo</Text>
+            <View style={styles.cardContentRow}>
+               <Text style={styles.cardValueBig}>{totalManpower}</Text>
+               <Text style={{fontSize: 8, color: colors.textLight}}>Colaboradores</Text>
+            </View>
+          </View>
+
+          {/* Card 3: Prazos */}
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>Cronograma Físico</Text>
+            <Text style={{fontSize: 8, marginBottom: 2}}>{deadlineLabel}</Text>
+            <View style={styles.progressBarContainer}>
+                <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
+            </View>
+            <Text style={{fontSize: 7, color: colors.textLight, marginTop: 2, textAlign: 'right'}}>{progressPercent.toFixed(0)}% Decorrido</Text>
+          </View>
+
+          {/* Card 4: Segurança */}
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>Segurança do Trabalho</Text>
+            <View style={{ alignItems: 'center', marginTop: 4 }}>
+                <Text style={[
+                    styles.statusBadge, 
+                    { 
+                        backgroundColor: isZeroAccidents ? colors.successBg : colors.dangerBg,
+                        color: isZeroAccidents ? colors.success : colors.danger,
+                        fontSize: 8,
+                        paddingVertical: 4
+                    }
+                ]}>
+                    {isZeroAccidents ? 'ZERO ACIDENTES' : 'COM OCORRÊNCIA'}
+                </Text>
+            </View>
+          </View>
+
         </View>
 
-        {/* Tables Container */}
+        {/* 3. Corpo Técnico (Tabelas Lado a Lado) */}
         <View style={styles.twoColContainer}>
-          
-          {/* Manpower */}
-          <View style={styles.col}>
-            <Text style={styles.sectionTitle}>Efetivo (Mão de Obra)</Text>
-            <View style={styles.table}>
-              <View style={styles.tableHeader}>
-                <Text style={[styles.tableHeaderCell, { flex: 2 }]}>Função</Text>
-                <Text style={styles.tableHeaderCell}>Qtd</Text>
-                <Text style={styles.tableHeaderCell}>Tipo</Text>
-              </View>
-              {rdo.rdo_mao_de_obra?.map((item, index) => (
-                <View key={index} style={[styles.tableRow, { backgroundColor: index % 2 === 0 ? '#ffffff' : '#f9f9f9' }]}>
-                  <Text style={[styles.tableCell, { flex: 2 }]}>{item.funcao}</Text>
-                  <Text style={styles.tableCell}>{item.quantidade}</Text>
-                  <Text style={styles.tableCell}>{item.tipo}</Text>
+            
+            {/* Manpower Table */}
+            <View style={styles.col}>
+                <Text style={styles.sectionTitle}>Mão de Obra</Text>
+                <View style={styles.table}>
+                    <View style={styles.tableHeader}>
+                        <Text style={[styles.tableHeaderCell, { flex: 3 }]}>Função</Text>
+                        <Text style={styles.tableHeaderCell}>Qtd</Text>
+                        <Text style={[styles.tableHeaderCell, {textAlign: 'right'}]}>Tipo</Text>
+                    </View>
+                    {rdo.rdo_mao_de_obra?.map((item, index) => (
+                        <View key={index} style={[styles.tableRow, { backgroundColor: index % 2 === 0 ? colors.card : colors.zebra }]}>
+                            <Text style={[styles.tableCell, { flex: 3 }]}>{item.funcao}</Text>
+                            <Text style={[styles.tableCell, { fontFamily: 'Helvetica-Bold' }]}>{item.quantidade}</Text>
+                            <Text style={[styles.tableCell, { textAlign: 'right', fontSize: 7, color: colors.textLight }]}>{item.tipo}</Text>
+                        </View>
+                    ))}
+                    {!rdo.rdo_mao_de_obra?.length && (
+                        <View style={styles.tableRow}><Text style={styles.tableCell}>--</Text></View>
+                    )}
                 </View>
-              ))}
-              {(!rdo.rdo_mao_de_obra || rdo.rdo_mao_de_obra.length === 0) && (
-                <View style={styles.tableRow}><Text style={styles.tableCell}>Sem registros.</Text></View>
-              )}
             </View>
-          </View>
 
-          {/* Equipments */}
-          <View style={styles.col}>
-            <Text style={styles.sectionTitle}>Equipamentos</Text>
-            <View style={styles.table}>
-              <View style={styles.tableHeader}>
-                <Text style={[styles.tableHeaderCell, { flex: 2 }]}>Equipamento</Text>
-                <Text style={styles.tableHeaderCell}>Trab (h)</Text>
-                <Text style={styles.tableHeaderCell}>Par (h)</Text>
-              </View>
-              {rdo.rdo_equipamentos?.map((item, index) => (
-                <View key={index} style={[styles.tableRow, { backgroundColor: index % 2 === 0 ? '#ffffff' : '#f9f9f9' }]}>
-                  <Text style={[styles.tableCell, { flex: 2 }]}>{item.equipamento}</Text>
-                  <Text style={styles.tableCell}>{item.horas_trabalhadas}</Text>
-                  <Text style={styles.tableCell}>{item.horas_paradas}</Text>
+            {/* Equipment Table */}
+            <View style={styles.col}>
+                <Text style={styles.sectionTitle}>Equipamentos</Text>
+                <View style={styles.table}>
+                    <View style={styles.tableHeader}>
+                        <Text style={[styles.tableHeaderCell, { flex: 3 }]}>Descrição</Text>
+                        <Text style={styles.tableHeaderCell}>Trab</Text>
+                        <Text style={styles.tableHeaderCell}>Par</Text>
+                    </View>
+                    {rdo.rdo_equipamentos?.map((item, index) => (
+                        <View key={index} style={[styles.tableRow, { backgroundColor: index % 2 === 0 ? colors.card : colors.zebra }]}>
+                            <Text style={[styles.tableCell, { flex: 3 }]}>{item.equipamento}</Text>
+                            <Text style={styles.tableCell}>{item.horas_trabalhadas}h</Text>
+                            <Text style={styles.tableCell}>{item.horas_paradas}h</Text>
+                        </View>
+                    ))}
+                    {!rdo.rdo_equipamentos?.length && (
+                        <View style={styles.tableRow}><Text style={styles.tableCell}>--</Text></View>
+                    )}
                 </View>
-              ))}
-              {(!rdo.rdo_equipamentos || rdo.rdo_equipamentos.length === 0) && (
-                <View style={styles.tableRow}><Text style={styles.tableCell}>Sem registros.</Text></View>
-              )}
             </View>
-          </View>
-
         </View>
 
-        {/* Activities */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Atividades Realizadas</Text>
-          <View style={styles.table}>
-             <View style={styles.tableHeader}>
-                <Text style={[styles.tableHeaderCell, { flex: 3 }]}>Descrição do Serviço</Text>
-                <Text style={styles.tableHeaderCell}>Avanço</Text>
-                <Text style={styles.tableHeaderCell}>Status</Text>
-              </View>
-            {rdo.rdo_atividades_detalhe?.map((item, index) => {
-              const isComplete = item.avanco_percentual === 100;
-              return (
-                <View key={index} style={[styles.tableRow, { backgroundColor: index % 2 === 0 ? '#ffffff' : '#f9f9f9', paddingVertical: 6 }]}>
-                  <Text style={[styles.tableCell, { flex: 3, fontSize: 9 }]}>
-                    {item.descricao_servico}
-                    {item.observacao && `\nObs: ${item.observacao}`}
-                  </Text>
-                  <Text style={[styles.tableCell, { fontFamily: 'Helvetica-Bold' }]}>{item.avanco_percentual}%</Text>
-                  <View style={[styles.tableCell, { flexDirection: 'row', alignItems: 'center' }]}>
-                    <View style={[styles.statusDot, { backgroundColor: isComplete ? '#48bb78' : '#ecc94b' }]} />
-                    <Text style={{ fontSize: 8 }}>{isComplete ? 'Concluído' : 'Em Andamento'}</Text>
-                  </View>
-                </View>
-              );
-            })}
-            {(!rdo.rdo_atividades_detalhe || rdo.rdo_atividades_detalhe.length === 0) && (
-                <View style={styles.tableRow}><Text style={styles.tableCell}>Nenhuma atividade registrada.</Text></View>
-            )}
-          </View>
+        {/* 4. Atividades e Ocorrências */}
+        <View style={{ marginTop: 5 }}>
+            <Text style={styles.sectionTitle}>Atividades Executadas</Text>
+            <View style={{ paddingLeft: 4 }}>
+                {rdo.rdo_atividades_detalhe?.map((item, index) => (
+                    <View key={index} style={styles.activityRow} wrap={false}>
+                        <View style={styles.bullet} />
+                        <View style={styles.activityContent}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                <Text style={styles.activityText}>{item.descricao_servico}</Text>
+                                <Text style={[
+                                    styles.activityStatus,
+                                    { backgroundColor: item.avanco_percentual === 100 ? colors.successBg : '#e0f2fe', color: item.avanco_percentual === 100 ? colors.success : colors.primary }
+                                ]}>
+                                    {item.avanco_percentual === 100 ? 'CONCLUÍDO' : `${item.avanco_percentual}%`}
+                                </Text>
+                            </View>
+                            {item.observacao && <Text style={styles.activitySub}>Obs: {item.observacao}</Text>}
+                        </View>
+                    </View>
+                ))}
+                {!rdo.rdo_atividades_detalhe?.length && <Text style={{fontSize: 9, color: colors.textLight, fontStyle: 'italic'}}>Nenhuma atividade registrada.</Text>}
+            </View>
         </View>
 
-        {/* Occurrences / Observations */}
         {(rdo.impedimentos_comentarios || rdo.observacoes_gerais) && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Observações e Ocorrências</Text>
-            <View style={{ backgroundColor: '#fff', padding: 10, borderRadius: 4, borderWidth: 1, borderColor: '#e0e0e0' }}>
-              {rdo.impedimentos_comentarios && (
-                <View style={{marginBottom: 5}}>
-                  <Text style={[styles.label, {color: '#c53030'}]}>Impedimentos / Ocorrências:</Text>
-                  <Text style={styles.value}>{rdo.impedimentos_comentarios}</Text>
+            <View style={{ marginTop: 10 }} wrap={false}>
+                <Text style={styles.sectionTitle}>Ocorrências e Observações</Text>
+                <View style={styles.occurrenceBox}>
+                    {rdo.impedimentos_comentarios && (
+                        <Text style={styles.occurrenceText}>
+                            <Text style={{fontFamily: 'Helvetica-Bold'}}>IMPEDIMENTOS: </Text>
+                            {rdo.impedimentos_comentarios}
+                        </Text>
+                    )}
+                    {rdo.observacoes_gerais && (
+                        <Text style={[styles.occurrenceText, { marginTop: rdo.impedimentos_comentarios ? 4 : 0, color: colors.text }]}>
+                            <Text style={{fontFamily: 'Helvetica-Bold'}}>GERAL: </Text>
+                            {rdo.observacoes_gerais}
+                        </Text>
+                    )}
                 </View>
-              )}
-              {rdo.observacoes_gerais && (
-                <View>
-                  <Text style={styles.label}>Geral:</Text>
-                  <Text style={styles.value}>{rdo.observacoes_gerais}</Text>
-                </View>
-              )}
             </View>
-          </View>
         )}
 
-        {/* Safety (If Pro) */}
-        {isPro && (rdo.safety_nr35 || rdo.safety_epi || rdo.safety_cleaning || rdo.safety_dds) && (
-           <View style={styles.section}>
-             <Text style={styles.sectionTitle}>Segurança do Trabalho (Checklist)</Text>
-             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, backgroundColor: '#f0fff4', padding: 10, borderRadius: 4, borderWidth: 1, borderColor: '#c6f6d5' }}>
-                <Text style={{ fontSize: 8 }}>Treinamentos: {rdo.safety_nr35 ? '✅ OK' : '⚪ N/A'}</Text>
-                <Text style={{ fontSize: 8 }}>EPIs: {rdo.safety_epi ? '✅ OK' : '⚪ N/A'}</Text>
-                <Text style={{ fontSize: 8 }}>Limpeza: {rdo.safety_cleaning ? '✅ OK' : '⚪ N/A'}</Text>
-                <Text style={{ fontSize: 8 }}>DDS: {rdo.safety_dds ? '✅ Realizado' : '⚪ N/A'}</Text>
-             </View>
-           </View>
-        )}
-
-        {/* Photo Report */}
-        <View style={styles.section} break>
-          <Text style={styles.sectionTitle}>Relatório Fotográfico</Text>
-          <View style={styles.photoGrid}>
-            {rdo.rdo_atividades_detalhe?.filter(a => a.foto_anexo_url).map((item, index) => (
-              <View key={index} style={styles.photoCard}>
-                <Image src={item.foto_anexo_url!} style={styles.photo} />
-                <Text style={styles.photoDesc}>{item.descricao_servico}</Text>
-              </View>
-            ))}
-            {isPro && rdo.safety_photo_url && (
-                <View style={styles.photoCard}>
-                    <Image src={rdo.safety_photo_url} style={styles.photo} />
-                    <Text style={styles.photoDesc}>Registro de Segurança / DDS</Text>
-                </View>
+        {/* 5. Registro Fotográfico (3 Col Grid) */}
+        <View style={{ marginTop: 10 }} break>
+            <Text style={styles.sectionTitle}>Registro Fotográfico</Text>
+            <View style={styles.photoGrid}>
+                {rdo.rdo_atividades_detalhe?.filter(a => a.foto_anexo_url).map((item, index) => (
+                    <View key={index} style={styles.photoCard} wrap={false}>
+                        <Image src={item.foto_anexo_url!} style={styles.photoImage} />
+                        <Text style={styles.photoCaption}>{item.descricao_servico}</Text>
+                    </View>
+                ))}
+                {isPro && rdo.safety_photo_url && (
+                    <View style={styles.photoCard} wrap={false}>
+                        <Image src={rdo.safety_photo_url} style={styles.photoImage} />
+                        <Text style={styles.photoCaption}>Registro de Segurança</Text>
+                    </View>
+                )}
+            </View>
+            {(!rdo.rdo_atividades_detalhe?.some(a => a.foto_anexo_url) && !rdo.safety_photo_url) && (
+                <Text style={{fontSize: 9, color: colors.textLight, fontStyle: 'italic', padding: 10}}>Sem registros fotográficos.</Text>
             )}
-            {rdo.rdo_materiais?.filter(m => (m as any).foto_url).map((item: any, index) => (
-               <View key={`mat-${index}`} style={styles.photoCard}>
-                  <Image src={item.foto_url!} style={styles.photo} />
-                  <Text style={styles.photoDesc}>Material: {item.nome_material}</Text>
-               </View>
-            ))}
-          </View>
-          {(!rdo.rdo_atividades_detalhe?.some(a => a.foto_anexo_url) && !rdo.safety_photo_url) && (
-             <Text style={{ fontSize: 9, color: '#999', fontStyle: 'italic', padding: 10 }}>Nenhum registro fotográfico anexado.</Text>
-          )}
         </View>
 
-        {/* Footer */}
-        <View style={styles.footer} wrap={false}>
-          {isPro && rdo.responsible_signature_url && (
+        {/* 6. Validação (Footer) */}
+        <View style={styles.footerContainer} wrap={false}>
             <View style={styles.signatureBox}>
-              <Image src={rdo.responsible_signature_url} style={styles.signatureImage} />
-              <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold' }}>{(rdo as any).signer_name || 'Responsável Técnico'}</Text>
-              <Text style={{ fontSize: 7, color: '#666' }}>Assinado Digitalmente</Text>
+                {rdo.responsible_signature_url ? (
+                    <Image src={rdo.responsible_signature_url} style={styles.signatureImg} />
+                ) : null}
+                <View style={styles.signatureLine} />
+                <Text style={styles.signatureText}>RESPONSÁVEL TÉCNICO</Text>
+                <Text style={{fontSize: 6, color: colors.textLight}}>{(rdo as any).signer_name}</Text>
             </View>
-          )}
-          <Text style={styles.footerText}>Gerado via Meu RDO - Tecnologia para Engenharia</Text>
-          {!isPro && <Text style={{fontSize: 7, color: '#ccc', marginTop: 2}}>Versão Gratuita</Text>}
+
+            <View style={styles.signatureBox}>
+                {rdo.client_signature_url ? (
+                    <Image src={rdo.client_signature_url} style={styles.signatureImg} />
+                ) : null}
+                <View style={styles.signatureLine} />
+                <Text style={styles.signatureText}>FISCALIZAÇÃO / CLIENTE</Text>
+            </View>
         </View>
 
-        <Text style={styles.pagination} render={({ pageNumber, totalPages }) => (
-          `Página ${pageNumber} de ${totalPages}`
-        )} fixed />
+        {/* Page Footer Meta */}
+        <View style={styles.footerMeta} fixed>
+            <Text style={styles.metaText}>Gerado via Meu RDO - Tecnologia para Engenharia</Text>
+            <Text style={styles.metaText} render={({ pageNumber, totalPages }) => (
+                `Página ${pageNumber} de ${totalPages}`
+            )} />
+        </View>
 
       </Page>
     </Document>

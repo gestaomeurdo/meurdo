@@ -119,7 +119,8 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
   const updateMutation = useUpdateRdo();
   const deleteMutation = useDeleteRdo();
   const { data: obras } = useObras();
-  const obraNome = obras?.find(o => o.id === obraId)?.nome || "Obra";
+  const currentObra = obras?.find(o => o.id === obraId);
+  const obraNome = currentObra?.nome || "Obra";
   
   const [uploadingState, setUploadingState] = useState<Record<string, boolean>>({});
   const [weatherMap, setWeatherMap] = useState<Record<string, string>>({});
@@ -309,7 +310,8 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
         rdo_atividades_detalhe: methods.getValues('atividades') as any,
         rdo_equipamentos: methods.getValues('equipamentos') as any,
       };
-      generateRdoPdf(currentData, obraNome, profile);
+      // Passed currentObra here to enable progress calculation
+      generateRdoPdf(currentData, obraNome, profile, currentObra);
     } else {
       showError("Salve o RDO antes de exportar.");
     }
