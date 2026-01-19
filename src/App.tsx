@@ -22,6 +22,7 @@ import GestaoRdo from "./pages/GestaoRdo";
 import Profile from "./pages/Profile";
 import UpdatePassword from "./pages/UpdatePassword";
 import AuthCallback from "./pages/AuthCallback";
+import PublicRdoApproval from "./pages/PublicRdoApproval";
 import { ThemeProvider } from "./components/layout/ThemeProvider";
 
 const queryClient = new QueryClient();
@@ -52,6 +53,10 @@ const App = () => (
               <Route path="/settings" element={<Settings />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/update-password" element={<UpdatePassword />} />
+              
+              {/* Rota Pública de Aprovação */}
+              <Route path="/rdo/share/:token" element={<PublicRdoApproval />} />
+              
               <Route path="*" element={<NotFound />} />
             </Routes>
           </SessionContextProvider>

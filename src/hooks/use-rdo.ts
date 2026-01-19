@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/integrations/supabase/auth-provider";
 import { format } from "date-fns";
-import { formatCurrency } from "@/utils/formatters";
 
 // --- RDO Detail Types ---
 export interface RdoAtividadeDetalhe {
@@ -50,17 +49,20 @@ export interface RdoMaterial {
 
 // --- Main RDO Type ---
 export type RdoStatusDia = 'Operacional' | 'Parcialmente Paralisado' | 'Totalmente Paralisado - Não Praticável';
-export type RdoClima = string; 
-export type RdoPeriodo = string; 
+export type RdoApprovalStatus = 'draft' | 'pending' | 'approved' | 'rejected';
 
 export interface DiarioObra {
   id: string;
   obra_id: string;
   user_id: string;
   data_rdo: string;
-  periodo: RdoPeriodo;
-  clima_condicoes: RdoClima | null;
+  periodo: string;
+  clima_condicoes: string | null;
   status_dia: RdoStatusDia;
+  status: RdoApprovalStatus;
+  approval_token: string;
+  approved_at: string | null;
+  rejection_reason: string | null;
   observacoes_gerais: string | null;
   impedimentos_comentarios: string | null;
   created_at: string;
@@ -78,7 +80,7 @@ export interface DiarioObra {
   safety_comments: string | null;
   safety_photo_url: string | null;
   
-  // Specific Safety Photos (from DB schema)
+  // Specific Safety Photos
   safety_nr35_photo?: string | null;
   safety_epi_photo?: string | null;
   safety_cleaning_photo?: string | null;
@@ -92,6 +94,7 @@ export interface DiarioObra {
   rdo_mao_de_obra?: RdoMaoDeObra[];
   rdo_equipamentos?: RdoEquipamento[];
   rdo_materiais?: RdoMaterial[];
+  obras?: { nome: string; dono_cliente: string | null };
 }
 
 // --- Fetching Single RDO ---
@@ -113,11 +116,39 @@ const fetchRdoByDate = async (obraId: string, date: string): Promise<DiarioObra 
   return data as DiarioObra | null;
 };
 
+// --- Fetching RDO by Token (Public) ---
+const fetchRdoByToken = async (token: string): Promise<DiarioObra | null> => {
+  const { data, error } = await supabase
+    .from('diarios_obra')
+    .select(`
+      *,
+      rdo_atividades_detalhe (*),
+      rdo_mao_de_obra (*),
+      rdo_equipamentos (*),
+      rdo_materiais (*),
+      obras (nome, dono_cliente)
+    `)
+    .eq('approval_token', token)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data as DiarioObra | null;
+};
+
 export const useRdoByDate = (obraId: string, date: string) => {
   return useQuery<DiarioObra | null, Error>({
     queryKey: ['rdo', obraId, date],
     queryFn: () => fetchRdoByDate(obraId, date),
     enabled: !!obraId && !!date,
+  });
+};
+
+export const useRdoByToken = (token: string | undefined) => {
+  return useQuery<DiarioObra | null, Error>({
+    queryKey: ['rdo-token', token],
+    queryFn: () => fetchRdoByToken(token!),
+    enabled: !!token,
+    staleTime: 0,
   });
 };
 
@@ -132,6 +163,8 @@ const fetchRdoList = async (obraId: string): Promise<DiarioObra[]> => {
       periodo,
       clima_condicoes,
       status_dia,
+      status,
+      approval_token,
       user_id,
       rdo_mao_de_obra (quantidade, custo_unitario),
       rdo_atividades_detalhe (foto_anexo_url),
@@ -185,9 +218,10 @@ export const fetchPreviousRdo = async (obraId: string, currentDate: Date): Promi
 export interface RdoInput {
   obra_id: string;
   data_rdo: string;
-  periodo: RdoPeriodo;
-  clima_condicoes: RdoClima | null;
+  periodo: string;
+  clima_condicoes: string | null;
   status_dia: RdoStatusDia;
+  status?: RdoApprovalStatus;
   observacoes_gerais: string | null;
   impedimentos_comentarios: string | null;
   responsible_signature_url: string | null;
@@ -264,21 +298,14 @@ export const useCreateRdo = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['rdoList', data.obra_id] });
       queryClient.invalidateQueries({ queryKey: ['rdo', data.obra_id, data.data_rdo] });
-      queryClient.invalidateQueries({ queryKey: ['rdoDashboardMetrics'] });
-      queryClient.invalidateQueries({ queryKey: ['rdoCount'] });
-      queryClient.invalidateQueries({ queryKey: ['obrasProgress'] });
-      queryClient.invalidateQueries({ queryKey: ['atividades'] });
     },
   });
 };
 
 export const useUpdateRdo = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
-
   return useMutation<DiarioObra, Error, RdoInput & { id: string }>({
     mutationFn: async (updatedRdo) => {
-      if (!user) throw new Error("Usuário não autenticado.");
       const { id, atividades, mao_de_obra, equipamentos, materiais, ...mainRdo } = updatedRdo;
       
       const { error: updateError } = await supabase
@@ -302,9 +329,62 @@ export const useUpdateRdo = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['rdoList', data.obra_id] });
       queryClient.invalidateQueries({ queryKey: ['rdo', data.obra_id, data.data_rdo] });
-      queryClient.invalidateQueries({ queryKey: ['rdoDashboardMetrics'] });
-      queryClient.invalidateQueries({ queryKey: ['obrasProgress'] });
-      queryClient.invalidateQueries({ queryKey: ['atividades'] });
+    },
+  });
+};
+
+export const useApproveRdo = () => {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, { token: string, signatureUrl: string }>({
+    mutationFn: async ({ token, signatureUrl }) => {
+      const { error } = await supabase
+        .from('diarios_obra')
+        .update({ 
+            status: 'approved', 
+            client_signature_url: signatureUrl,
+            approved_at: new Date().toISOString()
+        })
+        .eq('approval_token', token);
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['rdo-token', variables.token] });
+    },
+  });
+};
+
+export const useRejectRdo = () => {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, { token: string, reason: string }>({
+    mutationFn: async ({ token, reason }) => {
+      const { error } = await supabase
+        .from('diarios_obra')
+        .update({ 
+            status: 'rejected', 
+            rejection_reason: reason 
+        })
+        .eq('approval_token', token);
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['rdo-token', variables.token] });
+    },
+  });
+};
+
+export const useRequestRdoApproval = () => {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, { id: string, obraId: string }>({
+    mutationFn: async ({ id }) => {
+      const { error } = await supabase
+        .from('diarios_obra')
+        .update({ status: 'pending' })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['rdoList', variables.obraId] });
+      queryClient.invalidateQueries({ queryKey: ['rdo'] });
     },
   });
 };
@@ -318,9 +398,6 @@ export const useDeleteRdo = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['rdoList', variables.obraId] });
-      queryClient.invalidateQueries({ queryKey: ['rdoDashboardMetrics'] });
-      queryClient.invalidateQueries({ queryKey: ['rdoCount'] });
-      queryClient.invalidateQueries({ queryKey: ['obrasProgress'] });
     },
   });
 };
@@ -337,94 +414,6 @@ export const useDeleteAllRdo = () => {
     },
     onSuccess: (_, obraId) => {
       queryClient.invalidateQueries({ queryKey: ['rdoList', obraId] });
-      queryClient.invalidateQueries({ queryKey: ['rdoDashboardMetrics'] });
-      queryClient.invalidateQueries({ queryKey: ['rdoCount'] });
-      queryClient.invalidateQueries({ queryKey: ['obrasProgress'] });
-    },
-  });
-};
-
-// --- RDO Payment Hook ---
-
-interface RdoPaymentInput {
-  obraId: string;
-  rdoDate: string; 
-  totalCost: number;
-  manpowerDetails: { funcao: string, quantidade: number, custo_unitario: number }[];
-  equipmentDetails: { equipamento: string, horas: number, custo_hora: number }[]; 
-}
-
-const getManpowerCategoryId = async (userId: string): Promise<string> => {
-  const { data, error } = await supabase
-    .from('categorias_despesa')
-    .select('id')
-    .eq('user_id', userId)
-    .ilike('nome', '%Mão de Obra%')
-    .limit(1)
-    .maybeSingle();
-
-  if (data) return data.id;
-
-  const { data: newCategory, error: createError } = await supabase
-    .from('categorias_despesa')
-    .insert({ 
-      nome: 'Mão de Obra', 
-      descricao: 'Gerado automaticamente pelo RDO',
-      user_id: userId 
-    })
-    .select('id')
-    .single();
-
-  if (createError) {
-    throw new Error(`Erro ao criar categoria automática: ${createError.message}`);
-  }
-  
-  return newCategory.id;
-};
-
-export const usePayRdo = () => {
-  const queryClient = useQueryClient();
-  const { user } = useAuth();
-
-  return useMutation<void, Error, RdoPaymentInput>({
-    mutationFn: async ({ obraId, rdoDate, totalCost, manpowerDetails, equipmentDetails }) => {
-      if (!user) throw new Error("Usuário não autenticado.");
-      if (totalCost <= 0) throw new Error("Custo total deve ser maior que zero para registrar o pagamento.");
-
-      const categoryId = await getManpowerCategoryId(user.id);
-
-      let description = `Pagamento RDO ${format(new Date(rdoDate), 'dd/MM/yyyy')}.`;
-      
-      if (manpowerDetails.length > 0) {
-        description += ` Equipe: ${manpowerDetails.map(m => `${m.quantidade}x ${m.funcao}`).join(', ')}.`;
-      }
-      
-      if (equipmentDetails.length > 0) {
-        description += ` Maq: ${equipmentDetails.map(e => `${e.equipamento} (${e.horas}h)`).join(', ')}.`;
-      }
-
-      const newEntry = {
-        obra_id: obraId,
-        user_id: user.id,
-        data_gasto: rdoDate,
-        categoria_id: categoryId,
-        descricao: description,
-        valor: totalCost,
-        forma_pagamento: 'Transferência', 
-      };
-
-      const { error } = await supabase
-        .from('lancamentos_financeiros')
-        .insert(newEntry);
-
-      if (error) {
-        throw new Error(error.message);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['financialEntries'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
-      queryClient.invalidateQueries({ queryKey: ['reportData'] });
     },
   });
 };

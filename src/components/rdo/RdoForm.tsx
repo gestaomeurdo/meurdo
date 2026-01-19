@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { showSuccess, showError } from "@/utils/toast";
-import { Loader2, Save, FileDown, DollarSign, Lock, Sun, Cloud, CloudRain, CloudLightning, CheckCircle2, AlertCircle, Moon, Zap, Clock, ChevronDown } from "lucide-react";
-import { DiarioObra, useCreateRdo, useUpdateRdo, WorkforceType, useRdoList } from "@/hooks/use-rdo";
+import { Loader2, Save, FileDown, DollarSign, Lock, Sun, Cloud, CloudRain, CloudLightning, CheckCircle2, AlertCircle, Moon, Zap, Clock, ChevronDown, Send } from "lucide-react";
+import { DiarioObra, useCreateRdo, useUpdateRdo, WorkforceType, useRdoList, useRequestRdoApproval } from "@/hooks/use-rdo";
 import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
 import RdoEquipmentForm from "./RdoEquipmentForm";
@@ -25,6 +25,7 @@ import UpgradeModal from "../subscription/UpgradeModal";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 
 const workforceTypes: WorkforceType[] = ['Própria', 'Terceirizada'];
 
@@ -128,6 +129,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
   const isPro = profile?.subscription_status === 'active' || profile?.plan_type === 'pro';
   const createMutation = useCreateRdo();
   const updateMutation = useUpdateRdo();
+  const requestApprovalMutation = useRequestRdoApproval();
   const { data: obras } = useObras();
   const { data: rdoList } = useRdoList(obraId);
 
@@ -243,6 +245,21 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
     return manpowerCost + equipmentCost;
   }, [maoDeObra, equipamentos]);
 
+  const handleRequestApproval = async () => {
+    if (!initialData) return;
+    
+    try {
+        await requestApprovalMutation.mutateAsync({ id: initialData.id, obraId });
+        const obraNome = obras?.find(o => o.id === obraId)?.nome || "Obra";
+        const shareLink = `${window.location.origin}/rdo/share/${initialData.approval_token}`;
+        const message = encodeURIComponent(`Olá! Segue o RDO da obra *${obraNome}* para sua conferência e assinatura digital:\n\n🔗 ${shareLink}`);
+        window.open(`https://wa.me/?text=${message}`, '_blank');
+        showSuccess("Solicitação de aprovação enviada!");
+    } catch (err) {
+        showError("Erro ao gerar link de aprovação.");
+    }
+  };
+
   const onSubmit = async (values: RdoFormValues) => {
     try {
       const getP = (en: boolean, c: string, s: string, prefix: string) => 
@@ -286,7 +303,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
             "flex flex-col sm:flex-row sm:items-center justify-between py-4 border-b border-border last:border-0 transition-all",
             !isEnabled && "opacity-40 grayscale pointer-events-none"
         )}>
-            {/* Esquerda: Label + Switch (Sempre clicável) */}
             <div className="flex items-center justify-between sm:justify-start gap-4 mb-3 sm:mb-0 pointer-events-auto">
                 <span className="text-sm font-bold text-foreground w-16">{label}</span>
                 <FormField control={methods.control} name={enabledName} render={({ field }) => (
@@ -298,9 +314,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                 )} />
             </div>
 
-            {/* Direita: Controles de Clima e Status */}
             <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-6">
-                {/* Grupo Clima */}
                 <div className="flex gap-1.5 items-center bg-muted/30 p-1 rounded-xl">
                     {WEATHER_OPTIONS.map((opt) => (
                         <button 
@@ -321,7 +335,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
 
                 <div className="w-[1px] h-6 bg-border hidden sm:block" />
 
-                {/* Status: Segmented Pill */}
                 <div className="flex bg-muted/40 p-1 rounded-xl border border-border/50 min-w-[140px]">
                     <button 
                         type="button"
@@ -361,15 +374,37 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                 <DollarSign className="w-7 h-7 text-primary" />
             </div>
             <div>
-              <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Gasto Estimado (Dia)</p>
+              <div className="flex items-center gap-2 mb-1">
+                  <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Gasto Estimado (Dia)</p>
+                  {initialData?.status && (
+                      <Badge className={cn(
+                          "text-[8px] font-black uppercase",
+                          initialData.status === 'approved' ? "bg-green-500" : 
+                          initialData.status === 'pending' ? "bg-orange-500" : 
+                          initialData.status === 'rejected' ? "bg-red-500" : "bg-slate-400"
+                      )}>
+                          {initialData.status}
+                      </Badge>
+                  )}
+              </div>
               <h2 className="text-3xl font-black tracking-tight text-foreground">{formatCurrency(estimatedDailyCost)}</h2>
             </div>
           </div>
           <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             {isEditing && (
-              <Button type="button" variant="outline" onClick={() => generateRdoPdf(initialData, obras?.find(o => o.id === obraId)?.nome || "Obra", profile, obras?.find(o => o.id === obraId), rdoList)} disabled={isGeneratingPdf} className="flex-1 sm:flex-none rounded-xl h-12 font-bold uppercase text-[10px] tracking-widest">
-                <FileDown className="w-4 h-4 mr-2" /> PDF
-              </Button>
+              <>
+                <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={handleRequestApproval}
+                    className="flex-1 sm:flex-none rounded-xl h-12 font-bold uppercase text-[10px] tracking-widest border-orange-500 text-orange-600 hover:bg-orange-50"
+                >
+                    <Send className="w-4 h-4 mr-2" /> Solicitar Aprovação (WhatsApp)
+                </Button>
+                <Button type="button" variant="outline" onClick={() => generateRdoPdf(initialData, obras?.find(o => o.id === obraId)?.nome || "Obra", profile, obras?.find(o => o.id === obraId), rdoList)} disabled={isGeneratingPdf} className="flex-1 sm:flex-none rounded-xl h-12 font-bold uppercase text-[10px] tracking-widest">
+                    <FileDown className="w-4 h-4 mr-2" /> PDF
+                </Button>
+              </>
             )}
             <Button type="submit" disabled={updateMutation.isPending || createMutation.isPending} className="flex-1 sm:flex-none rounded-xl bg-primary hover:bg-primary/90 h-12 font-bold uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20">
               {(updateMutation.isPending || createMutation.isPending) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
@@ -377,6 +412,17 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
             </Button>
           </div>
         </div>
+
+        {/* Notificação de Rejeição */}
+        {initialData?.status === 'rejected' && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                    <p className="text-xs font-black text-red-800 uppercase">Correção Solicitada pelo Cliente</p>
+                    <p className="text-sm text-red-700 font-medium">"{initialData.rejection_reason}"</p>
+                </div>
+            </div>
+        )}
 
         {/* Lista Compacta de Turnos */}
         <div className="bg-card border rounded-3xl p-5 space-y-1">
