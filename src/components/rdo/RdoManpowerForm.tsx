@@ -5,15 +5,16 @@ import { Label } from "@/components/ui/label";
 import { Plus, Trash2, Calculator, Users, Search, StickyNote } from "lucide-react";
 import { useCargos } from "@/hooks/use-cargos";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatCurrency, parseCurrencyInput, formatCurrencyForInput } from "@/utils/formatters";
+import { formatCurrency } from "@/utils/formatters";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 const RdoManpowerForm = () => {
-  const { control, setValue, watch, register } = useFormContext<any>();
+  const { control, setValue, watch, register, formState: { errors } } = useFormContext<any>();
   const { fields, append, remove } = useFieldArray({
     control,
     name: "mao_de_obra",
@@ -65,11 +66,15 @@ const RdoManpowerForm = () => {
           const subtotal = qty * price;
           const type = maoDeObra?.[index]?.tipo;
           const showNote = showNoteMap[field.id] || !!maoDeObra?.[index]?.observacao;
+          const fieldErrors = errors?.mao_de_obra?.[index];
 
           return (
             <div
               key={field.id}
-              className="p-4 border rounded-2xl space-y-4 bg-white shadow-sm relative group"
+              className={cn(
+                "p-4 border rounded-2xl space-y-4 bg-white shadow-sm relative group",
+                fieldErrors ? "border-destructive/50 bg-destructive/5" : "border-border"
+              )}
             >
               <Button
                 type="button"
@@ -82,9 +87,9 @@ const RdoManpowerForm = () => {
               </Button>
 
               <div className="grid grid-cols-12 gap-3">
-                {/* Seleção de Função (Substitui Input Livre quando possível) */}
+                {/* Seleção de Função */}
                 <div className="col-span-12 sm:col-span-5 space-y-1.5">
-                  <Label className="text-[10px] font-black uppercase text-muted-foreground">
+                  <Label className={cn("text-[10px] font-black uppercase", fieldErrors?.funcao ? "text-destructive" : "text-muted-foreground")}>
                     Função <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
@@ -93,7 +98,7 @@ const RdoManpowerForm = () => {
                             value={cargos.find(c => c.nome === maoDeObra?.[index]?.funcao)?.id} 
                             onValueChange={(val) => handleCargoSelect(index, val)}
                         >
-                            <SelectTrigger className="w-full bg-secondary/10 h-10 border-transparent hover:border-input">
+                            <SelectTrigger className={cn("w-full bg-secondary/10 h-10 border-transparent hover:border-input", fieldErrors?.funcao && "border-destructive ring-1 ring-destructive")}>
                                 <SelectValue placeholder={maoDeObra?.[index]?.funcao || "Selecione..."} />
                             </SelectTrigger>
                             <SelectContent>
@@ -106,7 +111,7 @@ const RdoManpowerForm = () => {
                         <Input
                             {...register(`mao_de_obra.${index}.funcao`)}
                             placeholder="Ex: Pedreiro"
-                            className="bg-secondary/10 rounded-xl h-10"
+                            className={cn("bg-secondary/10 rounded-xl h-10", fieldErrors?.funcao && "border-destructive")}
                         />
                     )}
                   </div>
@@ -114,18 +119,18 @@ const RdoManpowerForm = () => {
 
                 {/* Input Quantidade */}
                 <div className="col-span-4 sm:col-span-2 space-y-1.5">
-                  <Label className="text-[10px] font-black uppercase text-muted-foreground block text-center">
+                  <Label className={cn("text-[10px] font-black uppercase block text-center", fieldErrors?.quantidade ? "text-destructive" : "text-muted-foreground")}>
                     Qtd
                   </Label>
                   <Input
                     type="number"
                     {...register(`mao_de_obra.${index}.quantidade`, { valueAsNumber: true })}
-                    className="bg-secondary/10 rounded-xl font-bold h-10 text-center border-transparent hover:border-input"
+                    className={cn("bg-secondary/10 rounded-xl font-bold h-10 text-center border-transparent hover:border-input", fieldErrors?.quantidade && "border-destructive")}
                     min={0}
                   />
                 </div>
 
-                {/* Input Custo (Usando mascara simples aqui ou apenas number) */}
+                {/* Input Custo */}
                 <div className="col-span-4 sm:col-span-3 space-y-1.5">
                   <Label className="text-[10px] font-black uppercase text-muted-foreground block text-center">
                     Custo (R$)
@@ -194,7 +199,7 @@ const RdoManpowerForm = () => {
         className="w-full border-dashed border-primary/40 py-6 rounded-2xl hover:bg-primary/5 hover:text-primary transition-all font-bold uppercase text-xs tracking-widest mt-4"
         onClick={() =>
           append({
-            funcao: "Pedreiro", // Default genérico para facilitar
+            funcao: "Pedreiro", 
             quantidade: 1,
             custo_unitario: 0,
             tipo: 'Própria',

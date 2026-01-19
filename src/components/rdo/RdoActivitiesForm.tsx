@@ -18,7 +18,7 @@ interface RdoActivitiesFormProps {
 }
 
 const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
-  const { control, watch, setValue, register } = useFormContext<RdoInput>();
+  const { control, watch, setValue, register, formState: { errors } } = useFormContext<RdoInput>();
   const { fields, append, remove } = useFieldArray({
     control,
     name: "atividades",
@@ -58,10 +58,6 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
     const activity = atividadesCronograma?.find(a => a.descricao === value);
     if (activity) {
         setValue(`atividades.${index}.descricao_servico`, activity.descricao, { shouldValidate: true, shouldDirty: true });
-        // Se a atividade já tem um progresso no banco, poderíamos setar aqui como base se desejado
-        // Mas a lógica pede para mostrar acumulativo e permitir avançar.
-        // O valor do input continuará sendo o avanço DO DIA ou o acumulado, dependendo da interpretação.
-        // Assumindo que o usuário vai colocar o STATUS ATUAL FINAL (acumulado).
         setValue(`atividades.${index}.avanco_percentual`, activity.progresso_atual || 0, { shouldDirty: true });
     }
   };
@@ -80,15 +76,18 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
         const photoUrl = watch(`atividades.${index}.foto_anexo_url`);
         const currentDesc = watch(`atividades.${index}.descricao_servico`);
         const currentProgress = watch(`atividades.${index}.avanco_percentual`) || 0;
+        const fieldErrors = (errors as any)?.atividades?.[index];
 
         // Find linked activity to show previous progress
         const linkedActivity = atividadesCronograma?.find(a => a.descricao === currentDesc);
         const baseProgress = linkedActivity?.progresso_atual || 0;
 
         return (
-          <div key={field.id} className="p-4 border rounded-xl space-y-4 bg-secondary/5">
+          <div key={field.id} className={cn("p-4 border rounded-xl space-y-4 bg-secondary/5", fieldErrors ? "border-destructive/50 bg-destructive/5" : "")}>
             <div className="flex justify-between items-start">
-              <Label className="text-xs font-black uppercase text-primary tracking-widest">Atividade #{index + 1}</Label>
+              <Label className={cn("text-xs font-black uppercase tracking-widest", fieldErrors ? "text-destructive" : "text-primary")}>
+                Atividade #{index + 1}
+              </Label>
               <Button variant="ghost" size="icon" onClick={() => remove(index)} className="h-6 w-6 text-destructive">
                 <Trash2 className="w-4 h-4" />
               </Button>

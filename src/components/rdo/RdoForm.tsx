@@ -71,7 +71,7 @@ const RdoSchema = z.object({
   data_rdo: z.date({ required_error: "A data é obrigatória." }),
   periodo: z.string().min(1, "Selecione pelo menos um período."),
   clima_condicoes: z.string().nullable().optional(),
-  status_dia: z.string(), 
+  status_dia: z.string().optional(), 
   observacoes_gerais: z.string().nullable().optional(),
   impedimentos_comentarios: z.string().nullable().optional(),
   responsible_signature_url: z.string().nullable().optional(),
@@ -164,7 +164,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
         avanco_percentual: a.avanco_percentual,
         foto_anexo_url: a.foto_anexo_url,
         observacao: a.observacao,
-      })) || [], // Inicia vazio por padrão
+      })) || [],
       mao_de_obra: initialData?.rdo_mao_de_obra?.map(m => ({
         funcao: m.funcao,
         quantidade: m.quantidade,
@@ -354,7 +354,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
 
   const onSubmit = async (values: RdoFormValues) => {
     try {
-      // Filtrar atividades sem descrição ou seleção
       const atividadesValidas = values.atividades?.filter(a => a.descricao_servico && a.descricao_servico.trim().length > 0) || [];
       
       const dataToSubmit = {
@@ -374,6 +373,45 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
     } catch (error) {
       showError(`Erro ao salvar: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
     }
+  };
+
+  const onError = (errors: any) => {
+    const errorList: string[] = [];
+    
+    // Recursive helper to find error messages
+    const extractErrors = (obj: any, prefix = '') => {
+        Object.keys(obj).forEach(key => {
+            const error = obj[key];
+            if (error?.message) {
+                let fieldName = key;
+                if(key === 'periodo') fieldName = 'Período';
+                if(key === 'data_rdo') fieldName = 'Data do RDO';
+                if(key === 'mao_de_obra') fieldName = 'Mão de Obra';
+                if(key === 'equipamentos') fieldName = 'Equipamentos';
+                if(key === 'atividades') fieldName = 'Atividades';
+                if(key === 'materiais') fieldName = 'Materiais';
+                if(key === 'funcao') fieldName = 'Função';
+                if(key === 'nome_material') fieldName = 'Nome do Material';
+                if(key === 'equipamento') fieldName = 'Nome do Equipamento';
+                
+                if (prefix) fieldName = `${prefix} > ${fieldName}`;
+                
+                errorList.push(`${fieldName}: ${error.message}`);
+            } else if (typeof error === 'object') {
+                const nextPrefix = key.match(/^\d+$/) ? `#${parseInt(key) + 1}` : key;
+                const fullPrefix = prefix ? `${prefix} ${nextPrefix}` : nextPrefix;
+                extractErrors(error, fullPrefix);
+            }
+        });
+    };
+
+    extractErrors(errors);
+    
+    if (errorList.length === 0) errorList.push("Verifique os campos obrigatórios.");
+    const uniqueErrors = Array.from(new Set(errorList)).slice(0, 5);
+    
+    showError(`Corrija os erros:\n${uniqueErrors.join('\n')}`);
+    console.error("Form Validation Errors:", errors);
   };
 
   const handlePeriodToggle = (period: string, currentPeriods: string) => {
@@ -400,10 +438,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
 
   return (
     <FormProvider {...methods}>
-      <form onSubmit={methods.handleSubmit(onSubmit, (e) => {
-        console.error("Erro na validação do formulário:", e);
-        showError("Verifique os campos obrigatórios em vermelho.");
-      })} className="space-y-6">
+      <form onSubmit={methods.handleSubmit(onSubmit, onError)} className="space-y-6">
         <UpgradeModal 
             open={showUpgrade} 
             onOpenChange={setShowUpgrade} 
@@ -550,7 +585,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                         </div>
                     </div>
                 )) : (
-                    <p className="text-xs text-muted-foreground italic p-2 text-center">Selecione um período acima para configurar clima e status.</p>
+                    <p className="text-xs text-muted-foreground italic p-2 text-center text-red-500 font-bold">Selecione pelo menos um período acima.</p>
                 )}
             </div>
           </CardContent>

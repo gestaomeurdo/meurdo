@@ -12,9 +12,10 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { showSuccess, showError } from "@/utils/toast";
+import { cn } from "@/lib/utils";
 
 const RdoEquipmentForm = () => {
-  const { control, setValue, watch, register } = useFormContext<any>();
+  const { control, setValue, watch, register, formState: { errors } } = useFormContext<any>();
   const { fields, append, remove } = useFieldArray({
     control,
     name: "equipamentos",
@@ -28,7 +29,7 @@ const RdoEquipmentForm = () => {
   const handleMachineSelect = (index: number, maquinaName: string) => {
     const maquina = maquinas?.find(m => m.nome === maquinaName);
     if (maquina) {
-        setValue(`equipamentos.${index}.equipamento`, maquina.nome);
+        setValue(`equipamentos.${index}.equipamento`, maquina.nome, { shouldValidate: true });
         setValue(`equipamentos.${index}.custo_hora`, maquina.custo_hora);
     }
   };
@@ -45,7 +46,7 @@ const RdoEquipmentForm = () => {
     setUploadingIndex(index);
     const fileExt = file.name.split('.').pop();
     const fileName = `equip-${Date.now()}-${index}.${fileExt}`;
-    const filePath = `rdo_equipamentos/${fileName}`; // Usando pasta genérica ou precisa de obraId se disponível no context
+    const filePath = `rdo_equipamentos/${fileName}`;
 
     try {
       const { error: uploadError } = await supabase.storage
@@ -95,9 +96,16 @@ const RdoEquipmentForm = () => {
             
             const showNote = extraFieldsMap[field.id]?.note || !!equipamentos?.[index]?.observacao;
             const showPhoto = extraFieldsMap[field.id]?.photo || hasPhoto;
+            const fieldErrors = errors?.equipamentos?.[index];
 
             return (
-                <div key={field.id} className="p-4 border rounded-2xl bg-white shadow-sm space-y-4 relative group">
+                <div 
+                    key={field.id} 
+                    className={cn(
+                        "p-4 border rounded-2xl bg-white shadow-sm space-y-4 relative group",
+                        fieldErrors ? "border-destructive/50 bg-destructive/5" : "border-border"
+                    )}
+                >
                     <Button
                         type="button"
                         variant="ghost"
@@ -109,7 +117,7 @@ const RdoEquipmentForm = () => {
                     </Button>
 
                     <div className="pr-10">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground flex items-center gap-1 mb-1.5">
+                        <Label className={cn("text-[10px] font-black uppercase flex items-center gap-1 mb-1.5", fieldErrors?.equipamento ? "text-destructive" : "text-muted-foreground")}>
                             <Search className="w-3 h-3" /> Máquina / Equipamento
                         </Label>
                         <div className="flex gap-2">
@@ -118,7 +126,7 @@ const RdoEquipmentForm = () => {
                                     value={equipamentos?.[index]?.equipamento} 
                                     onValueChange={(val) => handleMachineSelect(index, val)}
                                 >
-                                    <SelectTrigger className="bg-secondary/20 rounded-xl border-transparent hover:border-border h-10 text-xs w-1/3 min-w-[120px]">
+                                    <SelectTrigger className={cn("bg-secondary/20 rounded-xl border-transparent hover:border-border h-10 text-xs w-1/3 min-w-[120px]", fieldErrors?.equipamento && "border-destructive")}>
                                         <SelectValue placeholder="Selecione..." />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -133,7 +141,7 @@ const RdoEquipmentForm = () => {
                             <Input
                                 placeholder={maquinas && maquinas.length > 0 ? "Ou digite..." : "Nome do equipamento..."}
                                 {...register(`equipamentos.${index}.equipamento`)}
-                                className="bg-secondary/10 rounded-xl h-10 border-transparent hover:border-input focus:bg-background transition-all flex-1 text-sm"
+                                className={cn("bg-secondary/10 rounded-xl h-10 border-transparent hover:border-input focus:bg-background transition-all flex-1 text-sm", fieldErrors?.equipamento && "border-destructive")}
                             />
                         </div>
                     </div>
