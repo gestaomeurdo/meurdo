@@ -1,13 +1,13 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2, Loader2, MapPin, Construction, Zap, ArrowRight, ImageIcon, Calendar } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2, MapPin, Construction, Zap, ArrowRight, ImageIcon, Calendar, TrendingUp } from "lucide-react";
 import ObraDialog from "@/components/obras/ObraDialog";
-import { useDeleteObra, useObras, Obra } from "@/hooks/use-obras";
+import { useDeleteObra, useObras, Obra, useObrasProgress } from "@/hooks/use-obras";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { showSuccess, showError } from "@/utils/toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { formatCurrency, formatDate, calculateObraProgress } from "@/utils/formatters";
+import { formatCurrency, formatDate } from "@/utils/formatters";
 import { useCanCreateObra } from "@/hooks/use-subscription-limits";
 import { useState } from "react";
 import UpgradeModal from "@/components/subscription/UpgradeModal";
@@ -29,6 +29,7 @@ const statusColorMap: Record<Obra['status'], "default" | "secondary" | "destruct
 
 const Obras = () => {
   const { data: obras, isLoading, error } = useObras();
+  const { data: progressMap, isLoading: isLoadingProgress } = useObrasProgress();
   const deleteMutation = useDeleteObra();
   const { canCreate, isPro, isLoading: isLoadingLimits } = useCanCreateObra();
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -42,7 +43,7 @@ const Obras = () => {
     }
   };
 
-  if (isLoading || isLoadingLimits) {
+  if (isLoading || isLoadingLimits || isLoadingProgress) {
     return (
       <DashboardLayout>
         <div className="p-6 flex justify-center items-center h-[60vh]">
@@ -108,7 +109,8 @@ const Obras = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {obras?.map((obra) => {
-              const progress = calculateObraProgress(obra.data_inicio, obra.previsao_entrega, obra.status);
+              // Agora usamos o progresso físico real (média das atividades)
+              const progress = progressMap?.[obra.id] || 0;
 
               return (
                 <Card
@@ -192,8 +194,8 @@ const Obras = () => {
                       <CardContent className="flex-grow space-y-4 pt-0">
                       <div className="space-y-1">
                           <div className="flex justify-between text-[10px] uppercase font-bold text-muted-foreground mb-1">
-                              <span>Prazo Decorrido</span>
-                              <span>{progress}%</span>
+                              <span className="flex items-center gap-1"><TrendingUp className="w-3 h-3" /> Progresso Físico Real</span>
+                              <span className="text-primary">{progress}%</span>
                           </div>
                           <Progress value={progress} className="h-1.5" />
                       </div>

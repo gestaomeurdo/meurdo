@@ -1,9 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ListChecks, Loader2 } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+import { ListChecks, Loader2, Calendar, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useAtividades } from "@/hooks/use-atividades";
+import { formatDate } from "@/utils/formatters";
+import { differenceInDays, parseISO } from "date-fns";
 
 interface ActivityStatusTableProps {
   obraId: string;
@@ -24,7 +24,7 @@ const ActivityStatusTable = ({ obraId }: ActivityStatusTableProps) => {
 
   if (!atividades || atividades.length === 0) {
     return (
-      <Card className="col-span-full border-dashed">
+      <Card className="col-span-full border-dashed bg-accent/10">
         <CardContent className="h-[200px] flex flex-col items-center justify-center text-muted-foreground">
           <ListChecks className="h-10 w-10 mb-2 opacity-20" />
           <p>Nenhuma atividade cadastrada para esta obra.</p>
@@ -34,71 +34,84 @@ const ActivityStatusTable = ({ obraId }: ActivityStatusTableProps) => {
   }
 
   return (
-    <Card className="col-span-full shadow-clean border-none rounded-3xl overflow-hidden">
-      <CardHeader className="bg-muted/30 pb-4">
-        <CardTitle className="flex items-center gap-2 text-lg font-bold">
-          <ListChecks className="h-5 w-5 text-primary" />
-          Status Detalhado das Atividades
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-0">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader className="bg-white">
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="w-[40%]">Atividade / Serviço</TableHead>
-                <TableHead className="w-[30%]">Progresso Real</TableHead>
-                <TableHead className="w-[15%] text-right">Falta</TableHead>
-                <TableHead className="w-[15%] text-right">Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {atividades.map((atv) => {
-                const progress = atv.progresso_atual || 0;
-                const remaining = 100 - progress;
-                let statusColor = "bg-slate-100 text-slate-600";
-                let statusText = "Não Iniciado";
+    <div className="col-span-full">
+      <div className="flex items-center gap-2 mb-4">
+        <ListChecks className="h-5 w-5 text-primary" />
+        <h3 className="text-lg font-bold text-foreground">Status Detalhado das Atividades</h3>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {atividades.map((atv) => {
+          const progress = atv.progresso_atual || 0;
+          const remaining = 100 - progress;
+          
+          // Lógica de Status (Atrasado/Em dia)
+          let statusLabel = "Em Dia";
+          let statusVariant: "default" | "destructive" | "secondary" | "outline" = "outline";
+          let statusColorClass = "text-green-600 bg-green-100 border-green-200";
 
-                if (progress === 100) {
-                  statusColor = "bg-green-100 text-green-700 border-green-200";
-                  statusText = "Concluído";
-                } else if (progress > 0) {
-                  statusColor = "bg-blue-100 text-blue-700 border-blue-200";
-                  statusText = "Em Andamento";
-                }
+          if (progress === 100) {
+            statusLabel = "Concluído";
+            statusVariant = "secondary";
+            statusColorClass = "text-blue-600 bg-blue-100 border-blue-200";
+          } else if (atv.data_prevista) {
+            const today = new Date();
+            const deadline = parseISO(atv.data_prevista);
+            // Se hoje é depois do prazo e não tá 100%
+            if (today > deadline) {
+                const daysLate = differenceInDays(today, deadline);
+                statusLabel = `${daysLate} Dias Atrasado`;
+                statusVariant = "destructive";
+                statusColorClass = "text-red-600 bg-red-100 border-red-200";
+            }
+          }
 
-                return (
-                  <TableRow key={atv.id} className="hover:bg-muted/20">
-                    <TableCell className="font-medium text-sm">
+          return (
+            <Card key={atv.id} className="shadow-sm hover:shadow-md transition-shadow border rounded-2xl overflow-hidden">
+              <CardContent className="p-5">
+                {/* Topo: Nome e Status */}
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h4 className="font-bold text-base leading-tight text-foreground mb-1">
                       {atv.descricao}
-                      {atv.responsavel_nome && (
-                        <p className="text-[10px] text-muted-foreground font-normal mt-0.5">Resp: {atv.responsavel_nome}</p>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between text-[10px] font-bold text-muted-foreground">
-                          <span>{progress}%</span>
-                        </div>
-                        <Progress value={progress} className="h-2" />
+                    </h4>
+                    {atv.data_prevista && (
+                      <div className="flex items-center text-xs text-muted-foreground">
+                        <Calendar className="w-3 h-3 mr-1" />
+                        Previsto: {formatDate(atv.data_prevista)}
                       </div>
-                    </TableCell>
-                    <TableCell className="text-right font-medium text-muted-foreground text-sm">
-                      {remaining}%
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Badge variant="outline" className={`border ${statusColor} text-[10px] uppercase font-bold tracking-wide whitespace-nowrap`}>
-                        {statusText}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
-    </Card>
+                    )}
+                  </div>
+                  <Badge variant={statusVariant} className={`whitespace-nowrap ${statusColorClass} border`}>
+                    {statusLabel}
+                  </Badge>
+                </div>
+
+                {/* Barra de Progresso Grossa */}
+                <div className="relative h-3 w-full bg-slate-200 rounded-full overflow-hidden mb-3">
+                  <div 
+                    className="absolute top-0 left-0 h-full bg-[#066abc] transition-all duration-500 ease-out rounded-full"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+
+                {/* Dados Abaixo da Barra */}
+                <div className="flex justify-between items-center text-xs font-medium">
+                  <div className="flex items-center gap-1 text-[#066abc]">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Concluído: {progress}%</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-muted-foreground">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    <span>Restante: {remaining}%</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
   );
 };
 
