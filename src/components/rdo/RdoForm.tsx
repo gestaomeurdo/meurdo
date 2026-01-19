@@ -35,7 +35,7 @@ const climaOptions = ['Sol', 'Nublado', 'Chuva Leve', 'Chuva Forte'];
 const workforceTypes: WorkforceType[] = ['Própria', 'Terceirizada'];
 
 const RdoDetailSchema = z.object({
-  descricao_servico: z.string().min(2, "Descrição obrigatória."),
+  descricao_servico: z.string().optional(),
   avanco_percentual: z.coerce.number().min(0).max(100),
   foto_anexo_url: z.string().nullable().optional(),
   observacao: z.string().nullable().optional(),
@@ -46,6 +46,7 @@ const ManpowerSchema = z.object({
   quantidade: z.coerce.number().min(0),
   custo_unitario: z.coerce.number().min(0).optional(),
   tipo: z.enum(workforceTypes),
+  observacao: z.string().optional().nullable(),
 });
 
 const EquipmentSchema = z.object({
@@ -53,6 +54,8 @@ const EquipmentSchema = z.object({
   horas_trabalhadas: z.coerce.number().min(0),
   horas_paradas: z.coerce.number().min(0),
   custo_hora: z.coerce.number().min(0).optional(),
+  observacao: z.string().optional().nullable(),
+  foto_url: z.string().optional().nullable(),
 });
 
 const MaterialSchema = z.object({
@@ -90,7 +93,8 @@ const RdoSchema = z.object({
   safety_cleaning_photo: z.string().nullable().optional(),
   safety_dds_photo: z.string().nullable().optional(),
 
-  atividades: z.array(RdoDetailSchema).min(1, "Registre ao menos 1 atividade para salvar."),
+  // Arrays opcionais para permitir rascunho
+  atividades: z.array(RdoDetailSchema).optional(),
   mao_de_obra: z.array(ManpowerSchema).optional(),
   equipamentos: z.array(EquipmentSchema).optional(),
   materiais: z.array(MaterialSchema).optional(),
@@ -160,7 +164,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
         avanco_percentual: a.avanco_percentual,
         foto_anexo_url: a.foto_anexo_url,
         observacao: a.observacao,
-      })) || [{ descricao_servico: "", avanco_percentual: 0, foto_anexo_url: null, observacao: "" }],
+      })) || [], // Inicia vazio por padrão
       mao_de_obra: initialData?.rdo_mao_de_obra?.map(m => ({
         funcao: m.funcao,
         quantidade: m.quantidade,
@@ -350,8 +354,12 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
 
   const onSubmit = async (values: RdoFormValues) => {
     try {
+      // Filtrar atividades sem descrição ou seleção
+      const atividadesValidas = values.atividades?.filter(a => a.descricao_servico && a.descricao_servico.trim().length > 0) || [];
+      
       const dataToSubmit = {
         ...values,
+        atividades: atividadesValidas,
         data_rdo: format(values.data_rdo, 'yyyy-MM-dd'),
       };
 
@@ -554,8 +562,8 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
             <TabsTrigger value="mao_de_obra" className="rounded-lg text-[10px] uppercase font-black py-2">Equipe</TabsTrigger>
             <TabsTrigger value="equipamentos" className="rounded-lg text-[10px] uppercase font-black py-2">Máquinas</TabsTrigger>
             <TabsTrigger value="materiais" className="rounded-lg text-[10px] uppercase font-black py-2">Materiais</TabsTrigger>
+            <TabsTrigger value="seguranca" className="rounded-lg text-[10px] uppercase font-black py-2">Segurança</TabsTrigger>
             <TabsTrigger value="ocorrencias" className="rounded-lg text-[10px] uppercase font-black py-2">Ocorrências</TabsTrigger>
-            <TabsTrigger value="seguranca" className="rounded-lg text-[10px] uppercase font-black py-2 md:col-span-1 col-span-3">Segurança</TabsTrigger>
           </TabsList>
           
           <TabsContent value="atividades" className="pt-4"><RdoActivitiesForm obraId={obraId} /></TabsContent>
@@ -563,62 +571,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
           <TabsContent value="equipamentos" className="pt-4"><RdoEquipmentForm /></TabsContent>
           <TabsContent value="materiais" className="pt-4"><RdoMaterialsForm /></TabsContent>
           
-          <TabsContent value="ocorrencias" className="pt-4">
-            <Card className="border-l-4 border-l-orange-500 shadow-sm bg-white">
-                <CardHeader className="bg-orange-50/50 pb-2 py-3">
-                    <CardTitle className="text-sm font-black uppercase text-orange-700 flex items-center gap-2">
-                        <StickyNote className="w-5 h-5" /> Diário de Ocorrências
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 space-y-6">
-                    
-                    <FormField
-                        control={methods.control}
-                        name="observacoes_gerais"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className="text-xs font-black uppercase text-muted-foreground flex items-center gap-1">
-                                    <StickyNote className="w-3 h-3 text-primary" /> Observações Gerais do Dia
-                                </FormLabel>
-                                <FormControl>
-                                    <Textarea 
-                                        placeholder="Notas gerais, visitas recebidas, liberações, etc." 
-                                        {...field} 
-                                        value={field.value || ""} 
-                                        rows={4}
-                                        className="bg-blue-50/30 border-blue-100 focus:border-blue-300 transition-all"
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-
-                    <FormField
-                        control={methods.control}
-                        name="impedimentos_comentarios"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className="text-xs font-black uppercase text-muted-foreground flex items-center gap-1">
-                                    <AlertTriangle className="w-3 h-3 text-destructive" /> Impedimentos
-                                </FormLabel>
-                                <FormControl>
-                                    <Textarea 
-                                        placeholder="Descreva problemas como: chuvas, falta de material, acidentes, paralisações..." 
-                                        {...field} 
-                                        value={field.value || ""} 
-                                        rows={4}
-                                        className="bg-red-50/30 border-red-100 focus:border-red-300 transition-all"
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </CardContent>
-            </Card>
-          </TabsContent>
-
           <TabsContent value="seguranca" className="pt-4">
             <Card className="border-l-4 border-l-primary shadow-sm bg-white">
                 <CardHeader className="bg-primary/5 pb-2 py-3">
@@ -689,6 +641,62 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                             })}
                         </div>
                     )}
+                </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="ocorrencias" className="pt-4">
+            <Card className="border-l-4 border-l-orange-500 shadow-sm bg-white">
+                <CardHeader className="bg-orange-50/50 pb-2 py-3">
+                    <CardTitle className="text-sm font-black uppercase text-orange-700 flex items-center gap-2">
+                        <StickyNote className="w-5 h-5" /> Diário de Ocorrências
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 space-y-6">
+                    
+                    <FormField
+                        control={methods.control}
+                        name="observacoes_gerais"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-xs font-black uppercase text-muted-foreground flex items-center gap-1">
+                                    <StickyNote className="w-3 h-3 text-primary" /> Observações Gerais do Dia
+                                </FormLabel>
+                                <FormControl>
+                                    <Textarea 
+                                        placeholder="Notas gerais, visitas recebidas, liberações, etc." 
+                                        {...field} 
+                                        value={field.value || ""} 
+                                        rows={4}
+                                        className="bg-blue-50/30 border-blue-100 focus:border-blue-300 transition-all"
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={methods.control}
+                        name="impedimentos_comentarios"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-xs font-black uppercase text-muted-foreground flex items-center gap-1">
+                                    <AlertTriangle className="w-3 h-3 text-destructive" /> Impedimentos
+                                </FormLabel>
+                                <FormControl>
+                                    <Textarea 
+                                        placeholder="Descreva problemas como: chuvas, falta de material, acidentes, paralisações..." 
+                                        {...field} 
+                                        value={field.value || ""} 
+                                        rows={4}
+                                        className="bg-red-50/30 border-red-100 focus:border-red-300 transition-all"
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
                 </CardContent>
             </Card>
           </TabsContent>

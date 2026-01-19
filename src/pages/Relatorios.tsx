@@ -28,7 +28,7 @@ const Relatorios = () => {
   const [selectedObraId, setSelectedObraId] = useState<string | undefined>(undefined);
   const isMobile = useIsMobile();
 
-  // Inicializa com o mês atual para evitar estados vazios
+  // Inicializa SEMPRE com o mês atual para garantir performance e relevância
   const [date, setDate] = useState<DateRange | undefined>({
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
@@ -37,22 +37,6 @@ const Relatorios = () => {
   useEffect(() => {
     if (obras && obras.length > 0 && !selectedObraId) {
       setSelectedObraId(obras[0].id);
-      
-      // Se a obra tem data de início, ajusta o filtro inicial
-      if (obras[0].data_inicio) {
-        try {
-          const startDate = new Date(obras[0].data_inicio + 'T12:00:00');
-          // Verifica se a data é válida
-          if (!isNaN(startDate.getTime())) {
-             setDate({
-              from: startDate,
-              to: new Date(),
-            });
-          }
-        } catch (e) {
-          console.error("Erro ao processar data da obra", e);
-        }
-      }
     }
   }, [obras, selectedObraId]);
 
@@ -93,8 +77,6 @@ const Relatorios = () => {
       );
     }
 
-    // Correção: Só mostra loading se estiver realmente buscando dados (enabled=true)
-    // Isso evita o travamento quando a query está desabilitada (ex: falta data final)
     if (isLoadingRdoMetrics && isFetchingRdoMetrics) {
       return (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -127,7 +109,7 @@ const Relatorios = () => {
           <FileText className="w-16 h-16 mx-auto text-muted-foreground/20 mb-4" />
           <h2 className="text-xl font-bold mb-2">Sem registros no período</h2>
           <p className="text-muted-foreground max-w-xs mx-auto">
-            Não encontramos nenhum RDO entre {periodoString}. Tente alterar o filtro de datas acima ou verifique se os diários foram criados.
+            Não encontramos nenhum RDO entre {periodoString}. Tente alterar o filtro de datas acima.
           </p>
         </div>
       );

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, Upload, Loader2, Image as ImageIcon, CheckSquare, X, ListTodo } from "lucide-react";
+import { Plus, Trash2, Upload, Loader2, Image as ImageIcon, CheckSquare, X, ListTodo, TrendingUp } from "lucide-react";
 import { RdoInput } from "@/hooks/use-rdo";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,7 @@ import { showError, showSuccess } from "@/utils/toast";
 import { cn } from "@/lib/utils";
 import { useAtividades } from "@/hooks/use-atividades";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
 
 interface RdoActivitiesFormProps {
   obraId: string;
@@ -54,11 +55,15 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
   };
 
   const handleSelectActivity = (index: number, value: string) => {
-    // Finds the activity to get the full description if needed, or just uses the value
     const activity = atividadesCronograma?.find(a => a.descricao === value);
-    const textToSet = activity ? activity.descricao : value;
-    
-    setValue(`atividades.${index}.descricao_servico`, textToSet, { shouldValidate: true, shouldDirty: true });
+    if (activity) {
+        setValue(`atividades.${index}.descricao_servico`, activity.descricao, { shouldValidate: true, shouldDirty: true });
+        // Se a atividade já tem um progresso no banco, poderíamos setar aqui como base se desejado
+        // Mas a lógica pede para mostrar acumulativo e permitir avançar.
+        // O valor do input continuará sendo o avanço DO DIA ou o acumulado, dependendo da interpretação.
+        // Assumindo que o usuário vai colocar o STATUS ATUAL FINAL (acumulado).
+        setValue(`atividades.${index}.avanco_percentual`, activity.progresso_atual || 0, { shouldDirty: true });
+    }
   };
 
   return (
@@ -67,16 +72,18 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
         <h3 className="text-lg font-semibold">Serviços do Dia</h3>
         <p className="text-xs text-muted-foreground flex items-center">
             <CheckSquare className="w-3 h-3 mr-1 text-primary" />
-            Vincule atividades do cronograma para registrar o avanço.
+            Vincule atividades do cronograma.
         </p>
       </div>
 
       {fields.map((field, index) => {
         const photoUrl = watch(`atividades.${index}.foto_anexo_url`);
         const currentDesc = watch(`atividades.${index}.descricao_servico`);
+        const currentProgress = watch(`atividades.${index}.avanco_percentual`) || 0;
 
-        // Determine if the current description matches a schedule item
-        const selectedValue = atividadesCronograma?.some(a => a.descricao === currentDesc) ? currentDesc : undefined;
+        // Find linked activity to show previous progress
+        const linkedActivity = atividadesCronograma?.find(a => a.descricao === currentDesc);
+        const baseProgress = linkedActivity?.progresso_atual || 0;
 
         return (
           <div key={field.id} className="p-4 border rounded-xl space-y-4 bg-secondary/5">
@@ -90,49 +97,70 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
               <div className="md:col-span-8 space-y-2">
                 <Label className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
-                    <ListTodo className="w-3 h-3" /> Selecionar do Cronograma (Opcional)
+                    <ListTodo className="w-3 h-3" /> Selecionar do Cronograma
                 </Label>
                 
-                {atividadesCronograma && atividadesCronograma.length > 0 && (
+                {atividadesCronograma && atividadesCronograma.length > 0 ? (
                     <Select 
-                        value={selectedValue} 
+                        value={currentDesc} 
                         onValueChange={(val) => handleSelectActivity(index, val)}
                     >
-                        <SelectTrigger className="bg-white h-9 text-xs border-primary/20 focus:ring-primary/20">
-                            <SelectValue placeholder="Toque para selecionar uma atividade..." />
+                        <SelectTrigger className="bg-white h-10 text-sm border-primary/20 focus:ring-primary/20">
+                            <SelectValue placeholder="Selecione uma atividade..." />
                         </SelectTrigger>
                         <SelectContent>
                             {atividadesCronograma.map(atv => (
                                 <SelectItem key={atv.id} value={atv.descricao} className="text-xs">
-                                    {atv.descricao} {atv.etapa && <span className="text-muted-foreground ml-1">({atv.etapa})</span>}
+                                    <div className="flex justify-between w-full gap-4">
+                                        <span>{atv.descricao}</span>
+                                        <span className="text-muted-foreground">{atv.progresso_atual}%</span>
+                                    </div>
                                 </SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
+                ) : (
+                    <Input 
+                        placeholder="Digite a descrição (Nenhuma atividade cadastrada)"
+                        {...register(`atividades.${index}.descricao_servico`)}
+                        className="bg-background"
+                    />
                 )}
 
-                <Label className="text-[10px] uppercase font-bold text-muted-foreground mt-2 block">
-                    Descrição do Serviço / Detalhes
-                </Label>
-                <Textarea
-                  placeholder="Descreva o serviço realizado ou ajuste o texto..."
-                  {...register(`atividades.${index}.descricao_servico`)}
-                  rows={2}
-                  className="bg-background"
-                />
-              </div>
-              <div className="md:col-span-4">
-                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Avanço Físico (%)</Label>
-                <div className="flex items-center gap-2">
-                    <Input
-                        type="number"
-                        placeholder="0-100"
-                        {...register(`atividades.${index}.avanco_percentual`, { valueAsNumber: true })}
-                        className="bg-background text-lg font-bold text-primary h-12"
-                        min={0}
-                        max={100}
+                <div className="mt-2">
+                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">Nota / Observação (Opcional)</Label>
+                    <Textarea
+                        placeholder="Detalhes do que foi feito hoje..."
+                        {...register(`atividades.${index}.observacao`)}
+                        rows={1}
+                        className="bg-background mt-1"
                     />
-                    <span className="font-bold text-lg text-primary">%</span>
+                </div>
+              </div>
+
+              <div className="md:col-span-4 space-y-2">
+                <Label className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                    <TrendingUp className="w-3 h-3" /> Avanço Físico Total
+                </Label>
+                
+                <div className="bg-white p-3 rounded-xl border border-input space-y-3">
+                    <div className="flex justify-between items-center">
+                        <span className="text-xs font-medium text-muted-foreground">Anterior: {baseProgress}%</span>
+                        <span className="text-lg font-black text-primary">{currentProgress}%</span>
+                    </div>
+                    
+                    <Progress value={currentProgress} className="h-2" />
+                    
+                    <div className="flex items-center gap-2">
+                        <Input
+                            type="range"
+                            min="0"
+                            max="100"
+                            step="5"
+                            {...register(`atividades.${index}.avanco_percentual`, { valueAsNumber: true })}
+                            className="h-6 p-0 bg-transparent border-0 cursor-pointer"
+                        />
+                    </div>
                 </div>
               </div>
             </div>
@@ -167,7 +195,7 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
       })}
       
       <Button type="button" variant="outline" className="w-full border-dashed py-6" onClick={() => append({ descricao_servico: "", avanco_percentual: 0, foto_anexo_url: null, observacao: "" })}>
-        <Plus className="w-4 h-4 mr-2" /> Registrar Novo Serviço no Dia
+        <Plus className="w-4 h-4 mr-2" /> Adicionar Serviço
       </Button>
     </div>
   );

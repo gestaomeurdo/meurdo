@@ -67,9 +67,10 @@ export const useBulkCreateExpenseCategories = () => {
 
       const categoriesWithUser = categories.map(cat => ({ ...cat, user_id: user.id }));
 
+      // Usando upsert com ignoreDuplicates para evitar erro de chave duplicada
       const { error } = await supabase
         .from('categorias_despesa')
-        .insert(categoriesWithUser);
+        .upsert(categoriesWithUser, { onConflict: 'nome', ignoreDuplicates: true });
 
       if (error) throw new Error(error.message);
     },
@@ -88,16 +89,14 @@ export const useUpdateExpenseCategory = () => {
       if (!user) throw new Error("Usuário não autenticado.");
       const { id, ...rest } = updatedCategory;
 
-      // Tentamos atualizar e pedimos o retorno da linha para confirmar a ação
-      const { data, error, count } = await supabase
+      const { data, error } = await supabase
         .from('categorias_despesa')
         .update(rest)
         .eq('id', id)
-        .select(); // Adicionamos select para confirmar que algo voltou
+        .select();
 
       if (error) throw new Error(error.message);
 
-      // Se data for nulo ou vazio, significa que o RLS bloqueou ou o ID não existe
       if (!data || data.length === 0) {
         throw new Error("Você não tem permissão para editar esta categoria ou ela não foi encontrada.");
       }

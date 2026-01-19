@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useMaquinas, useCreateMaquina, useDeleteMaquina } from "@/hooks/use-maquinas";
 import { useState } from "react";
 import { showSuccess, showError } from "@/utils/toast";
-import { formatCurrency } from "@/utils/formatters";
+import { formatCurrency, formatCurrencyForInput, parseCurrencyInput } from "@/utils/formatters";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 
@@ -18,19 +18,34 @@ const Maquinas = () => {
   const [isOpen, setIsOpen] = useState(false);
   
   const [nome, setNome] = useState("");
-  const [custo, setCusto] = useState("");
+  const [custo, setCusto] = useState("0,00");
+
+  const handleCurrencyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/\D/g, '');
+    if (!rawValue) {
+        setCusto("0,00");
+        return;
+    }
+    const numericValue = parseInt(rawValue, 10) / 100;
+    setCusto(formatCurrencyForInput(numericValue));
+  };
 
   const handleSave = async () => {
-    if (!nome || !custo) return;
+    if (!nome) {
+        showError("O nome da máquina é obrigatório.");
+        return;
+    }
+    
     try {
+      const parsedCusto = parseCurrencyInput(custo);
       await createMutation.mutateAsync({
         nome,
-        custo_hora: parseFloat(custo.replace(',', '.'))
+        custo_hora: parsedCusto
       });
       showSuccess("Máquina cadastrada!");
       setIsOpen(false);
       setNome("");
-      setCusto("");
+      setCusto("0,00");
     } catch (e) {
       showError("Erro ao salvar.");
     }
@@ -68,7 +83,12 @@ const Maquinas = () => {
                         </div>
                         <div className="space-y-2">
                             <Label>Custo Hora (R$)</Label>
-                            <Input type="number" placeholder="0.00" value={custo} onChange={e => setCusto(e.target.value)} />
+                            <Input 
+                                type="text" 
+                                placeholder="0,00" 
+                                value={custo} 
+                                onChange={handleCurrencyChange} 
+                            />
                         </div>
                         <Button onClick={handleSave} className="w-full" disabled={createMutation.isPending}>
                             {createMutation.isPending ? <Loader2 className="animate-spin" /> : "Salvar"}

@@ -9,12 +9,20 @@ import { Cargo, useCreateCargo, useUpdateCargo } from "@/hooks/use-cargos";
 import { showSuccess, showError } from "@/utils/toast";
 import { Loader2, Save, Zap } from "lucide-react";
 import { useCargoLimits } from "@/hooks/use-cargo-limits";
+import { parseCurrencyInput, formatCurrencyForInput } from "@/utils/formatters";
+import { useCurrencyInput } from "@/hooks/use-currency-input";
 
 const CargoSchema = z.object({
   nome: z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),
-  custo_diario: z.coerce.number().min(0, "O custo não pode ser negativo."),
+  custo_diario: z.string().min(1, "O custo é obrigatório."),
   tipo: z.enum(['Próprio', 'Empreiteiro']),
   unidade: z.enum(['Diário', 'Hora']),
+}).refine((data) => {
+    const parsedValue = parseCurrencyInput(data.custo_diario);
+    return parsedValue >= 0;
+}, {
+    message: "O custo não pode ser negativo.",
+    path: ["custo_diario"],
 });
 
 type CargoFormValues = z.infer<typeof CargoSchema>;
@@ -34,11 +42,13 @@ const CargoForm = ({ initialData, onSuccess }: CargoFormProps) => {
     resolver: zodResolver(CargoSchema),
     defaultValues: {
       nome: initialData?.nome || "",
-      custo_diario: initialData?.custo_diario || 0,
+      custo_diario: initialData?.custo_diario !== undefined ? formatCurrencyForInput(initialData.custo_diario) : "0,00",
       tipo: initialData?.tipo || 'Próprio',
       unidade: initialData?.unidade || 'Diário',
     },
   });
+
+  const { handleCurrencyChange } = useCurrencyInput('custo_diario', form.setValue, form.getValues);
 
   const onSubmit = async (values: CargoFormValues) => {
     if (!isEditing && !canCreateCargo) {
@@ -47,14 +57,20 @@ const CargoForm = ({ initialData, onSuccess }: CargoFormProps) => {
     }
 
     try {
+      const parsedCusto = parseCurrencyInput(values.custo_diario);
+      const payload = {
+        ...values,
+        custo_diario: parsedCusto,
+      };
+
       if (isEditing && initialData) {
         await updateMutation.mutateAsync({
-          ...values,
+          ...payload,
           id: initialData.id
         });
         showSuccess("Cargo atualizado!");
       } else {
-        await createMutation.mutateAsync(values);
+        await createMutation.mutateAsync(payload);
         showSuccess("Cargo cadastrado!");
       }
       onSuccess();
@@ -146,9 +162,13 @@ const CargoForm = ({ initialData, onSuccess }: CargoFormProps) => {
               <FormLabel>Valor do Custo Unitário (R$)</FormLabel>
               <FormControl>
                 <Input
-                  type="number"
-                  step="0.01"
+                  type="text"
+                  placeholder="0,00"
                   {...field}
+                  onChange={(e) => {
+                    field.onChange(e);
+                    handleCurrencyChange(e);
+                  }}
                   disabled={isLoading || isCreationDisabledByLimit}
                 />
               </FormControl>
