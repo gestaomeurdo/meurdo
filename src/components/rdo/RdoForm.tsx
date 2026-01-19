@@ -131,23 +131,53 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
   const { data: obras } = useObras();
   const { data: rdoList } = useRdoList(obraId);
 
-  const parseSavedClima = (data: string | null) => {
-    if (!data) return { me: true, m: "Sol", ms: "Operacional", ae: true, a: "Sol", as: "Operacional", ne: false, n: "Sol", ns: "Operacional" };
-    const parts = data.split(', ');
-    const getVal = (idx: number) => {
-        if (!parts[idx] || parts[idx].includes("N/T")) return { c: "Sol", s: "Operacional", e: false };
-        const match = parts[idx].match(/: (.*?) \((.*?)\)/);
-        return match ? { c: match[1], s: match[2] === "Op" ? "Operacional" : "Paralisado", e: true } : { c: "Sol", s: "Operacional", e: false };
-    };
-    const m = getVal(0); const a = getVal(1); const n = getVal(2);
-    return { me: m.e, m: m.c, ms: m.s, ae: a.e, a: a.c, as: a.s, ne: n.e, n: n.c, ns: n.s };
-  };
-
   const methods = useForm<RdoFormValues>({
     resolver: zodResolver(RdoSchema),
   });
 
-  // BUG FIX: Garantir que os dados carreguem ao editar
+  const parseSavedClima = (data: string | null) => {
+    // Default values if data is missing
+    const def = { 
+        me: true, m: "Sol", ms: "Operacional", 
+        ae: true, a: "Sol", as: "Operacional", 
+        ne: false, n: "Sol", ns: "Operacional" 
+    };
+    
+    if (!data) return def;
+
+    const parts = data.split(', ');
+    const getVal = (idx: number, prefix: string) => {
+        const raw = parts[idx];
+        if (!raw || raw.includes("N/T")) return { c: "Sol", s: "Operacional", e: false };
+
+        // Regex flexível: extrai o texto após o ':' e opcionalmente o status entre '('
+        // Exemplos suportados: "M: Sol (Op)", "M: Nublado", "Manhã: Sol", "T: Chuva (Par)"
+        const climaMatch = raw.match(/:\s*([^(\n,]*)/);
+        const statusMatch = raw.match(/\((.*?)\)/);
+
+        const clima = climaMatch ? climaMatch[1].trim() : "Sol";
+        let status = "Operacional";
+        
+        if (statusMatch) {
+            status = statusMatch[1] === "Op" ? "Operacional" : "Paralisado";
+        } else if (raw.toLowerCase().includes("paralisado") || raw.toLowerCase().includes("impraticável")) {
+            status = "Paralisado";
+        }
+
+        return { c: clima, s: status, e: true };
+    };
+
+    const m = getVal(0, "M"); 
+    const a = getVal(1, "T"); 
+    const n = getVal(2, "N");
+
+    return { 
+        me: m.e, m: m.c, ms: m.s, 
+        ae: a.e, a: a.c, as: a.s, 
+        ne: n.e, n: n.c, ns: n.s 
+    };
+  };
+
   useEffect(() => {
     const saved = parseSavedClima(initialData?.clima_condicoes || null);
     
