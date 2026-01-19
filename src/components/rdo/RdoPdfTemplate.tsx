@@ -41,8 +41,9 @@ const styles = StyleSheet.create({
   },
   logo: {
     height: 45,
-    marginBottom: 5,
+    width: 120, // Garantindo largura mínima
     objectFit: 'contain',
+    marginBottom: 5,
   },
   companyName: {
     fontSize: 10,
@@ -168,12 +169,12 @@ const styles = StyleSheet.create({
   // --- GRID DE FOTOS CORRIGIDO (Obrigatório) ---
   photosContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap', // CRÍTICO: Permite quebrar linha
+    flexWrap: 'wrap',
     gap: 10,
     marginTop: 10
   },
   photoWrapper: {
-    width: '30%', // Força 3 colunas (aprox)
+    width: '30%', 
     marginBottom: 10,
     borderWidth: 1,
     borderColor: '#eeeeee',
@@ -183,7 +184,7 @@ const styles = StyleSheet.create({
   photo: {
     width: '100%',
     height: 100,
-    objectFit: 'cover', // Corta para caber no quadrado
+    objectFit: 'cover',
     borderRadius: 2
   },
   photoCaption: {
@@ -219,6 +220,11 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontFamily: 'Helvetica-Bold',
     textTransform: 'uppercase',
+  },
+  imagePlaceholder: {
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
   }
 });
 
@@ -228,15 +234,22 @@ interface RdoPdfTemplateProps {
   profile: Profile | null;
   obra?: Obra;
   sequenceNumber?: string;
+  logoBase64: string | null;
+  photosBase64: { desc: string; base64: string | null }[];
+  responsibleSigBase64: string | null;
+  clientSigBase64: string | null;
 }
 
-const GUARANTEED_LOGO = "https://meurdo.com.br/wp-content/uploads/2026/01/Logo-MEU-RDO-scaled.png";
-
-export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra, sequenceNumber }: RdoPdfTemplateProps) => {
-  // Fallback Absoluto de Logo
-  const logoUrl = (profile?.avatar_url && profile.avatar_url.trim().length > 0) 
-    ? profile.avatar_url 
-    : GUARANTEED_LOGO;
+export const RdoPdfTemplate = ({ 
+    rdo, 
+    obraNome, 
+    profile, 
+    sequenceNumber,
+    logoBase64,
+    photosBase64,
+    responsibleSigBase64,
+    clientSigBase64
+}: RdoPdfTemplateProps) => {
 
   let dateStr = '---';
   let dayStr = '---';
@@ -248,18 +261,6 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra, sequenceNumber }:
     }
   } catch (e) {}
 
-  // Consolidação de todas as fotos para o Grid
-  const allPhotos = [
-    ...(rdo.rdo_atividades_detalhe?.filter(a => a.foto_anexo_url).map(a => ({ 
-        url: a.foto_anexo_url!, 
-        desc: a.descricao_servico 
-    })) || []),
-    { url: (rdo as any).safety_nr35_photo, desc: "Segurança: NR-35" },
-    { url: (rdo as any).safety_epi_photo, desc: "Segurança: EPIs" },
-    { url: (rdo as any).safety_cleaning_photo, desc: "Segurança: Limpeza" },
-    { url: (rdo as any).safety_dds_photo, desc: "Segurança: DDS" }
-  ].filter(p => p.url && p.url.trim() !== "");
-
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -267,11 +268,13 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra, sequenceNumber }:
         {/* CABEÇALHO */}
         <View style={styles.headerRow}>
           <View style={styles.brandArea}>
-            <Image 
-                src={logoUrl} 
-                style={styles.logo} 
-                cache={false} // Evita bugs de cache com logos trocadas
-            />
+            {logoBase64 ? (
+                <Image src={logoBase64} style={styles.logo} />
+            ) : (
+                <View style={[styles.logo, styles.imagePlaceholder]}>
+                    <Text style={{ fontSize: 6 }}>LOGO INDISPONÍVEL</Text>
+                </View>
+            )}
             {profile?.company_name && <Text style={styles.companyName}>{profile.company_name}</Text>}
             {profile?.cnpj && <Text style={styles.companyDetails}>CNPJ: {profile.cnpj}</Text>}
           </View>
@@ -290,7 +293,7 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra, sequenceNumber }:
           </View>
           <View style={styles.infoCard}>
             <Text style={styles.infoLabel}>Clima / Condições</Text>
-            <Text style={styles.infoValue}>{rdo.clima_condicoes || 'Informação não disponível'}</Text>
+            <Text style={styles.infoValue}>{rdo.clima_condicoes || 'N/A'}</Text>
           </View>
           <View style={styles.infoCard}>
             <Text style={styles.infoLabel}>Status do Dia</Text>
@@ -302,11 +305,11 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra, sequenceNumber }:
 
         {/* MÃO DE OBRA */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Efetivo e Equipe em Campo</Text>
+          <Text style={styles.sectionTitle}>Efetivo em Campo</Text>
           {rdo.rdo_mao_de_obra && rdo.rdo_mao_de_obra.length > 0 ? (
             <View style={styles.table}>
               <View style={styles.tableHeader}>
-                <Text style={[styles.tableHeaderCell, { flex: 3 }]}>Função / Cargo</Text>
+                <Text style={[styles.tableHeaderCell, { flex: 3 }]}>Função</Text>
                 <Text style={[styles.tableHeaderCell, { flex: 1, textAlign: 'center' }]}>Tipo</Text>
                 <Text style={[styles.tableHeaderCell, { flex: 1, textAlign: 'center' }]}>Qtd.</Text>
               </View>
@@ -319,7 +322,7 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra, sequenceNumber }:
               ))}
             </View>
           ) : (
-            <Text style={styles.companyDetails}>Nenhum registro de efetivo para esta data.</Text>
+            <Text style={styles.companyDetails}>Nenhum registro de efetivo.</Text>
           )}
         </View>
 
@@ -346,7 +349,7 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra, sequenceNumber }:
 
         {/* ATIVIDADES */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Atividades e Evolução do Dia</Text>
+          <Text style={styles.sectionTitle}>Atividades e Evolução</Text>
           {rdo.rdo_atividades_detalhe && rdo.rdo_atividades_detalhe.length > 0 ? (
             rdo.rdo_atividades_detalhe.map((item, i) => (
               <View key={i} style={styles.activityItem} wrap={false}>
@@ -364,31 +367,10 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra, sequenceNumber }:
           )}
         </View>
 
-        {/* MATERIAIS */}
-        {rdo.rdo_materiais && rdo.rdo_materiais.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Materiais e Insumos</Text>
-            <View style={styles.table}>
-              <View style={styles.tableHeader}>
-                <Text style={[styles.tableHeaderCell, { flex: 3 }]}>Insumo</Text>
-                <Text style={[styles.tableHeaderCell, { flex: 1, textAlign: 'center' }]}>Recebido</Text>
-                <Text style={[styles.tableHeaderCell, { flex: 1, textAlign: 'center' }]}>Consumo</Text>
-              </View>
-              {rdo.rdo_materiais.map((item, i) => (
-                <View key={i} style={styles.tableRow}>
-                  <Text style={[styles.tableCell, { flex: 3 }]}>{item.nome_material}</Text>
-                  <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>{item.quantidade_entrada || 0} {item.unidade}</Text>
-                  <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>{item.quantidade_consumida || 0} {item.unidade}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
         {/* OCORRÊNCIAS */}
         {(rdo.impedimentos_comentarios || rdo.observacoes_gerais) && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Ocorrências e Notas Gerais</Text>
+            <Text style={styles.sectionTitle}>Ocorrências e Notas</Text>
             <View style={styles.fullWidthBox}>
               {rdo.impedimentos_comentarios && (
                 <View style={{ marginBottom: 8 }}>
@@ -398,7 +380,7 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra, sequenceNumber }:
               )}
               {rdo.observacoes_gerais && (
                 <View>
-                  <Text style={styles.infoLabel}>OBSERVAÇÕES DO DIA:</Text>
+                  <Text style={styles.infoLabel}>OBSERVAÇÕES:</Text>
                   <Text style={styles.blockText}>{rdo.observacoes_gerais}</Text>
                 </View>
               )}
@@ -406,18 +388,20 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra, sequenceNumber }:
           </View>
         )}
 
-        {/* GALERIA DE FOTOS (FIXED GRID) */}
+        {/* GALERIA DE FOTOS (FIXED GRID COM BASE64) */}
         <View style={styles.section} wrap={false}> 
-          <Text style={styles.sectionTitle}>REGISTRO FOTOGRÁFICO ({allPhotos.length} fotos)</Text>
+          <Text style={styles.sectionTitle}>EVIDÊNCIAS FOTOGRÁFICAS ({photosBase64.length} fotos)</Text>
           <View style={styles.photosContainer}>
-            {allPhotos.length > 0 ? (
-              allPhotos.map((photo, index) => (
+            {photosBase64.length > 0 ? (
+              photosBase64.map((photo, index) => (
                 <View key={index} style={styles.photoWrapper}>
-                  <Image 
-                    src={photo.url} 
-                    style={styles.photo} 
-                    cache={false} 
-                  />
+                  {photo.base64 ? (
+                      <Image src={photo.base64} style={styles.photo} />
+                  ) : (
+                      <View style={[styles.photo, styles.imagePlaceholder]}>
+                          <Text style={{ fontSize: 7, color: colors.danger }}>ERRO IMAGEM</Text>
+                      </View>
+                  )}
                   <Text style={styles.photoCaption}>
                     {photo.desc || `Registro ${index + 1}`}
                   </Text>
@@ -432,20 +416,28 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra, sequenceNumber }:
         {/* ASSINATURAS */}
         <View style={styles.signatureRow} wrap={false}>
           <View style={styles.signatureCol}>
-            {rdo.responsible_signature_url && <Image src={rdo.responsible_signature_url} style={styles.signatureImage} />}
+            {responsibleSigBase64 ? (
+                <Image src={responsibleSigBase64} style={styles.signatureImage} />
+            ) : (
+                <View style={[styles.signatureImage, styles.imagePlaceholder]} />
+            )}
             <View style={styles.signatureLine} />
             <Text style={styles.signatureLabel}>Responsável Técnico</Text>
             <Text style={styles.companyDetails}>{(rdo as any).signer_name || profile?.first_name}</Text>
           </View>
           <View style={styles.signatureCol}>
-            {rdo.client_signature_url && <Image src={rdo.client_signature_url} style={styles.signatureImage} />}
+            {clientSigBase64 ? (
+                <Image src={clientSigBase64} style={styles.signatureImage} />
+            ) : (
+                <View style={[styles.signatureImage, styles.imagePlaceholder]} />
+            )}
             <View style={styles.signatureLine} />
             <Text style={styles.signatureLabel}>Fiscalização / Cliente</Text>
           </View>
         </View>
 
         <Text style={{ position: 'absolute', bottom: 15, left: 0, right: 0, textAlign: 'center', fontSize: 7, color: colors.textLight }}>
-          Documento gerado pela plataforma Meu RDO - Registro Oficial de Campo
+          Documento oficial gerado pela plataforma Meu RDO.
         </Text>
 
       </Page>
