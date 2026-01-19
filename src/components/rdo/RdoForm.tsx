@@ -4,7 +4,7 @@ import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Textarea } from "@/components/ui/textarea";
 import { showError, showSuccess } from "@/utils/toast";
-import { Clock, Smartphone, Info, ShieldCheck, ListTodo, Users, Truck, Package, MessageSquare } from "lucide-react";
+import { Clock, Smartphone, Info, ShieldCheck, ListTodo, Users, Truck, Package, MessageSquare, Signature } from "lucide-react";
 import { DiarioObra, useCreateRdo, useUpdateRdo, useRdoList } from "@/hooks/use-rdo";
 import { RdoSchema, RdoFormValues } from "@/schemas/rdo-schema";
 import RdoHeader from "./RdoHeader";
