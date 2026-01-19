@@ -21,13 +21,12 @@ interface SidebarProps {
 
 const Sidebar = ({ isMobile, isOpen, setIsOpen }: SidebarProps) => {
   const location = useLocation();
-  const { user, isLoading: isAuthLoading } = useAuth();
+  const { user, isLoading: isAuthLoading, isPro, signOut } = useAuth();
   const { data: profile, isLoading: isProfileLoading } = useProfile();
   const { theme, setTheme } = useTheme();
 
   const userRole = profile?.role || "view_only";
   const isLoading = isAuthLoading || isProfileLoading;
-  const isPro = profile?.subscription_status === 'active' || profile?.plan_type === 'pro';
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');

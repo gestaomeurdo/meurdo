@@ -3,16 +3,24 @@ import { Button } from "@/components/ui/button";
 import { ShieldCheck, Zap, Construction, FileText, CheckCircle2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import UpgradeButton from "./UpgradeButton";
+import { useAuth } from "@/integrations/supabase/auth-provider";
 
 const WelcomeFreeModal = () => {
+  const { isPro, isLoading } = useAuth();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
+    // Se ainda está carregando ou se o usuário já é PRO, não faz nada
+    if (isLoading || isPro) {
+        setOpen(false);
+        return;
+    }
+
     const hasSeenWelcome = localStorage.getItem('meurdo_welcome_free_v1');
     if (!hasSeenWelcome) {
       setOpen(true);
     }
-  }, []);
+  }, [isPro, isLoading]);
 
   const handleClose = () => {
     localStorage.setItem('meurdo_welcome_free_v1', 'true');
