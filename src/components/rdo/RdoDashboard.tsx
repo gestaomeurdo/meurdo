@@ -1,10 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, Users, Briefcase, Handshake } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { FileClock, FileCheck, FileEdit, Users, DollarSign, CloudSun } from "lucide-react";
 import { useMemo } from "react";
 import { format, parseISO, isSameMonth, isSameYear } from "date-fns";
 import { DiarioObra } from "@/hooks/use-rdo";
 import { formatCurrency } from "@/utils/formatters";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface RdoDashboardProps {
   rdoList: DiarioObra[];
@@ -20,170 +21,96 @@ const RdoDashboard = ({ rdoList, currentDate, isLoading }: RdoDashboardProps) =>
     });
   }, [rdoList, currentDate]);
 
-  const { totalCost, ownTeamCost, outsourcedCost } = useMemo(() => {
-    let total = 0;
-    let own = 0;
-    let outsourced = 0;
+  const stats = useMemo(() => {
+    const pending = currentMonthRdos.filter(r => r.status === 'pending' || r.status === 'rejected').length;
+    const approved = currentMonthRdos.filter(r => r.status === 'approved').length;
+    const draft = currentMonthRdos.filter(r => r.status === 'draft' || !r.status).length;
     
-    currentMonthRdos.forEach(rdo => {
-      rdo.rdo_mao_de_obra?.forEach(m => {
-        const cost = m.quantidade * (m.custo_unitario || 0);
-        total += cost;
-        if (m.tipo === 'Própria') {
-          own += cost;
-        } else if (m.tipo === 'Terceirizada') {
-          outsourced += cost;
-        } else {
-            // Default to own if undefined
-            own += cost;
-        }
-      });
-    });
-    
-    return { totalCost: total, ownTeamCost: own, outsourcedCost: outsourced };
-  }, [currentMonthRdos]);
-
-  const averageWorkforce = useMemo(() => {
-    if (currentMonthRdos.length === 0) return 0;
     const totalWorkers = currentMonthRdos.reduce((sum, rdo) => {
       return sum + (rdo.rdo_mao_de_obra?.reduce((mSum, m) => mSum + m.quantidade, 0) || 0);
     }, 0);
-    return Math.round(totalWorkers / currentMonthRdos.length);
+    
+    const avgManpower = currentMonthRdos.length > 0 ? Math.round(totalWorkers / currentMonthRdos.length) : 0;
+
+    const totalFinancial = currentMonthRdos.reduce((sum, rdo) => {
+        const mCost = rdo.rdo_mao_de_obra?.reduce((mSum, m) => mSum + (m.quantidade * (m.custo_unitario || 0)), 0) || 0;
+        const eCost = rdo.rdo_equipamentos?.reduce((eSum, e) => eSum + (e.horas_trabalhadas * (e.custo_hora || 0)), 0) || 0;
+        return sum + mCost + eCost;
+    }, 0);
+
+    return { pending, approved, draft, avgManpower, totalFinancial };
   }, [currentMonthRdos]);
 
-  const rainDays = useMemo(() => {
-    return currentMonthRdos.filter(rdo => rdo.clima_condicoes?.includes('Chuva')).length;
-  }, [currentMonthRdos]);
-
-  const chartData = useMemo(() => {
-    const last7Days = [...Array(7)].map((_, i) => {
-      const date = new Date(currentDate);
-      date.setDate(currentDate.getDate() - i);
-      return date;
-    }).reverse();
-
-    return last7Days.map(day => {
-      const dayRdos = currentMonthRdos.filter(rdo => {
-        const rdoDate = parseISO(rdo.data_rdo);
-        return rdoDate.toDateString() === day.toDateString();
-      });
-
-      const dailyCost = dayRdos.reduce((sum, rdo) => {
-        const manpowerCost = rdo.rdo_mao_de_obra?.reduce((mSum, m) => mSum + (m.quantidade * (m.custo_unitario || 0)), 0) || 0;
-        return sum + manpowerCost;
-      }, 0);
-
-      return {
-        date: format(day, 'dd/MM'),
-        cost: dailyCost,
-      };
-    });
-  }, [currentMonthRdos, currentDate]);
-
-  // Fix NaN percentage calculation
-  const ownPercentage = totalCost > 0 ? ((ownTeamCost / totalCost) * 100).toFixed(0) : "0";
-  const outsourcedPercentage = totalCost > 0 ? ((outsourcedCost / totalCost) * 100).toFixed(0) : "0";
-
-  if (isLoading) {
-    return (
-      <div className="grid gap-4 md:grid-cols-3 mb-6">
-        {[1, 2, 3].map(i => (
-          <Card key={i} className="animate-pulse">
-            <CardHeader>
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-8 bg-gray-200 rounded w-full mb-2"></div>
-              <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
-  }
+  if (isLoading) return <div className="grid gap-4 md:grid-cols-4 animate-pulse">{[1,2,3,4].map(i => <div key={i} className="h-32 bg-muted rounded-3xl" />)}</div>;
 
   return (
     <div className="space-y-6">
-      {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Custo Total Mão de Obra (Mês)</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${totalCost > 10000 ? 'text-destructive' : 'text-green-600'}`}>
-              {formatCurrency(totalCost)}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {currentMonthRdos.length} dias registrados
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Custo Equipe Própria</CardTitle>
-            <Briefcase className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold">{formatCurrency(ownTeamCost)}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {ownPercentage}% do total
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Custo Terceirizada</CardTitle>
-            <Handshake className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold">{formatCurrency(outsourcedCost)}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {outsourcedPercentage}% do total
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Média de Efetivo na Obra</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{averageWorkforce} funcionários</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Dias de chuva: {rainDays}
-            </p>
-          </CardContent>
-        </Card>
+      <div className="flex justify-between items-center px-1">
+        <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+            <CloudSun className="w-4 h-4" /> Painel de Controle Operacional
+        </h3>
+        <Badge variant="outline" className="text-[10px] font-bold border-primary/20 text-primary">
+            Custo Estimado/Mês: {formatCurrency(stats.totalFinancial)}
+        </Badge>
       </div>
 
-      {/* Cost Evolution Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Evolução de Custos - Últimos 7 Dias</CardTitle>
-        </CardHeader>
-        <CardContent className="h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis dataKey="date" stroke="hsl(var(--foreground))" />
-              <YAxis
-                stroke="hsl(var(--foreground))"
-                tickFormatter={(value: number) => formatCurrency(value, { maximumFractionDigits: 0 })}
-              />
-              <Tooltip
-                contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '0.5rem' }}
-                formatter={(value: number) => [formatCurrency(value), 'Custo Diário']}
-              />
-              <Bar dataKey="cost" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        {/* Card 1: Atenção */}
+        <Card className="rounded-[2rem] border-none shadow-sm bg-white overflow-hidden group">
+            <div className="h-1.5 w-full bg-orange-500"></div>
+            <CardContent className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                    <div className="p-3 rounded-2xl bg-orange-50 transition-transform group-hover:scale-110">
+                        <FileClock className="w-6 h-6 text-orange-600" />
+                    </div>
+                </div>
+                <div className="text-4xl font-black tracking-tight text-orange-600">{stats.pending}</div>
+                <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mt-2">Aprovação Pendente</p>
+            </CardContent>
+        </Card>
+
+        {/* Card 2: Sucesso */}
+        <Card className="rounded-[2rem] border-none shadow-sm bg-white overflow-hidden group">
+            <div className="h-1.5 w-full bg-emerald-500"></div>
+            <CardContent className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                    <div className="p-3 rounded-2xl bg-emerald-50 transition-transform group-hover:scale-110">
+                        <FileCheck className="w-6 h-6 text-emerald-600" />
+                    </div>
+                </div>
+                <div className="text-4xl font-black tracking-tight text-emerald-600">{stats.approved}</div>
+                <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mt-2">RDOs Aprovados</p>
+            </CardContent>
+        </Card>
+
+        {/* Card 3: Rascunho */}
+        <Card className="rounded-[2rem] border-none shadow-sm bg-white overflow-hidden group">
+            <div className="h-1.5 w-full bg-slate-400"></div>
+            <CardContent className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                    <div className="p-3 rounded-2xl bg-slate-100 transition-transform group-hover:scale-110">
+                        <FileEdit className="w-6 h-6 text-slate-500" />
+                    </div>
+                </div>
+                <div className="text-4xl font-black tracking-tight text-slate-700">{stats.draft}</div>
+                <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mt-2">Em Rascunho</p>
+            </CardContent>
+        </Card>
+
+        {/* Card 4: Efetivo */}
+        <Card className="rounded-[2rem] border-none shadow-sm bg-white overflow-hidden group">
+            <div className="h-1.5 w-full bg-blue-500"></div>
+            <CardContent className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                    <div className="p-3 rounded-2xl bg-blue-50 transition-transform group-hover:scale-110">
+                        <Users className="w-6 h-6 text-blue-600" />
+                    </div>
+                </div>
+                <div className="text-4xl font-black tracking-tight text-blue-700">{stats.avgManpower}</div>
+                <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mt-2">Média de Efetivo</p>
+            </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

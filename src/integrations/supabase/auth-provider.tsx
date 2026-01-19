@@ -60,6 +60,8 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
   };
 
   useEffect(() => {
+    const isPublicRoute = location.pathname.startsWith('/rdo/share/');
+    
     const initializeAuth = async () => {
       try {
         const { data: { session: initialSession } } = await supabase.auth.getSession();
@@ -89,12 +91,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
             const userProfile = await fetchProfile(currentUser.id);
             setProfile(userProfile);
             updateProStatus(userProfile);
-          } else {
-            setProfile(null);
-            updateProStatus(null);
           }
-
-          const isPublicRoute = location.pathname.startsWith('/rdo/share/');
 
           if (event === 'SIGNED_IN') {
             if (!window.location.href.includes('type=recovery') && !isPublicRoute) {
@@ -118,7 +115,10 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
     };
   }, [navigate, queryClient, location.pathname]);
 
-  if (isLoading) {
+  // Bypass para rota pública
+  const isPublicRoute = location.pathname.startsWith('/rdo/share/');
+
+  if (isLoading && !isPublicRoute) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />

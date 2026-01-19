@@ -61,21 +61,6 @@ export const generateRdoPdf = async (
         if (index !== -1) sequenceNumber = (index + 1).toString().padStart(2, '0');
     }
 
-    let contractStats = { total: 0, elapsed: 0, remaining: 0, hasDeadline: false, isDelayed: false };
-    if (obra?.data_inicio && obra?.previsao_entrega) {
-        const start = parseISO(obra.data_inicio);
-        const deadline = parseISO(obra.previsao_entrega);
-        const current = parseISO(rdo.data_rdo);
-        
-        if (isValid(start) && isValid(deadline)) {
-            contractStats.total = differenceInDays(deadline, start);
-            contractStats.elapsed = differenceInDays(current, start);
-            contractStats.remaining = differenceInDays(deadline, current);
-            contractStats.hasDeadline = true;
-            contractStats.isDelayed = contractStats.remaining < 0;
-        }
-    }
-
     const [logoBase64, responsibleSigBase64, clientSigBase64] = await Promise.all([
         urlToBase64(profile?.avatar_url),
         urlToBase64(rdo.responsible_signature_url),
@@ -89,9 +74,6 @@ export const generateRdoPdf = async (
         if (b64) processedPhotos.push({ desc: p.desc, base64: b64 });
     }
 
-    const dateObj = parseISO(rdo.data_rdo);
-    const dayOfWeek = isValid(dateObj) ? format(dateObj, "EEEE", { locale: ptBR }) : "";
-
     const blob = await pdf(
       React.createElement(RdoPdfTemplate, { 
         rdo, 
@@ -99,12 +81,10 @@ export const generateRdoPdf = async (
         profile, 
         obra, 
         sequenceNumber,
-        dayOfWeek,
         logoBase64,
         photosBase64: processedPhotos,
         responsibleSigBase64,
-        clientSigBase64,
-        contractStats
+        clientSigBase64
       })
     ).toBlob();
 
