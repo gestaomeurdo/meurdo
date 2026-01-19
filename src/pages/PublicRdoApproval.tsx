@@ -388,71 +388,73 @@ const PublicRdoApproval = () => {
                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Protocolo: RDO-{rdo.id.substring(0,8).toUpperCase()}</p>
                         </div>
                     </div>
-                </section>
+                </Card>
+            </section>
 
-                <section className="pt-20 border-t-4 border-slate-100 space-y-8 animate-in slide-in-from-bottom-4">
-                    <div className="text-center space-y-2">
-                        <div className="bg-primary/10 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-4">
-                            <SignatureIcon className="w-10 h-10 text-primary" />
-                        </div>
-                        <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-slate-800">Assinatura Digital do Cliente</h3>
-                        <p className="text-sm text-muted-foreground font-medium max-w-sm mx-auto">Preencha sua identificação para habilitar o painel de assinatura.</p>
+            {/* PROTOCOLO DE ASSINATURA IDENTIFICADA DO CLIENTE */}
+            <section className="pt-20 border-t-4 border-slate-100 space-y-8 animate-in slide-in-from-bottom-4">
+                <div className="text-center space-y-2">
+                    <div className="bg-primary/10 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-4">
+                        <SignatureIcon className="w-10 h-10 text-primary" />
                     </div>
+                    <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-slate-800">Assinatura Digital do Cliente</h3>
+                    <p className="text-sm text-muted-foreground font-medium max-w-sm mx-auto">Preencha sua identificação para habilitar o painel de assinatura.</p>
+                </div>
 
-                    <div className="max-w-[500px] mx-auto space-y-6">
-                        <div className="grid grid-cols-1 gap-4">
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Seu Nome Completo</Label>
-                                <Input 
-                                    placeholder="Ex: João da Silva" 
-                                    value={clientName} 
-                                    onChange={(e) => setClientName(e.target.value)}
-                                    className="h-12 rounded-xl bg-white border-slate-200 focus:ring-primary shadow-sm"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Seu Cargo ou Vínculo</Label>
-                                <Input 
-                                    placeholder="Ex: Proprietário, Engenheiro Fiscal..." 
-                                    value={clientRole} 
-                                    onChange={(e) => setClientRole(e.target.value)}
-                                    className="h-12 rounded-xl bg-white border-slate-200 focus:ring-primary shadow-sm"
-                                />
-                            </div>
-                        </div>
-
-                        <div className={cn(
-                            "border-4 border-dashed rounded-[2.5rem] bg-white overflow-hidden relative aspect-[16/7] transition-all shadow-inner",
-                            isDrawing ? "ring-8 ring-primary/5 border-primary" : "border-slate-200 opacity-60"
-                        )}>
-                            <SignatureCanvas 
-                                ref={sigPad} 
-                                penColor='#066abc' 
-                                canvasProps={{ className: 'sigCanvas w-full h-full cursor-crosshair' }} 
-                                onBegin={() => setIsDrawing(true)} 
+                <div className="max-w-[500px] mx-auto space-y-6">
+                    <div className="grid grid-cols-1 gap-4">
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Seu Nome Completo</Label>
+                            <Input 
+                                placeholder="Ex: João da Silva" 
+                                value={clientName} 
+                                onChange={(e) => setClientName(e.target.value)}
+                                className="h-12 rounded-xl bg-white border-slate-200 focus:ring-primary shadow-sm"
                             />
-                            {!isDrawing && (
-                                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-40">
-                                    <Smartphone className="w-8 h-8 mb-2 text-slate-400" />
-                                    <span className="text-[9px] font-black uppercase tracking-[0.4em] mb-1">Área de Assinatura</span>
-                                    <span className="text-xs font-medium">Toque ou use o mouse</span>
-                                </div>
-                            )}
-                            {isDrawing && (
-                                <button 
-                                    onClick={() => { sigPad.current.clear(); setIsDrawing(false); }} 
-                                    className="absolute top-4 right-4 p-2.5 rounded-full bg-slate-100 text-destructive hover:bg-red-50 transition-colors shadow-lg"
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
-                            )}
                         </div>
-
-                        <p className="text-[10px] text-center text-muted-foreground uppercase font-black tracking-widest leading-relaxed">
-                            Ao assinar, você valida legalmente os dados deste relatório<br/>através do protocolo digital Meu RDO.
-                        </p>
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Seu Cargo ou Vínculo</Label>
+                            <Input 
+                                placeholder="Ex: Proprietário, Engenheiro Fiscal..." 
+                                value={clientRole} 
+                                onChange={(e) => setClientRole(e.target.value)}
+                                className="h-12 rounded-xl bg-white border-slate-200 focus:ring-primary shadow-sm"
+                            />
+                        </div>
                     </div>
-                </section>
+
+                    <div className={cn(
+                        "border-4 border-dashed rounded-[2.5rem] bg-white overflow-hidden relative aspect-[16/7] transition-all shadow-inner",
+                        isDrawing ? "ring-8 ring-primary/5 border-primary" : "border-slate-200 opacity-60"
+                    )}>
+                        <SignatureCanvas 
+                            ref={sigPad} 
+                            penColor='#066abc' 
+                            canvasProps={{ className: 'sigCanvas w-full h-full cursor-crosshair' }} 
+                            onBegin={() => setIsDrawing(true)} 
+                        />
+                        {!isDrawing && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-40">
+                                <Smartphone className="w-8 h-8 mb-2 text-slate-400" />
+                                <span className="text-[9px] font-black uppercase tracking-[0.4em] mb-1">Área de Assinatura</span>
+                                <span className="text-xs font-medium">Toque ou use o mouse</span>
+                            </div>
+                        )}
+                        {isDrawing && (
+                            <button 
+                                onClick={() => { sigPad.current.clear(); setIsDrawing(false); }} 
+                                className="absolute top-4 right-4 p-2.5 rounded-full bg-slate-100 text-destructive hover:bg-red-50 transition-colors shadow-lg"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        )}
+                    </div>
+
+                    <p className="text-[10px] text-center text-muted-foreground uppercase font-black tracking-widest leading-relaxed">
+                        Ao assinar, você valida legalmente os dados deste relatório<br/>através do protocolo digital Meu RDO.
+                    </p>
+                </div>
+            </section>
         </div>
       </main>
 
