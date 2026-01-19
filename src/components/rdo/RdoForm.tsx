@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { showSuccess, showError } from "@/utils/toast";
-import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, Sun, Clock, Upload, Image as ImageIcon, X, MessageSquare, AlertOctagon, Cloud, CloudRain, CloudLightning, CheckCircle2, AlertCircle, Moon } from "lucide-react";
+import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, Sun, Clock, Upload, Image as ImageIcon, X, MessageSquare, AlertOctagon, Cloud, CloudRain, CloudLightning, CheckCircle2, AlertCircle, Moon, Power } from "lucide-react";
 import { DiarioObra, useCreateRdo, useUpdateRdo, WorkforceType, useRdoList } from "@/hooks/use-rdo";
 import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
@@ -26,6 +26,7 @@ import { useAuth } from "@/integrations/supabase/auth-provider";
 import UpgradeModal from "../subscription/UpgradeModal";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
 
 const workforceTypes: WorkforceType[] = ['Própria', 'Terceirizada'];
 
@@ -75,11 +76,16 @@ const RdoSchema = z.object({
   work_stopped: z.boolean().default(false),
   hours_lost: z.coerce.number().min(0).max(24).default(0),
   
-  // Períodos individuais para a UI de "caixinhas"
+  // Períodos individuais
+  morning_enabled: z.boolean().default(true),
   morning_clima: z.string().default("Sol"),
   morning_status: z.string().default("Operacional"),
+  
+  afternoon_enabled: z.boolean().default(true),
   afternoon_clima: z.string().default("Sol"),
   afternoon_status: z.string().default("Operacional"),
+  
+  night_enabled: z.boolean().default(false),
   night_clima: z.string().default("Sol"),
   night_status: z.string().default("Operacional"),
 
@@ -124,15 +130,19 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
   const obraNome = currentObra?.nome || "Obra";
 
   const parseSavedClima = (data: string | null) => {
-    if (!data) return { m: "Sol", ms: "Operacional", a: "Sol", as: "Operacional", n: "Sol", ns: "Operacional" };
+    if (!data) return { m: "Sol", ms: "Operacional", me: true, a: "Sol", as: "Operacional", ae: true, n: "Sol", ns: "Operacional", ne: false };
     const parts = data.split(', ');
     const getVal = (idx: number) => {
-        if (!parts[idx]) return { c: "Sol", s: "Operacional" };
+        if (!parts[idx] || parts[idx].includes("N/T")) return { c: "Sol", s: "Operacional", e: false };
         const match = parts[idx].match(/: (.*?) \((.*?)\)/);
-        return match ? { c: match[1], s: match[2] === "Op" ? "Operacional" : "Paralisado" } : { c: "Sol", s: "Operacional" };
+        return match ? { c: match[1], s: match[2] === "Op" ? "Operacional" : "Paralisado", e: true } : { c: "Sol", s: "Operacional", e: false };
     };
     const m = getVal(0); const a = getVal(1); const n = getVal(2);
-    return { m: m.c, ms: m.s, a: a.c, as: a.s, n: n.c, ns: n.s };
+    return { 
+        m: m.c, ms: m.s, me: m.e, 
+        a: a.c, as: a.s, ae: a.e, 
+        n: n.c, ns: n.s, ne: n.e 
+    };
   };
 
   const savedPeriods = parseSavedClima(initialData?.clima_condicoes || null);
@@ -142,10 +152,13 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
     defaultValues: {
       obra_id: obraId,
       data_rdo: initialData?.data_rdo ? new Date(initialData.data_rdo + 'T12:00:00') : (selectedDate || new Date()),
+      morning_enabled: savedPeriods.me,
       morning_clima: savedPeriods.m,
       morning_status: savedPeriods.ms,
+      afternoon_enabled: savedPeriods.ae,
       afternoon_clima: savedPeriods.a,
       afternoon_status: savedPeriods.as,
+      night_enabled: savedPeriods.ne,
       night_clima: savedPeriods.n,
       night_status: savedPeriods.ns,
       status_dia: initialData?.status_dia || 'Operacional',
@@ -208,7 +221,10 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
 
   const onSubmit = async (values: RdoFormValues) => {
     try {
-      const climaString = `M: ${values.morning_clima} (${values.morning_status === "Operacional" ? "Op" : "Par"}), T: ${values.afternoon_clima} (${values.afternoon_status === "Operacional" ? "Op" : "Par"}), N: ${values.night_clima} (${values.night_status === "Operacional" ? "Op" : "Par"})`;
+      const getP = (en: boolean, c: string, s: string, prefix: string) => 
+        en ? `${prefix}: ${c} (${s === "Operacional" ? "Op" : "Par"})` : `${prefix}: N/T`;
+
+      const climaString = `${getP(values.morning_enabled, values.morning_clima, values.morning_status, "M")}, ${getP(values.afternoon_enabled, values.afternoon_clima, values.afternoon_status, "T")}, ${getP(values.night_enabled, values.night_clima, values.night_status, "N")}`;
       
       const dataToSubmit = {
         ...values,
@@ -229,41 +245,51 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
     }
   };
 
-  const PeriodBox = ({ label, climaName, statusName, icon: Icon }: { label: string, climaName: any, statusName: any, icon: any }) => (
-    <div className="p-4 border rounded-2xl bg-card shadow-sm space-y-3">
-        <div className="flex items-center gap-2 border-b pb-2">
-            <Icon className="w-4 h-4 text-primary" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{label}</span>
-        </div>
-        <div className="space-y-2">
-            <FormField control={methods.control} name={climaName} render={({ field }) => (
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl><SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger></FormControl>
-                    <SelectContent>
-                        <SelectItem value="Sol">☀️ Sol</SelectItem>
-                        <SelectItem value="Nublado">☁️ Nublado</SelectItem>
-                        <SelectItem value="Chuva Leve">🌦️ Chuva Leve</SelectItem>
-                        <SelectItem value="Chuva Forte">⛈️ Chuva Forte</SelectItem>
-                    </SelectContent>
-                </Select>
-            )} />
-            <FormField control={methods.control} name={statusName} render={({ field }) => (
-                <div className="grid grid-cols-2 gap-1 bg-muted p-1 rounded-lg">
-                    <button 
-                        type="button"
-                        onClick={() => field.onChange("Operacional")}
-                        className={cn("text-[9px] font-black uppercase py-1.5 rounded-md transition-all", field.value === "Operacional" ? "bg-green-600 text-white shadow-sm" : "text-muted-foreground hover:bg-muted-foreground/10")}
-                    >Op.</button>
-                    <button 
-                        type="button"
-                        onClick={() => field.onChange("Paralisado")}
-                        className={cn("text-[9px] font-black uppercase py-1.5 rounded-md transition-all", field.value === "Paralisado" ? "bg-destructive text-white shadow-sm" : "text-muted-foreground hover:bg-muted-foreground/10")}
-                    >Par.</button>
+  const PeriodBox = ({ label, enabledName, climaName, statusName, icon: Icon }: { label: string, enabledName: any, climaName: any, statusName: any, icon: any }) => {
+    const isEnabled = useWatch({ control: methods.control, name: enabledName });
+
+    return (
+        <div className={cn("p-4 border rounded-2xl bg-card shadow-sm space-y-3 transition-all", !isEnabled && "opacity-40 grayscale-[0.5] bg-muted/50")}>
+            <div className="flex items-center justify-between border-b pb-2">
+                <div className="flex items-center gap-2">
+                    <Icon className={cn("w-4 h-4", isEnabled ? "text-primary" : "text-muted-foreground")} />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{label}</span>
                 </div>
-            )} />
+                <FormField control={methods.control} name={enabledName} render={({ field }) => (
+                    <Switch checked={field.value} onCheckedChange={field.onChange} className="scale-75 h-4" />
+                )} />
+            </div>
+            
+            <div className={cn("space-y-2", !isEnabled && "pointer-events-none")}>
+                <FormField control={methods.control} name={climaName} render={({ field }) => (
+                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!isEnabled}>
+                        <FormControl><SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>
+                            <SelectItem value="Sol">☀️ Sol</SelectItem>
+                            <SelectItem value="Nublado">☁️ Nublado</SelectItem>
+                            <SelectItem value="Chuva Leve">🌦️ Chuva Leve</SelectItem>
+                            <SelectItem value="Chuva Forte">⛈️ Chuva Forte</SelectItem>
+                        </SelectContent>
+                    </Select>
+                )} />
+                <FormField control={methods.control} name={statusName} render={({ field }) => (
+                    <div className="grid grid-cols-2 gap-1 bg-muted p-1 rounded-lg">
+                        <button 
+                            type="button"
+                            onClick={() => field.onChange("Operacional")}
+                            className={cn("text-[9px] font-black uppercase py-1.5 rounded-md transition-all", field.value === "Operacional" ? "bg-green-600 text-white shadow-sm" : "text-muted-foreground hover:bg-muted-foreground/10")}
+                        >Op.</button>
+                        <button 
+                            type="button"
+                            onClick={() => field.onChange("Paralisado")}
+                            className={cn("text-[9px] font-black uppercase py-1.5 rounded-md transition-all", field.value === "Paralisado" ? "bg-destructive text-white shadow-sm" : "text-muted-foreground hover:bg-muted-foreground/10")}
+                        >Par.</button>
+                    </div>
+                )} />
+            </div>
         </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <FormProvider {...methods}>
@@ -293,9 +319,9 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <PeriodBox label="Período Manhã" climaName="morning_clima" statusName="morning_status" icon={Sun} />
-            <PeriodBox label="Período Tarde" climaName="afternoon_clima" statusName="afternoon_status" icon={Sun} />
-            <PeriodBox label="Período Noite" climaName="night_clima" statusName="night_status" icon={Moon} />
+            <PeriodBox label="Manhã" enabledName="morning_enabled" climaName="morning_clima" statusName="morning_status" icon={Sun} />
+            <PeriodBox label="Tarde" enabledName="afternoon_enabled" climaName="afternoon_clima" statusName="afternoon_status" icon={Sun} />
+            <PeriodBox label="Noite" enabledName="night_enabled" climaName="night_clima" statusName="night_status" icon={Moon} />
         </div>
 
         <Tabs defaultValue="atividades" className="w-full">
