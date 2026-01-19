@@ -24,6 +24,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const PRO_CACHE_KEY = 'meurdo_is_pro_v1';
+const ADMIN_EMAIL = 'robsonalixandree@gmail.com';
 
 export const SessionContextProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -38,8 +39,11 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
   const location = useLocation();
   const queryClient = useQueryClient();
 
-  const updateProStatus = (p: Profile | null) => {
-    const status = p?.subscription_status === 'active' || p?.plan_type === 'pro' || p?.role === 'administrator';
+  const updateProStatus = (p: Profile | null, email?: string) => {
+    // REGRA DE OURO: Robson é sempre PRO
+    const isRobson = email === ADMIN_EMAIL || p?.role === 'administrator';
+    const status = isRobson || p?.subscription_status === 'active' || p?.plan_type === 'pro';
+    
     setIsPro(status);
     localStorage.setItem(PRO_CACHE_KEY, status ? 'true' : 'false');
   };
@@ -73,7 +77,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
         if (currentUser) {
           const userProfile = await fetchProfile(currentUser.id);
           setProfile(userProfile);
-          updateProStatus(userProfile);
+          updateProStatus(userProfile, currentUser.email);
         }
       } catch (err) {
         console.error("Auth init error:", err);
@@ -90,7 +94,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
           if (currentUser) {
             const userProfile = await fetchProfile(currentUser.id);
             setProfile(userProfile);
-            updateProStatus(userProfile);
+            updateProStatus(userProfile, currentUser.email);
           }
 
           if (event === 'SIGNED_IN') {
