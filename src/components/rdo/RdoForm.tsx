@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { showSuccess, showError } from "@/utils/toast";
-import { Loader2, Save, FileDown, DollarSign, Lock, Sun, Cloud, CloudRain, CloudLightning, CheckCircle2, AlertCircle, Moon, Zap, Clock } from "lucide-react";
+import { Loader2, Save, FileDown, DollarSign, Lock, Sun, Cloud, CloudRain, CloudLightning, CheckCircle2, AlertCircle, Moon, Zap, Clock, ChevronDown } from "lucide-react";
 import { DiarioObra, useCreateRdo, useUpdateRdo, WorkforceType, useRdoList } from "@/hooks/use-rdo";
 import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
@@ -25,7 +25,6 @@ import UpgradeModal from "../subscription/UpgradeModal";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
-import { Card, CardContent } from "@/components/ui/card";
 
 const workforceTypes: WorkforceType[] = ['Própria', 'Terceirizada'];
 
@@ -277,84 +276,78 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
     }
   };
 
-  const PeriodCard = ({ label, enabledName, climaName, statusName, icon: Icon }: { label: string, enabledName: any, climaName: any, statusName: any, icon: any }) => {
+  const PeriodItem = ({ label, enabledName, climaName, statusName, icon: Icon }: { label: string, enabledName: any, climaName: any, statusName: any, icon: any }) => {
     const isEnabled = useWatch({ control: methods.control, name: enabledName });
 
     return (
-        <Card className={cn(
-            "transition-all border shadow-sm rounded-2xl overflow-hidden", 
-            !isEnabled && "opacity-60 bg-muted/40 grayscale"
-        )}>
-            <CardContent className="p-5 space-y-6">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <Icon className={cn("w-5 h-5", isEnabled ? "text-primary" : "text-muted-foreground")} />
-                        <span className="text-sm font-bold text-foreground">{label}</span>
-                    </div>
-                    <FormField control={methods.control} name={enabledName} render={({ field }) => (
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
-                    )} />
+        <div className="space-y-2">
+            <div 
+                className={cn(
+                    "flex items-center justify-between p-4 rounded-xl transition-all",
+                    isEnabled ? "bg-primary/5" : "bg-muted/30 hover:bg-muted/50 cursor-pointer"
+                )}
+                onClick={() => !isEnabled && methods.setValue(enabledName, true, { shouldDirty: true })}
+            >
+                <div className="flex items-center gap-3">
+                    <Icon className={cn("w-5 h-5", isEnabled ? "text-primary" : "text-muted-foreground")} />
+                    <span className={cn("text-sm font-bold uppercase tracking-widest", isEnabled ? "text-primary" : "text-muted-foreground")}>
+                        Período da {label}
+                    </span>
                 </div>
-                
-                {isEnabled && (
-                    <div className="space-y-6 animate-in fade-in slide-in-from-top-1 duration-300">
-                        <div className="space-y-2">
-                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Clima</span>
-                            <div className="grid grid-cols-4 gap-1.5">
-                                {WEATHER_OPTIONS.map((opt) => {
-                                    const isSelected = methods.watch(climaName) === opt.value;
-                                    return (
-                                        <button 
-                                            key={opt.value}
-                                            type="button"
-                                            onClick={() => methods.setValue(climaName, opt.value, { shouldDirty: true })}
-                                            className={cn(
-                                                "flex flex-col items-center justify-center py-3 rounded-xl border transition-all gap-1",
-                                                isSelected ? "bg-primary border-primary text-white shadow-sm" : "bg-background border-border text-muted-foreground hover:bg-muted/50"
-                                            )}
-                                        >
-                                            <opt.icon className="w-4 h-4" />
-                                            <span className="text-[8px] font-bold uppercase">{opt.label}</span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                <FormField control={methods.control} name={enabledName} render={({ field }) => (
+                    <Switch checked={field.value} onCheckedChange={field.onChange} className="data-[state=checked]:bg-primary" />
+                )} />
+            </div>
+            
+            {isEnabled && (
+                <div className="p-5 bg-white border rounded-2xl shadow-sm space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="grid grid-cols-4 gap-3">
+                        {WEATHER_OPTIONS.map((opt) => {
+                            const isSelected = methods.watch(climaName) === opt.value;
+                            return (
+                                <button 
+                                    key={opt.value}
+                                    type="button"
+                                    onClick={() => methods.setValue(climaName, opt.value, { shouldDirty: true })}
+                                    className={cn(
+                                        "flex flex-col items-center justify-center py-4 rounded-2xl border transition-all gap-2",
+                                        isSelected 
+                                            ? "bg-primary/5 border-primary text-primary shadow-sm" 
+                                            : "bg-background border-border text-muted-foreground hover:bg-muted/50"
+                                    )}
+                                >
+                                    <opt.icon className={cn("w-6 h-6", isSelected ? "animate-in zoom-in-75" : "opacity-50")} />
+                                    <span className="text-[10px] font-black uppercase">{opt.label}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
 
-                        <div className="space-y-2">
-                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Status do Turno</span>
-                            <div className="flex p-1 bg-muted/50 rounded-xl border border-border">
-                                <button 
-                                    type="button"
-                                    onClick={() => methods.setValue(statusName, "Operacional", { shouldDirty: true })}
-                                    className={cn(
-                                        "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-bold text-[10px] uppercase transition-all",
-                                        methods.watch(statusName) === "Operacional" ? "bg-white text-green-600 shadow-sm" : "text-muted-foreground hover:text-foreground"
-                                    )}
-                                >
-                                    <CheckCircle2 className="w-3 h-3" /> Operacional
-                                </button>
-                                <button 
-                                    type="button"
-                                    onClick={() => methods.setValue(statusName, "Paralisado", { shouldDirty: true })}
-                                    className={cn(
-                                        "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-bold text-[10px] uppercase transition-all",
-                                        methods.watch(statusName) === "Paralisado" ? "bg-white text-destructive shadow-sm" : "text-muted-foreground hover:text-foreground"
-                                    )}
-                                >
-                                    <AlertCircle className="w-3 h-3" /> Paralisado
-                                </button>
-                            </div>
-                        </div>
+                    <div className="flex bg-muted/40 p-1.5 rounded-xl border border-border/50">
+                        <button 
+                            type="button"
+                            onClick={() => methods.setValue(statusName, "Operacional", { shouldDirty: true })}
+                            className={cn(
+                                "flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all",
+                                methods.watch(statusName) === "Operacional" ? "bg-green-600 text-white shadow-md" : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            <CheckCircle2 className="w-4 h-4" /> Operacional
+                        </button>
+                        <button 
+                            type="button"
+                            onClick={() => methods.setValue(statusName, "Paralisado", { shouldDirty: true })}
+                            className={cn(
+                                "flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all",
+                                methods.watch(statusName) === "Paralisado" ? "bg-destructive text-white shadow-md" : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            <AlertCircle className="w-4 h-4" /> Paralisado
+                        </button>
                     </div>
-                )}
-                {!isEnabled && (
-                    <div className="h-[148px] flex items-center justify-center border border-dashed rounded-xl">
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Turno Inativo</span>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
+                </div>
+            )}
+        </div>
     );
   };
 
@@ -364,42 +357,38 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
         <UpgradeModal open={showUpgrade} onOpenChange={setShowUpgrade} />
 
         {/* Header de Custo Estilo Dashboard */}
-        <Card className="border-none shadow-clean bg-card overflow-hidden">
-            <div className="h-1.5 w-full bg-primary"></div>
-            <CardContent className="p-6">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-                    <div className="flex items-center gap-4">
-                        <div className="p-4 bg-primary/10 rounded-2xl">
-                            <DollarSign className="w-8 h-8 text-primary" />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Investimento em Equipe (Dia)</p>
-                            <h2 className="text-4xl font-black tracking-tight text-foreground">{formatCurrency(estimatedDailyCost)}</h2>
-                        </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                        {isEditing && (
-                            <Button type="button" variant="outline" onClick={() => generateRdoPdf(initialData, obras?.find(o => o.id === obraId)?.nome || "Obra", profile, obras?.find(o => o.id === obraId), rdoList)} disabled={isGeneratingPdf} className="flex-1 sm:flex-none rounded-xl h-12 font-bold uppercase text-[10px] tracking-widest">
-                                <FileDown className="w-4 h-4 mr-2" /> Exportar PDF
-                            </Button>
-                        )}
-                        <Button type="submit" disabled={updateMutation.isPending || createMutation.isPending} className="flex-1 sm:flex-none rounded-xl bg-primary hover:bg-primary/90 h-12 font-bold uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20">
-                            {(updateMutation.isPending || createMutation.isPending) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                            Salvar Diário
-                        </Button>
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-6 bg-card border rounded-[2rem] shadow-clean gap-6">
+          <div className="flex items-center gap-5">
+            <div className="bg-primary/10 p-4 rounded-2xl text-primary">
+                <DollarSign className="w-8 h-8" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Custo de Mão de Obra do Dia</p>
+              <h2 className="text-4xl font-black tracking-tight text-foreground">{formatCurrency(estimatedDailyCost)}</h2>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            {isEditing && (
+              <Button type="button" variant="outline" onClick={() => generateRdoPdf(initialData, obras?.find(o => o.id === obraId)?.nome || "Obra", profile, obras?.find(o => o.id === obraId), rdoList)} disabled={isGeneratingPdf} className="flex-1 sm:flex-none rounded-xl font-bold uppercase text-[10px] tracking-widest h-14">
+                {isGeneratingPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileDown className="w-4 h-4 mr-2" />}
+                Exportar PDF
+              </Button>
+            )}
+            <Button type="submit" disabled={updateMutation.isPending || createMutation.isPending} className="flex-1 sm:flex-none rounded-xl bg-[#066abc] hover:bg-[#066abc]/90 font-bold uppercase text-[10px] tracking-widest h-14 shadow-lg shadow-blue-500/10">
+              {(updateMutation.isPending || createMutation.isPending) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+              Salvar Registro
+            </Button>
+          </div>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <PeriodCard label="Manhã" enabledName="morning_enabled" climaName="morning_clima" statusName="morning_status" icon={Sun} />
-            <PeriodCard label="Tarde" enabledName="afternoon_enabled" climaName="afternoon_clima" statusName="afternoon_status" icon={Clock} />
-            <PeriodCard label="Noite" enabledName="night_enabled" climaName="night_clima" statusName="night_status" icon={Moon} />
+        <div className="flex flex-col gap-3">
+            <PeriodItem label="Manhã" enabledName="morning_enabled" climaName="morning_clima" statusName="morning_status" icon={Sun} />
+            <PeriodItem label="Tarde" enabledName="afternoon_enabled" climaName="afternoon_clima" statusName="afternoon_status" icon={Clock} />
+            <PeriodItem label="Noite" enabledName="night_enabled" climaName="night_clima" statusName="night_status" icon={Moon} />
         </div>
 
         <Tabs defaultValue="atividades" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 h-auto bg-muted/40 p-1 rounded-2xl gap-1 border">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 h-auto bg-muted/40 p-1.5 rounded-2xl gap-1.5 border">
             <TabsTrigger value="atividades" className="rounded-xl text-[9px] uppercase font-black py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">Serviços</TabsTrigger>
             <TabsTrigger value="mao_de_obra" className="rounded-xl text-[9px] uppercase font-black py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">Equipe</TabsTrigger>
             <TabsTrigger value="equipamentos" className="rounded-xl text-[9px] uppercase font-black py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">Máquinas</TabsTrigger>
@@ -416,13 +405,13 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
           <TabsContent value="ocorrencias" className="pt-6 space-y-5">
             <FormField control={methods.control} name="impedimentos_comentarios" render={({ field }) => (
                 <FormItem>
-                    <FormLabel className="text-[10px] font-black uppercase text-destructive tracking-widest ml-2">Impedimentos e Paralisações</FormLabel>
-                    <FormControl><Textarea {...field} value={field.value || ""} rows={4} className="bg-red-50/5 rounded-2xl border-red-100 focus:ring-destructive/20" placeholder="Descreva problemas técnicos, falta de material ou atrasos..." /></FormControl>
+                    <FormLabel className="text-[10px] font-black uppercase text-destructive tracking-[0.2em] ml-2">Impedimentos e Paralisações</FormLabel>
+                    <FormControl><Textarea {...field} value={field.value || ""} rows={4} className="bg-red-50/10 rounded-2xl border-red-100" placeholder="Descreva problemas técnicos, falta de material ou atrasos..." /></FormControl>
                 </FormItem>
             )} />
             <FormField control={methods.control} name="observacoes_gerais" render={({ field }) => (
                 <FormItem>
-                    <FormLabel className="text-[10px] font-black uppercase text-primary tracking-widest ml-2">Observações Gerais</FormLabel>
+                    <FormLabel className="text-[10px] font-black uppercase text-[#066abc] tracking-[0.2em] ml-2">Observações Gerais</FormLabel>
                     <FormControl><Textarea {...field} value={field.value || ""} rows={4} className="rounded-2xl" placeholder="Notas adicionais sobre o dia na obra..." /></FormControl>
                 </FormItem>
             )} />
@@ -438,7 +427,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
             ) : (
                 <div className="p-10 text-center bg-muted/10 rounded-[2.5rem] border-dashed border-2 border-border cursor-pointer hover:bg-muted/20 transition-all group" onClick={() => setShowUpgrade(true)}>
                     <Lock className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30 group-hover:scale-110 transition-transform" />
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Assinaturas Digitais Exclusivas PRO</p>
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">Assinaturas Digitais Exclusivas PRO</p>
                 </div>
             )}
         </div>
