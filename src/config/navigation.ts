@@ -1,4 +1,4 @@
-import { LayoutDashboard, Construction, DollarSign, Package, Users, FileText, Settings, ClipboardList, BarChart3, Star, Truck, LifeBuoy } from "lucide-react";
+import { LayoutDashboard, Construction, DollarSign, Package, Users, FileText, Settings, ClipboardList, BarChart3, Star, Truck, LifeBuoy, ShieldCheck } from "lucide-react";
 
 export interface NavItem {
   title: string;
@@ -67,6 +67,12 @@ export const navItems: NavItem[] = [
     href: "/documentacao",
     icon: FileText,
     roles: ["administrator", "obra_user", "view_only"],
+  },
+  {
+    title: "Backoffice (Robson)",
+    href: "/admin/tickets",
+    icon: ShieldCheck,
+    roles: ["administrator"],
   },
   {
     title: "Planos & Suporte",
