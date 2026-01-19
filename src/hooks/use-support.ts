@@ -18,7 +18,7 @@ export interface SupportMessage {
   id: string;
   ticket_id: string;
   sender_role: SenderRole;
-  message: TEXT;
+  message: string;
   created_at: string;
 }
 

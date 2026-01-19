@@ -16,7 +16,7 @@ export const useAdminTickets = () => {
   return useQuery<AdminTicket[], Error>({
     queryKey: ['adminTickets'],
     queryFn: async () => {
-      // Query limpa sem filtro de user_id para o Admin ver TUDO
+      // Query sem filtros para Admin
       const { data, error } = await supabase
         .from('support_tickets')
         .select(`
@@ -25,7 +25,10 @@ export const useAdminTickets = () => {
         `)
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Admin tickets fetch error:", error);
+        throw error;
+      }
       return data as any[];
     },
   });
@@ -57,6 +60,7 @@ export const useAdminReply = () => {
       
       if (msgError) throw msgError;
 
+      // Opcional: Atualiza o status do ticket para indicar que o suporte respondeu
       await supabase
         .from('support_tickets')
         .update({ status: 'resolved' }) 
