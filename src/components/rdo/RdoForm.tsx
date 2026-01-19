@@ -1,3 +1,5 @@
+"use client";
+
 import { useForm, FormProvider, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -9,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { showSuccess, showError } from "@/utils/toast";
 import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, UserCheck, Sun, Clock, Copy, Upload, Image as ImageIcon, X, Handshake, Moon, SunMedium, CheckCircle, Trash2, AlertTriangle, StickyNote } from "lucide-react";
-import { DiarioObra, useCreateRdo, useUpdateRdo, WorkforceType, useDeleteRdo } from "@/hooks/use-rdo";
+import { DiarioObra, useCreateRdo, useUpdateRdo, WorkforceType, useDeleteRdo, useRdoList } from "@/hooks/use-rdo";
 import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
 import RdoEquipmentForm from "./RdoEquipmentForm";
@@ -93,7 +95,6 @@ const RdoSchema = z.object({
   safety_cleaning_photo: z.string().nullable().optional(),
   safety_dds_photo: z.string().nullable().optional(),
 
-  // Arrays opcionais para permitir rascunho
   atividades: z.array(RdoDetailSchema).optional(),
   mao_de_obra: z.array(ManpowerSchema).optional(),
   equipamentos: z.array(EquipmentSchema).optional(),
@@ -119,6 +120,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
   const updateMutation = useUpdateRdo();
   const deleteMutation = useDeleteRdo();
   const { data: obras } = useObras();
+  const { data: rdoList } = useRdoList(obraId); // Para calcular sequência no PDF
   const currentObra = obras?.find(o => o.id === obraId);
   const obraNome = currentObra?.nome || "Obra";
   
@@ -310,8 +312,8 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
         rdo_atividades_detalhe: methods.getValues('atividades') as any,
         rdo_equipamentos: methods.getValues('equipamentos') as any,
       };
-      // Passed currentObra here to enable progress calculation
-      generateRdoPdf(currentData, obraNome, profile, currentObra);
+      // Agora passamos a rdoList para calcular a sequência amigável
+      generateRdoPdf(currentData, obraNome, profile, currentObra, rdoList);
     } else {
       showError("Salve o RDO antes de exportar.");
     }
@@ -364,7 +366,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
       const dataToSubmit = {
         ...values,
         atividades: atividadesValidas,
-        // Ensure arrays are initialized as empty if undefined
         mao_de_obra: values.mao_de_obra || [],
         equipamentos: values.equipamentos || [],
         materiais: values.materiais || [],
@@ -383,7 +384,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
       console.error("Erro ao salvar RDO:", error);
       let errorMessage = error?.message || error?.error_description || "Erro desconhecido ao salvar.";
       
-      // Handle unique constraint violation specifically
       if (errorMessage.includes("diarios_obra_obra_id_data_rdo_key") || errorMessage.includes("duplicate key")) {
         errorMessage = "Já existe um RDO registrado para esta data. Edite o existente ou mude a data.";
       }
@@ -393,42 +393,8 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
   };
 
   const onError = (errors: any) => {
-    const errorList: string[] = [];
-    
-    // Recursive helper to find error messages
-    const extractErrors = (obj: any, prefix = '') => {
-        Object.keys(obj).forEach(key => {
-            const error = obj[key];
-            if (error?.message) {
-                let fieldName = key;
-                if(key === 'periodo') fieldName = 'Período';
-                if(key === 'data_rdo') fieldName = 'Data do RDO';
-                if(key === 'mao_de_obra') fieldName = 'Mão de Obra';
-                if(key === 'equipamentos') fieldName = 'Equipamentos';
-                if(key === 'atividades') fieldName = 'Atividades';
-                if(key === 'materiais') fieldName = 'Materiais';
-                if(key === 'funcao') fieldName = 'Função';
-                if(key === 'nome_material') fieldName = 'Nome do Material';
-                if(key === 'equipamento') fieldName = 'Nome do Equipamento';
-                
-                if (prefix) fieldName = `${prefix} > ${fieldName}`;
-                
-                errorList.push(`${fieldName}: ${error.message}`);
-            } else if (typeof error === 'object') {
-                const nextPrefix = key.match(/^\d+$/) ? `#${parseInt(key) + 1}` : key;
-                const fullPrefix = prefix ? `${prefix} ${nextPrefix}` : nextPrefix;
-                extractErrors(error, fullPrefix);
-            }
-        });
-    };
-
-    extractErrors(errors);
-    
-    if (errorList.length === 0) errorList.push("Verifique os campos obrigatórios.");
-    const uniqueErrors = Array.from(new Set(errorList)).slice(0, 5);
-    
-    showError(`Corrija os erros:\n${uniqueErrors.join('\n')}`);
     console.error("Form Validation Errors:", errors);
+    showError("Verifique os campos obrigatórios antes de salvar.");
   };
 
   const handlePeriodToggle = (period: string, currentPeriods: string) => {

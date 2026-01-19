@@ -3,7 +3,7 @@ import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/render
 import { DiarioObra } from "@/hooks/use-rdo";
 import { Profile } from "@/hooks/use-profile";
 import { Obra } from "@/hooks/use-obras";
-import { format, parseISO, isValid } from "date-fns";
+import { format, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const colors = {
@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
     width: '60%',
   },
   logo: {
-    height: 50,
+    height: 45,
     marginBottom: 5,
     objectFit: 'contain',
   },
@@ -165,27 +165,31 @@ const styles = StyleSheet.create({
     fontSize: 9,
     lineHeight: 1.4,
   },
-  photoGrid: {
+  // ESTILOS DO GRID DE FOTOS (Solicitados)
+  galleryContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    marginTop: 10,
     gap: 10,
   },
-  photoWrapper: {
+  photoBox: {
     width: '31%',
     marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#eeeeee',
+    borderRadius: 4,
+    padding: 4,
   },
-  photo: {
+  photoImage: {
     width: '100%',
     height: 100,
     objectFit: 'cover',
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: 2,
   },
   photoCaption: {
     fontSize: 7,
-    color: colors.textLight,
-    marginTop: 3,
+    color: '#555555',
+    marginTop: 4,
     textAlign: 'center',
   },
   signatureRow: {
@@ -222,16 +226,15 @@ interface RdoPdfTemplateProps {
   obraNome: string;
   profile: Profile | null;
   obra?: Obra;
+  sequenceNumber?: string;
 }
 
 const DEFAULT_SYSTEM_LOGO = "https://meurdo.com.br/wp-content/uploads/2026/01/Logo-MEU-RDO-scaled.png";
 
-export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra }: RdoPdfTemplateProps) => {
-  // AJUSTE CRÍTICO: Lógica de Fallback da Logo
-  // 1. Prioridade 1: Logo da Obra (obra.foto_url)
-  // 2. Prioridade 2 (Default): Logo Oficial Meu RDO
-  const logoUrl = (obra?.foto_url && obra.foto_url.trim().length > 0) 
-    ? obra.foto_url 
+export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra, sequenceNumber }: RdoPdfTemplateProps) => {
+  // Lógica de Fallback de Logo (Forçada)
+  const logoUrl = (profile?.avatar_url && profile.avatar_url.trim().length > 0) 
+    ? profile.avatar_url 
     : DEFAULT_SYSTEM_LOGO;
 
   let dateStr = '---';
@@ -244,19 +247,20 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra }: RdoPdfTemplateP
     }
   } catch (e) {}
 
+  // Consolidação de todas as fotos para o Grid
   const allPhotos = [
     ...(rdo.rdo_atividades_detalhe?.filter(a => a.foto_anexo_url).map(a => ({ url: a.foto_anexo_url!, desc: a.descricao_servico })) || []),
-    { url: rdo.safety_nr35_photo, desc: "Segurança: Trabalho em Altura" },
-    { url: rdo.safety_epi_photo, desc: "Segurança: Uso de EPIs" },
-    { url: rdo.safety_cleaning_photo, desc: "Segurança: Limpeza e Organização" },
-    { url: rdo.safety_dds_photo, desc: "Segurança: Registro de DDS" },
-    { url: rdo.safety_photo_url, desc: "Segurança: Registro Geral" }
-  ].filter(p => p.url) as { url: string, desc: string }[];
+    { url: (rdo as any).safety_nr35_photo, desc: "Trabalho em Altura / NR-35" },
+    { url: (rdo as any).safety_epi_photo, desc: "Uso de EPIs" },
+    { url: (rdo as any).safety_cleaning_photo, desc: "Limpeza e Organização" },
+    { url: (rdo as any).safety_dds_photo, desc: "Registro de DDS" }
+  ].filter(p => p.url && p.url.trim() !== "");
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         
+        {/* CABEÇALHO COM LOGO */}
         <View style={styles.headerRow}>
           <View style={styles.brandArea}>
             <Image src={logoUrl} style={styles.logo} />
@@ -264,12 +268,13 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra }: RdoPdfTemplateP
             {profile?.cnpj && <Text style={styles.companyDetails}>CNPJ: {profile.cnpj}</Text>}
           </View>
           <View style={styles.rdoBadge}>
-            <Text style={styles.rdoNumber}>RDO nº {rdo.id.slice(0, 5).toUpperCase()}</Text>
+            <Text style={styles.rdoNumber}>RDO nº {sequenceNumber || '00'}</Text>
             <Text style={styles.rdoDate}>{dateStr}</Text>
             <Text style={styles.rdoDay}>{dayStr}</Text>
           </View>
         </View>
 
+        {/* BARRA DE INFO */}
         <View style={styles.infoBar}>
           <View style={styles.infoCard}>
             <Text style={styles.infoLabel}>Obra</Text>
@@ -277,7 +282,7 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra }: RdoPdfTemplateP
           </View>
           <View style={styles.infoCard}>
             <Text style={styles.infoLabel}>Clima / Condições</Text>
-            <Text style={styles.infoValue}>{rdo.clima_condicoes || 'Sol / Estiagem'}</Text>
+            <Text style={styles.infoValue}>{rdo.clima_condicoes || 'Informação não disponível'}</Text>
           </View>
           <View style={styles.infoCard}>
             <Text style={styles.infoLabel}>Status do Dia</Text>
@@ -287,6 +292,7 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra }: RdoPdfTemplateP
           </View>
         </View>
 
+        {/* MÃO DE OBRA */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Efetivo e Equipe em Campo</Text>
           {rdo.rdo_mao_de_obra && rdo.rdo_mao_de_obra.length > 0 ? (
@@ -309,6 +315,7 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra }: RdoPdfTemplateP
           )}
         </View>
 
+        {/* EQUIPAMENTOS */}
         {rdo.rdo_equipamentos && rdo.rdo_equipamentos.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Máquinas e Equipamentos</Text>
@@ -329,6 +336,7 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra }: RdoPdfTemplateP
           </View>
         )}
 
+        {/* ATIVIDADES */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Atividades e Evolução do Dia</Text>
           {rdo.rdo_atividades_detalhe && rdo.rdo_atividades_detalhe.length > 0 ? (
@@ -348,13 +356,14 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra }: RdoPdfTemplateP
           )}
         </View>
 
+        {/* MATERIAIS */}
         {rdo.rdo_materiais && rdo.rdo_materiais.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Insumos e Recebimentos</Text>
+            <Text style={styles.sectionTitle}>Materiais e Insumos</Text>
             <View style={styles.table}>
               <View style={styles.tableHeader}>
                 <Text style={[styles.tableHeaderCell, { flex: 3 }]}>Insumo</Text>
-                <Text style={[styles.tableHeaderCell, { flex: 1, textAlign: 'center' }]}>Entrada</Text>
+                <Text style={[styles.tableHeaderCell, { flex: 1, textAlign: 'center' }]}>Recebido</Text>
                 <Text style={[styles.tableHeaderCell, { flex: 1, textAlign: 'center' }]}>Consumo</Text>
               </View>
               {rdo.rdo_materiais.map((item, i) => (
@@ -368,9 +377,10 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra }: RdoPdfTemplateP
           </View>
         )}
 
+        {/* OCORRÊNCIAS */}
         {(rdo.impedimentos_comentarios || rdo.observacoes_gerais) && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Ocorrências e Observações Gerais</Text>
+            <Text style={styles.sectionTitle}>Ocorrências e Notas Gerais</Text>
             <View style={styles.fullWidthBox}>
               {rdo.impedimentos_comentarios && (
                 <View style={{ marginBottom: 8 }}>
@@ -380,7 +390,7 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra }: RdoPdfTemplateP
               )}
               {rdo.observacoes_gerais && (
                 <View>
-                  <Text style={styles.infoLabel}>NOTAS GERAIS:</Text>
+                  <Text style={styles.infoLabel}>OBSERVAÇÕES DO DIA:</Text>
                   <Text style={styles.blockText}>{rdo.observacoes_gerais}</Text>
                 </View>
               )}
@@ -388,20 +398,26 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra }: RdoPdfTemplateP
           </View>
         )}
 
-        {allPhotos.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Evidências Fotográficas</Text>
-            <View style={styles.photoGrid}>
-              {allPhotos.map((photo, i) => (
-                <View key={i} style={styles.photoWrapper} wrap={false}>
-                  <Image src={photo.url} style={styles.photo} />
-                  {photo.desc && <Text style={styles.photoCaption}>{photo.desc}</Text>}
+        {/* GRID DE FOTOS CORRIGIDO */}
+        <View style={styles.section} wrap={false}> 
+          <Text style={styles.sectionTitle}>EVIDÊNCIAS FOTOGRÁFICAS</Text>
+          <View style={styles.galleryContainer}>
+            {allPhotos.length > 0 ? (
+              allPhotos.map((photo, index) => (
+                <View key={index} style={styles.photoBox}>
+                  <Image src={photo.url} style={styles.photoImage} />
+                  <Text style={styles.photoCaption}>
+                    {photo.desc || `Registro ${index + 1}`}
+                  </Text>
                 </View>
-              ))}
-            </View>
+              ))
+            ) : (
+              <Text style={{fontSize: 9, color: colors.textLight, fontStyle: 'italic'}}>Nenhuma evidência fotográfica registrada neste dia.</Text>
+            )}
           </View>
-        )}
+        </View>
 
+        {/* ASSINATURAS */}
         <View style={styles.signatureRow} wrap={false}>
           <View style={styles.signatureCol}>
             {rdo.responsible_signature_url && <Image src={rdo.responsible_signature_url} style={styles.signatureImage} />}
@@ -417,7 +433,7 @@ export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra }: RdoPdfTemplateP
         </View>
 
         <Text style={{ position: 'absolute', bottom: 15, left: 0, right: 0, textAlign: 'center', fontSize: 7, color: colors.textLight }}>
-          Este documento é um registro técnico oficial gerado pela plataforma Meu RDO.
+          Documento gerado pela plataforma Meu RDO - Registro Oficial de Campo
         </Text>
 
       </Page>
