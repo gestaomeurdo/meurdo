@@ -39,10 +39,10 @@ const gatherAllPhotos = (rdo: DiarioObra) => {
       photos.push({ desc: `Máquina: ${eqp.equipamento}`, url: eqp.foto_url });
     }
   });
-  if (rdo.safety_nr35_photo) photos.push({ desc: "Segurança: Trabalho em Altura", url: rdo.safety_nr35_photo });
-  if (rdo.safety_epi_photo) photos.push({ desc: "Segurança: Uso de EPIs", url: rdo.safety_epi_photo });
-  if (rdo.safety_cleaning_photo) photos.push({ desc: "Segurança: Organização/Limpeza", url: rdo.safety_cleaning_photo });
-  if (rdo.safety_dds_photo) photos.push({ desc: "Segurança: Registro de DDS", url: rdo.safety_dds_photo });
+  if (rdo.safety_nr35_photo) photos.push({ desc: "Segurança: NR-35", url: rdo.safety_nr35_photo });
+  if (rdo.safety_epi_photo) photos.push({ desc: "Segurança: EPIs", url: rdo.safety_epi_photo });
+  if (rdo.safety_cleaning_photo) photos.push({ desc: "Segurança: Limpeza", url: rdo.safety_cleaning_photo });
+  if (rdo.safety_dds_photo) photos.push({ desc: "Segurança: DDS", url: rdo.safety_dds_photo });
   return photos;
 };
 
@@ -54,8 +54,6 @@ export const generateRdoPdf = async (
   rdoList?: DiarioObra[]
 ) => {
   try {
-    console.log("[PDF Engine] Starting reconstruction...");
-
     let sequenceNumber = "01";
     if (rdoList) {
         const sorted = [...rdoList].sort((a, b) => a.data_rdo.localeCompare(b.data_rdo));
@@ -63,8 +61,7 @@ export const generateRdoPdf = async (
         if (index !== -1) sequenceNumber = (index + 1).toString().padStart(2, '0');
     }
 
-    // Contract Status Logic
-    let contractStats = { total: 0, elapsed: 0, remaining: 0, hasDeadline: false };
+    let contractStats = { total: 0, elapsed: 0, remaining: 0, hasDeadline: false, isDelayed: false };
     if (obra?.data_inicio && obra?.previsao_entrega) {
         const start = parseISO(obra.data_inicio);
         const deadline = parseISO(obra.previsao_entrega);
@@ -75,6 +72,7 @@ export const generateRdoPdf = async (
             contractStats.elapsed = differenceInDays(current, start);
             contractStats.remaining = differenceInDays(deadline, current);
             contractStats.hasDeadline = true;
+            contractStats.isDelayed = contractStats.remaining < 0;
         }
     }
 
@@ -116,14 +114,11 @@ export const generateRdoPdf = async (
     link.download = `RDO_${sequenceNumber}_${obraNome.replace(/\s/g, '_')}_${rdo.data_rdo}.pdf`;
     document.body.appendChild(link);
     link.click();
-    
-    setTimeout(() => {
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-    }, 100);
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
     
   } catch (error) {
-    console.error("[PDF Engine] Critical Failure:", error);
+    console.error("[PDF Engine] Failure:", error);
     throw new Error(`Erro ao gerar PDF: ${error instanceof Error ? error.message : 'Verifique os anexos.'}`);
   }
 };
