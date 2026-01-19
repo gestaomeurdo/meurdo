@@ -8,13 +8,46 @@ import { cn } from "@/lib/utils";
 const AdminDashboard = () => {
   const { data: stats, isLoading } = useAdminStats();
 
-  if (isLoading) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-purple-600" /></div>;
+  if (isLoading) {
+    return (
+      <AdminLayout>
+        <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-purple-600" />
+          <p className="text-sm font-black uppercase tracking-widest text-slate-400">Calculando Métricas SaaS...</p>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   const kpis = [
-    { label: "Total de Usuários", value: stats?.totalUsers, icon: Users, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-900/20" },
-    { label: "Tickets Abertos", value: stats?.openTickets, icon: LifeBuoy, color: "text-orange-600", bg: "bg-orange-50 dark:bg-orange-900/20" },
-    { label: "Assinantes PRO", value: stats?.proUsers, icon: Zap, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
-    { label: "Receita Est. (Mensal)", value: formatCurrency(stats?.estimatedRevenue || 0), icon: DollarSign, color: "text-purple-600", bg: "bg-purple-50 dark:bg-purple-900/20" },
+    { 
+      label: "Total de Usuários", 
+      value: stats?.totalUsers ?? 0, 
+      icon: Users, 
+      color: "text-blue-600", 
+      bg: "bg-blue-50 dark:bg-blue-900/20" 
+    },
+    { 
+      label: "Tickets Abertos", 
+      value: stats?.openTickets ?? 0, 
+      icon: LifeBuoy, 
+      color: "text-orange-600", 
+      bg: "bg-orange-50 dark:bg-orange-900/20" 
+    },
+    { 
+      label: "Assinantes PRO", 
+      value: stats?.proUsers ?? 0, 
+      icon: Zap, 
+      color: "text-emerald-600", 
+      bg: "bg-emerald-50 dark:bg-emerald-900/20" 
+    },
+    { 
+      label: "Receita Est. (Mensal)", 
+      value: formatCurrency(stats?.estimatedRevenue || 0), 
+      icon: DollarSign, 
+      color: "text-purple-600", 
+      bg: "bg-purple-50 dark:bg-purple-900/20" 
+    },
   ];
 
   return (
@@ -46,7 +79,10 @@ const AdminDashboard = () => {
                 </CardTitle>
             </CardHeader>
             <CardContent className="p-20 text-center text-muted-foreground">
-                <p className="text-sm font-medium">Gráfico de evolução de cadastros em desenvolvimento...</p>
+                <div className="flex flex-col items-center gap-4">
+                    <TrendingUp className="w-12 h-12 opacity-10" />
+                    <p className="text-sm font-medium">Gráfico de evolução de cadastros em desenvolvimento...</p>
+                </div>
             </CardContent>
         </Card>
       </div>
