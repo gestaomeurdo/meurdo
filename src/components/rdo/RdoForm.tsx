@@ -16,7 +16,6 @@ import RdoEquipmentForm from "./RdoEquipmentForm";
 import RdoMaterialsForm from "./RdoMaterialsForm";
 import RdoSafetyForm from "./RdoSafetyForm";
 import RdoSignaturePad from "./RdoSignaturePad";
-import RdoShareMenu from "./RdoShareMenu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMemo, useEffect, useState } from "react";
 import { useObras } from "@/hooks/use-obras";
@@ -165,9 +164,11 @@ const RdoForm = ({ obraId, initialData, onSuccess, selectedDate, previousRdoData
           onCopyPrevious={!isApproved ? handleCopyPrevious : undefined}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="bg-white border rounded-[2rem] p-2 space-y-0 overflow-hidden shadow-sm">
           <RdoPeriodRow label="Manhã" enabledName="morning_enabled" climaName="morning_clima" statusName="morning_status" isApproved={isApproved} />
+          <div className="h-px bg-slate-100 mx-6" />
           <RdoPeriodRow label="Tarde" enabledName="afternoon_enabled" climaName="afternoon_clima" statusName="afternoon_status" isApproved={isApproved} />
+          <div className="h-px bg-slate-100 mx-6" />
           <RdoPeriodRow label="Noite" enabledName="night_enabled" climaName="night_clima" statusName="night_status" isApproved={isApproved} />
         </div>
 
