@@ -8,6 +8,7 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import RdoDialog from "./RdoDialog";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface RdoListTableProps {
   rdoList: DiarioObra[];
