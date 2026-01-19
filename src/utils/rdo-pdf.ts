@@ -4,8 +4,6 @@ import { DiarioObra } from "@/hooks/use-rdo";
 import { Profile } from "@/hooks/use-profile";
 import { Obra } from "@/hooks/use-obras";
 import { RdoPdfTemplate } from "@/components/rdo/RdoPdfTemplate";
-import { format, parseISO, isValid, differenceInDays } from "date-fns";
-import { ptBR } from "date-fns/locale";
 
 async function urlToBase64(url: string | null | undefined): Promise<string | null> {
   if (!url || typeof url !== 'string' || url.trim() === '' || url.includes('null')) return null;
@@ -27,25 +25,6 @@ async function urlToBase64(url: string | null | undefined): Promise<string | nul
   }
 }
 
-const gatherAllPhotos = (rdo: DiarioObra) => {
-  const photos: { desc: string; url: string }[] = [];
-  rdo.rdo_atividades_detalhe?.forEach(atv => {
-    if (atv.foto_anexo_url) {
-      photos.push({ desc: `Serviço: ${atv.descricao_servico}`, url: atv.foto_anexo_url });
-    }
-  });
-  rdo.rdo_equipamentos?.forEach(eqp => {
-    if (eqp.foto_url) {
-      photos.push({ desc: `Máquina: ${eqp.equipamento}`, url: eqp.foto_url });
-    }
-  });
-  if (rdo.safety_nr35_photo) photos.push({ desc: "Segurança: NR-35", url: rdo.safety_nr35_photo });
-  if (rdo.safety_epi_photo) photos.push({ desc: "Segurança: EPIs", url: rdo.safety_epi_photo });
-  if (rdo.safety_cleaning_photo) photos.push({ desc: "Segurança: Limpeza", url: rdo.safety_cleaning_photo });
-  if (rdo.safety_dds_photo) photos.push({ desc: "Segurança: DDS", url: rdo.safety_dds_photo });
-  return photos;
-};
-
 export const generateRdoPdf = async (
   rdo: DiarioObra, 
   obraNome: string, 
@@ -61,17 +40,21 @@ export const generateRdoPdf = async (
         if (index !== -1) sequenceNumber = (index + 1).toString().padStart(2, '0');
     }
 
-    const [logoBase64, responsibleSigBase64, clientSigBase64] = await Promise.all([
+    // Carrega Logotipo e Capa da Obra
+    const [logoBase64, obraPhotoBase64] = await Promise.all([
         urlToBase64(profile?.avatar_url),
-        urlToBase64(rdo.responsible_signature_url),
-        urlToBase64(rdo.client_signature_url)
+        urlToBase64(obra?.foto_url)
     ]);
 
-    const allRawPhotos = gatherAllPhotos(rdo);
-    const processedPhotos = [];
-    for (const p of allRawPhotos.slice(0, 18)) {
-        const b64 = await urlToBase64(p.url);
-        if (b64) processedPhotos.push({ desc: p.desc, base64: b64 });
+    // Mapeia fotos das atividades de forma individual para o template
+    const activityPhotosMap: Record<string, string> = {};
+    if (rdo.rdo_atividades_detalhe) {
+        for (const atv of rdo.rdo_atividades_detalhe) {
+            if (atv.foto_anexo_url) {
+                const b64 = await urlToBase64(atv.foto_anexo_url);
+                if (b64) activityPhotosMap[atv.id] = b64;
+            }
+        }
     }
 
     const blob = await pdf(
@@ -82,9 +65,8 @@ export const generateRdoPdf = async (
         obra, 
         sequenceNumber,
         logoBase64,
-        photosBase64: processedPhotos,
-        responsibleSigBase64,
-        clientSigBase64
+        obraPhotoBase64,
+        activityPhotosMap
       })
     ).toBlob();
 
