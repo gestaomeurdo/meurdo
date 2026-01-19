@@ -11,6 +11,7 @@ import { showSuccess, showError } from "@/utils/toast";
 import { CalendarIcon, Loader2, Home, Building2, ArrowRight, ArrowLeft, CheckCircle2, Upload, ImageIcon, X } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { parseCurrencyInput, formatCurrencyForInput } from "@/utils/formatters";
@@ -60,8 +61,8 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
       endereco: initialData?.endereco || "",
       dono_cliente: initialData?.dono_cliente || "",
       responsavel_tecnico: initialData?.responsavel_tecnico || "",
-      data_inicio: initialData?.data_inicio ? new Date(initialData.data_inicio) : new Date(),
-      previsao_entrega: initialData?.previsao_entrega ? new Date(initialData.previsao_entrega) : null,
+      data_inicio: initialData?.data_inicio ? new Date(initialData.data_inicio + 'T12:00:00') : new Date(),
+      previsao_entrega: initialData?.previsao_entrega ? new Date(initialData.previsao_entrega + 'T12:00:00') : null,
       orcamento_inicial: initialData?.orcamento_inicial !== undefined ? formatCurrencyForInput(initialData.orcamento_inicial) : "0,00",
       status: initialData?.status || 'ativa',
       foto_url: initialData?.foto_url || null,
@@ -87,7 +88,6 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
     setIsUploading(true);
     const fileExt = file.name.split('.').pop();
     const fileName = `obra-cover-${Date.now()}.${fileExt}`;
-    // Caminho corrigido: user_id/obras/arquivo
     const filePath = `${user.id}/obras/${fileName}`;
 
     try {
@@ -341,20 +341,22 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
             )}
           />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        
+        {/* Ajuste da Grid para alinhamento uniforme */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           <FormField
             control={form.control}
             name="data_inicio"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel className="mb-1">Data de Início</FormLabel>
+                <FormLabel className="mb-2">Data de Início</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
                       <Button
                         variant={"outline"}
                         className={cn(
-                          "w-full pl-3 text-left font-normal",
+                          "w-full h-10 pl-3 text-left font-normal",
                           !field.value && "text-muted-foreground"
                         )}
                         disabled={isLoading}
@@ -370,6 +372,7 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
                       selected={field.value}
                       onSelect={field.onChange}
                       initialFocus
+                      locale={ptBR}
                     />
                   </PopoverContent>
                 </Popover>
@@ -382,14 +385,14 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
             name="previsao_entrega"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel className="mb-1">Previsão de Término</FormLabel>
+                <FormLabel className="mb-2">Previsão de Término</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
                       <Button
                         variant={"outline"}
                         className={cn(
-                          "w-full pl-3 text-left font-normal",
+                          "w-full h-10 pl-3 text-left font-normal",
                           !field.value && "text-muted-foreground"
                         )}
                         disabled={isLoading}
@@ -405,6 +408,7 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
                       selected={field.value || undefined}
                       onSelect={field.onChange}
                       initialFocus
+                      locale={ptBR}
                     />
                   </PopoverContent>
                 </Popover>
@@ -417,10 +421,10 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
             name="status"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Status</FormLabel>
+                <FormLabel className="mb-2 block">Status</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-10">
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                   </FormControl>
@@ -435,6 +439,7 @@ const ObraForm = ({ initialData, onSuccess }: ObraFormProps) => {
             )}
           />
         </div>
+
         <FormField
           control={form.control}
           name="orcamento_inicial"
