@@ -17,6 +17,7 @@ import { useRdoLimits } from "@/hooks/use-rdo-limits";
 import { Progress } from "@/components/ui/progress";
 import { useRdoAlerts } from "@/hooks/use-rdo-alerts";
 import RdoDialog from "@/components/rdo/RdoDialog";
+import { Button } from "@/components/ui/button";
 
 const Dashboard = () => {
   const { user, isLoading: authLoading, profile, isPro } = useAuth();
