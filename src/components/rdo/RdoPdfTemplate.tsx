@@ -3,226 +3,232 @@ import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/render
 import { DiarioObra } from "@/hooks/use-rdo";
 import { Profile } from "@/hooks/use-profile";
 import { Obra } from "@/hooks/use-obras";
-import { format, differenceInDays, parseISO, isValid } from "date-fns";
+import { format, parseISO, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const colors = {
   primary: '#066abc',
   secondary: '#ff9f1c',
-  background: '#f4f7f9',
-  card: '#ffffff',
-  text: '#1f2937',
-  textLight: '#6b7280',
-  border: '#e5e7eb',
+  background: '#ffffff',
+  card: '#f8fafc',
+  text: '#1e293b',
+  textLight: '#64748b',
+  border: '#e2e8f0',
   success: '#10b981',
-  successBg: '#d1fae5',
   danger: '#ef4444',
-  dangerBg: '#fee2e2',
-  warningBg: '#fffbf0',
+  highlight: '#f1f5f9', // Fundo cinza para blocos de texto
   tableHeader: '#066abc',
-  zebra: '#f9fafb',
 };
 
 const styles = StyleSheet.create({
   page: {
-    padding: 24,
-    backgroundColor: colors.background,
+    padding: 30,
+    backgroundColor: '#ffffff',
     fontFamily: 'Helvetica',
     color: colors.text,
     fontSize: 9,
   },
-  headerContainer: {
-    backgroundColor: colors.card,
-    borderRadius: 8,
-    padding: 12,
+  // --- HEADER SECTION ---
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-    borderBottomWidth: 3,
+    marginBottom: 20,
+    borderBottomWidth: 2,
     borderBottomColor: colors.primary,
+    paddingBottom: 10,
+  },
+  brandArea: {
+    width: '60%',
   },
   logo: {
-    height: 35,
-    maxWidth: 100,
+    height: 50,
+    marginBottom: 5,
     objectFit: 'contain',
   },
-  headerTitle: {
-    fontSize: 14,
-    fontFamily: 'Helvetica-Bold',
-    color: colors.primary,
-    textTransform: 'uppercase',
-  },
-  headerSubTitle: {
+  companyName: {
     fontSize: 10,
-    fontFamily: 'Helvetica-Bold',
-    color: colors.textLight,
-    marginTop: 2,
-  },
-  complianceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 15,
-    paddingHorizontal: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    paddingBottom: 5,
-  },
-  complianceText: {
-    fontSize: 8,
-    color: colors.textLight,
-  },
-  bold: {
     fontFamily: 'Helvetica-Bold',
     color: colors.text,
   },
-  dashboardRow: {
+  companyDetails: {
+    fontSize: 8,
+    color: colors.textLight,
+  },
+  rdoBadge: {
+    width: '35%',
+    alignItems: 'flex-end',
+  },
+  rdoNumber: {
+    fontSize: 16,
+    fontFamily: 'Helvetica-Bold',
+    color: colors.primary,
+  },
+  rdoDate: {
+    fontSize: 12,
+    fontFamily: 'Helvetica-Bold',
+    marginTop: 2,
+  },
+  rdoDay: {
+    fontSize: 8,
+    color: colors.textLight,
+    textTransform: 'uppercase',
+  },
+
+  // --- INFO CARDS ---
+  infoBar: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
+    gap: 10,
     marginBottom: 15,
   },
-  card: {
+  infoCard: {
     flex: 1,
     backgroundColor: colors.card,
-    borderRadius: 8,
-    padding: 10,
+    padding: 8,
+    borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border,
   },
-  cardLabel: {
+  infoLabel: {
     fontSize: 7,
-    textTransform: 'uppercase',
-    color: colors.textLight,
     fontFamily: 'Helvetica-Bold',
-    marginBottom: 4,
+    color: colors.textLight,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  infoValue: {
+    fontSize: 9,
+    fontFamily: 'Helvetica-Bold',
+  },
+
+  // --- SECTIONS ---
+  section: {
+    marginBottom: 15,
   },
   sectionTitle: {
     fontSize: 10,
     fontFamily: 'Helvetica-Bold',
     color: colors.primary,
-    marginBottom: 6,
     textTransform: 'uppercase',
-    marginTop: 10,
     borderLeftWidth: 3,
     borderLeftColor: colors.secondary,
     paddingLeft: 6,
+    marginBottom: 8,
+    backgroundColor: '#f8fafc',
+    paddingVertical: 4,
   },
+
+  // --- TABLES ---
   table: {
     width: '100%',
-    borderRadius: 6,
-    overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.border,
+    borderRadius: 4,
+    overflow: 'hidden',
   },
   tableHeader: {
     flexDirection: 'row',
     backgroundColor: colors.tableHeader,
-    paddingVertical: 5,
-    paddingHorizontal: 4,
+    padding: 5,
   },
   tableHeaderCell: {
     color: '#ffffff',
     fontFamily: 'Helvetica-Bold',
-    fontSize: 7,
-    flex: 1,
+    fontSize: 8,
   },
   tableRow: {
     flexDirection: 'row',
-    paddingVertical: 5,
-    paddingHorizontal: 4,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    padding: 5,
   },
   tableCell: {
     fontSize: 8,
-    color: colors.text,
-    flex: 1,
   },
-  activityRow: {
+
+  // --- LISTS ---
+  activityItem: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 4,
+    marginBottom: 6,
     paddingBottom: 4,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: '#f1f5f9',
   },
-  bullet: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.primary,
-    marginTop: 4,
-    marginRight: 6,
+  progressBox: {
+    width: 40,
+    alignItems: 'flex-end',
+    marginRight: 10,
   },
-  occurrenceBox: {
-    backgroundColor: colors.warningBg,
-    borderRadius: 6,
+  progressText: {
+    fontFamily: 'Helvetica-Bold',
+    color: colors.primary,
+  },
+
+  // --- TEXT BLOCKS ---
+  fullWidthBox: {
+    width: '100%',
+    backgroundColor: colors.highlight,
     padding: 10,
-    borderWidth: 1,
-    borderColor: '#fed7aa',
-    marginBottom: 10,
-  },
-  photoGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 5,
-  },
-  photoCard: {
-    width: '31%',
-    backgroundColor: colors.card,
-    padding: 4,
     borderRadius: 4,
     borderWidth: 1,
     borderColor: colors.border,
-    marginBottom: 8,
   },
-  photoImage: {
+  blockText: {
+    fontSize: 9,
+    lineHeight: 1.4,
+  },
+
+  // --- PHOTO GRID ---
+  photoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  photoWrapper: {
+    width: '31%', // 3 colunas
+    marginBottom: 10,
+  },
+  photo: {
     width: '100%',
-    height: 90,
+    height: 100,
     objectFit: 'cover',
-    borderRadius: 3,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   photoCaption: {
-    marginTop: 4,
     fontSize: 7,
     color: colors.textLight,
+    marginTop: 3,
     textAlign: 'center',
   },
-  footerContainer: {
+
+  // --- FOOTER ---
+  signatureRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 20,
-    marginTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: 15,
+    marginTop: 30,
+    gap: 40,
   },
-  signatureBox: {
+  signatureCol: {
     flex: 1,
-    height: 60,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: '#9ca3af',
-    borderRadius: 6,
-    justifyContent: 'flex-end',
     alignItems: 'center',
-    paddingBottom: 6,
-    position: 'relative',
   },
-  signatureImg: {
-    position: 'absolute',
-    width: '80%',
-    height: '80%',
-    top: 5,
+  signatureImage: {
+    height: 50,
+    width: 120,
     objectFit: 'contain',
+    marginBottom: 5,
   },
   signatureLine: {
-    width: '80%',
-    height: 1,
-    backgroundColor: '#9ca3af',
-    marginBottom: 2,
+    width: '100%',
+    borderTopWidth: 1,
+    borderTopColor: colors.text,
+    marginBottom: 4,
+  },
+  signatureLabel: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    textTransform: 'uppercase',
   }
 });
 
@@ -233,181 +239,210 @@ interface RdoPdfTemplateProps {
   obra?: Obra;
 }
 
-const DEFAULT_LOGO = "https://meurdo.com.br/wp-content/uploads/2026/01/Logo-MEU-RDO-scaled.png";
+const SYSTEM_LOGO = "https://meurdo.com.br/wp-content/uploads/2026/01/Logo-MEU-RDO-scaled.png";
 
 export const RdoPdfTemplate = ({ rdo, obraNome, profile, obra }: RdoPdfTemplateProps) => {
-  const isPro = profile?.subscription_status === 'active' || profile?.plan_type === 'pro';
-  const logoUrl = (isPro && profile?.avatar_url) ? profile.avatar_url : DEFAULT_LOGO;
-  
-  // --- Robusta formatação de data ---
-  let dateFormatted = 'Data inválida';
-  let dayOfWeek = '';
+  // Hierarquia de Logos: Obra > Perfil Empresa > Sistema
+  const logoUrl = obra?.foto_url || profile?.avatar_url || SYSTEM_LOGO;
+
+  // Formatação de Data
+  let dateStr = '---';
+  let dayStr = '---';
   try {
-    const rawDate = rdo.data_rdo;
-    let dateObj: Date;
-
-    if (typeof rawDate === 'string') {
-      // Tenta parsear como ISO ou YYYY-MM-DD
-      dateObj = rawDate.includes('T') ? parseISO(rawDate) : new Date(rawDate + 'T12:00:00');
-    } else {
-      dateObj = rawDate;
+    const d = typeof rdo.data_rdo === 'string' ? new Date(rdo.data_rdo + 'T12:00:00') : rdo.data_rdo;
+    if (isValid(d)) {
+      dateStr = format(d, "dd/MM/yyyy");
+      dayStr = format(d, "EEEE", { locale: ptBR });
     }
+  } catch (e) {}
 
-    if (isValid(dateObj)) {
-      dateFormatted = format(dateObj, "dd/MM/yyyy", { locale: ptBR });
-      dayOfWeek = format(dateObj, "EEEE", { locale: ptBR });
-    }
-  } catch (e) {
-    console.error("Erro ao formatar data no PDF:", e);
-  }
-
-  const totalManpower = rdo.rdo_mao_de_obra?.reduce((acc, curr) => acc + curr.quantidade, 0) || 0;
-  
-  // Fotos de Atividades + Fotos de Segurança
-  const activityPhotos = rdo.rdo_atividades_detalhe?.filter(a => a.foto_anexo_url).map(a => ({
-    url: a.foto_anexo_url!,
-    caption: a.descricao_servico
-  })) || [];
-
-  const safetyPhotos = [
-    { url: rdo.safety_nr35_photo, caption: "Segurança: Treinamentos/Altura" },
-    { url: rdo.safety_epi_photo, caption: "Segurança: Uso de EPIs" },
-    { url: rdo.safety_cleaning_photo, caption: "Segurança: Limpeza" },
-    { url: rdo.safety_dds_photo, caption: "Segurança: DDS" },
-    { url: rdo.safety_photo_url, caption: "Registro Geral de Segurança" }
-  ].filter(p => p.url) as { url: string, caption: string }[];
-
-  const allPhotos = [...activityPhotos, ...safetyPhotos];
+  // Agrupamento de Fotos (Atividades + Segurança)
+  const allPhotos = [
+    ...(rdo.rdo_atividades_detalhe?.filter(a => a.foto_anexo_url).map(a => ({ url: a.foto_anexo_url!, desc: a.descricao_servico })) || []),
+    { url: rdo.safety_nr35_photo, desc: "Segurança: Trabalho em Altura" },
+    { url: rdo.safety_epi_photo, desc: "Segurança: Uso de EPIs" },
+    { url: rdo.safety_cleaning_photo, desc: "Segurança: Limpeza e Organização" },
+    { url: rdo.safety_dds_photo, desc: "Segurança: Registro de DDS" },
+    { url: rdo.safety_photo_url, desc: "Segurança: Registro Geral" }
+  ].filter(p => p.url) as { url: string, desc: string }[];
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         
-        {/* Header */}
-        <View style={styles.headerContainer}>
-          <View style={{ width: '30%' }}>
+        {/* CABEÇALHO BRANDING */}
+        <View style={styles.headerRow}>
+          <View style={styles.brandArea}>
             <Image src={logoUrl} style={styles.logo} />
+            {profile?.company_name && <Text style={styles.companyName}>{profile.company_name}</Text>}
+            {profile?.cnpj && <Text style={styles.companyDetails}>CNPJ: {profile.cnpj}</Text>}
           </View>
-          <View style={{ width: '40%', alignItems: 'center' }}>
-            <Text style={styles.headerTitle}>RDO #{rdo.id.slice(0, 5).toUpperCase()}</Text>
-            <Text style={styles.headerSubTitle}>DIÁRIO DE OBRA</Text>
-          </View>
-          <View style={{ width: '30%', alignItems: 'flex-end' }}>
-            <Text style={{ fontSize: 12, fontFamily: 'Helvetica-Bold' }}>{dateFormatted}</Text>
-            <Text style={{ fontSize: 8, color: colors.textLight, textTransform: 'capitalize' }}>{dayOfWeek}</Text>
+          <View style={styles.rdoBadge}>
+            <Text style={styles.rdoNumber}>RDO nº {rdo.id.slice(0, 5).toUpperCase()}</Text>
+            <Text style={styles.rdoDate}>{dateStr}</Text>
+            <Text style={styles.rdoDay}>{dayStr}</Text>
           </View>
         </View>
 
-        {/* Compliance */}
-        <View style={styles.complianceRow}>
-          <Text style={styles.complianceText}>OBRA: <Text style={styles.bold}>{obraNome.toUpperCase()}</Text></Text>
-          <Text style={styles.complianceText}>RESPONSÁVEL: <Text style={styles.bold}>{(rdo as any).signer_name || 'N/A'}</Text></Text>
-        </View>
-
-        {/* Summary */}
-        <View style={styles.dashboardRow}>
-          <View style={styles.card}>
-            <Text style={styles.cardLabel}>Clima e Status</Text>
-            <Text style={{ fontSize: 8 }}>{rdo.clima_condicoes || 'Sol'}</Text>
-            <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold', color: rdo.status_dia === 'Operacional' ? colors.success : colors.danger, marginTop: 4 }}>
+        {/* BARRA DE INFORMAÇÕES RÁPIDAS */}
+        <View style={styles.infoBar}>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoLabel}>Obra</Text>
+            <Text style={styles.infoValue}>{obraNome.toUpperCase()}</Text>
+          </View>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoLabel}>Clima / Condições</Text>
+            <Text style={styles.infoValue}>{rdo.clima_condicoes || 'Sol / Estiagem'}</Text>
+          </View>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoLabel}>Status do Dia</Text>
+            <Text style={[styles.infoValue, { color: rdo.status_dia?.includes('Operacional') ? colors.success : colors.danger }]}>
               {rdo.status_dia?.toUpperCase() || 'OPERACIONAL'}
             </Text>
           </View>
-          <View style={styles.card}>
-            <Text style={styles.cardLabel}>Efetivo Total</Text>
-            <Text style={{ fontSize: 16, fontFamily: 'Helvetica-Bold', color: colors.primary }}>{totalManpower}</Text>
-            <Text style={{ fontSize: 7, color: colors.textLight }}>COLABORADORES</Text>
-          </View>
-          <View style={styles.card}>
-            <Text style={styles.cardLabel}>Segurança</Text>
-            <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold', color: rdo.hours_lost > 0 ? colors.danger : colors.success }}>
-              {rdo.hours_lost > 0 ? `ACIDENTE: ${rdo.hours_lost}H PERDIDAS` : 'ZERO ACIDENTES'}
-            </Text>
-          </View>
         </View>
 
-        {/* Atividades */}
-        <View>
-          <Text style={styles.sectionTitle}>Serviços Realizados</Text>
-          {rdo.rdo_atividades_detalhe?.length ? rdo.rdo_atividades_detalhe.map((item, i) => (
-            <View key={i} style={styles.activityRow} wrap={false}>
-              <View style={styles.bullet} />
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Text style={{ fontSize: 9 }}>{item.descricao_servico}</Text>
-                  <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold' }}>{item.avanco_percentual}%</Text>
-                </View>
-                {item.observacao && <Text style={{ fontSize: 7, color: colors.textLight, marginTop: 2 }}>{item.observacao}</Text>}
-              </View>
-            </View>
-          )) : <Text style={{ fontSize: 8, color: colors.textLight, fontStyle: 'italic' }}>Nenhuma atividade registrada.</Text>}
-        </View>
-
-        {/* Materiais Recebidos */}
-        <View style={{ marginTop: 10 }}>
-          <Text style={styles.sectionTitle}>Materiais e Insumos</Text>
-          {rdo.rdo_materiais?.length ? (
+        {/* SEÇÃO 1: MÃO DE OBRA (STAFF) */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Efetivo e Equipe em Campo</Text>
+          {rdo.rdo_mao_de_obra && rdo.rdo_mao_de_obra.length > 0 ? (
             <View style={styles.table}>
               <View style={styles.tableHeader}>
-                <Text style={[styles.tableHeaderCell, { flex: 3 }]}>Material</Text>
-                <Text style={styles.tableHeaderCell}>Entrada</Text>
-                <Text style={styles.tableHeaderCell}>Consumo</Text>
+                <Text style={[styles.tableHeaderCell, { flex: 3 }]}>Função / Cargo</Text>
+                <Text style={[styles.tableHeaderCell, { flex: 1, textAlign: 'center' }]}>Tipo</Text>
+                <Text style={[styles.tableHeaderCell, { flex: 1, textAlign: 'center' }]}>Qtd.</Text>
               </View>
-              {rdo.rdo_materiais.map((m, i) => (
-                <View key={i} style={[styles.tableRow, { backgroundColor: i % 2 === 0 ? colors.card : colors.zebra }]}>
-                  <Text style={[styles.tableCell, { flex: 3 }]}>{m.nome_material}</Text>
-                  <Text style={styles.tableCell}>{m.quantidade_entrada || 0} {m.unidade}</Text>
-                  <Text style={styles.tableCell}>{m.quantidade_consumida || 0} {m.unidade}</Text>
+              {rdo.rdo_mao_de_obra.map((item, i) => (
+                <View key={i} style={styles.tableRow}>
+                  <Text style={[styles.tableCell, { flex: 3, fontFamily: 'Helvetica-Bold' }]}>{item.funcao}</Text>
+                  <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>{item.tipo || 'Própria'}</Text>
+                  <Text style={[styles.tableCell, { flex: 1, textAlign: 'center', fontFamily: 'Helvetica-Bold' }]}>{item.quantidade}</Text>
                 </View>
               ))}
             </View>
-          ) : <Text style={{ fontSize: 8, color: colors.textLight, fontStyle: 'italic' }}>Nenhum material registrado.</Text>}
+          ) : (
+            <Text style={styles.companyDetails}>Nenhum registro de efetivo para esta data.</Text>
+          )}
         </View>
 
-        {/* Ocorrências */}
+        {/* SEÇÃO 2: EQUIPAMENTOS */}
+        {rdo.rdo_equipamentos && rdo.rdo_equipamentos.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Máquinas e Equipamentos</Text>
+            <View style={styles.table}>
+              <View style={styles.tableHeader}>
+                <Text style={[styles.tableHeaderCell, { flex: 3 }]}>Equipamento</Text>
+                <Text style={[styles.tableHeaderCell, { flex: 1, textAlign: 'center' }]}>H. Trab</Text>
+                <Text style={[styles.tableHeaderCell, { flex: 1, textAlign: 'center' }]}>H. Paradas</Text>
+              </View>
+              {rdo.rdo_equipamentos.map((item, i) => (
+                <View key={i} style={styles.tableRow}>
+                  <Text style={[styles.tableCell, { flex: 3 }]}>{item.equipamento}</Text>
+                  <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>{item.horas_trabalhadas}h</Text>
+                  <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>{item.horas_paradas}h</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* SEÇÃO 3: SERVIÇOS EXECUTADOS */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Atividades e Evolução do Dia</Text>
+          {rdo.rdo_atividades_detalhe && rdo.rdo_atividades_detalhe.length > 0 ? (
+            rdo.rdo_atividades_detalhe.map((item, i) => (
+              <View key={i} style={styles.activityItem} wrap={false}>
+                <View style={styles.progressBox}>
+                  <Text style={styles.progressText}>{item.avanco_percentual}%</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: 'Helvetica-Bold' }}>{item.descricao_servico}</Text>
+                  {item.observacao && <Text style={[styles.companyDetails, { marginTop: 2 }]}>{item.observacao}</Text>}
+                </View>
+              </View>
+            ))
+          ) : (
+            <Text style={styles.companyDetails}>Nenhuma atividade registrada.</Text>
+          )}
+        </View>
+
+        {/* SEÇÃO 4: MATERIAIS */}
+        {rdo.rdo_materiais && rdo.rdo_materiais.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Insumos e Recebimentos</Text>
+            <View style={styles.table}>
+              <View style={styles.tableHeader}>
+                <Text style={[styles.tableHeaderCell, { flex: 3 }]}>Insumo</Text>
+                <Text style={[styles.tableHeaderCell, { flex: 1, textAlign: 'center' }]}>Entrada</Text>
+                <Text style={[styles.tableHeaderCell, { flex: 1, textAlign: 'center' }]}>Consumo</Text>
+              </View>
+              {rdo.rdo_materiais.map((item, i) => (
+                <View key={i} style={styles.tableRow}>
+                  <Text style={[styles.tableCell, { flex: 3 }]}>{item.nome_material}</Text>
+                  <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>{item.quantidade_entrada || 0} {item.unidade}</Text>
+                  <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>{item.quantidade_consumida || 0} {item.unidade}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* SEÇÃO 5: OCORRÊNCIAS E COMENTÁRIOS */}
         {(rdo.impedimentos_comentarios || rdo.observacoes_gerais) && (
-          <View style={{ marginTop: 10 }}>
-            <Text style={styles.sectionTitle}>Ocorrências e Notas</Text>
-            <View style={styles.occurrenceBox}>
-              {rdo.impedimentos_comentarios && <Text style={{ fontSize: 8, color: colors.danger, fontFamily: 'Helvetica-Bold' }}>IMPEDIMENTOS: {rdo.impedimentos_comentarios}</Text>}
-              {rdo.observacoes_gerais && <Text style={{ fontSize: 8, marginTop: 4 }}>NOTAS: {rdo.observacoes_gerais}</Text>}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Ocorrências e Observações Gerais</Text>
+            <View style={styles.fullWidthBox}>
+              {rdo.impedimentos_comentarios && (
+                <View style={{ marginBottom: 8 }}>
+                  <Text style={[styles.infoLabel, { color: colors.danger }]}>IMPEDIMENTOS / CRÍTICO:</Text>
+                  <Text style={styles.blockText}>{rdo.impedimentos_comentarios}</Text>
+                </View>
+              )}
+              {rdo.observacoes_gerais && (
+                <View>
+                  <Text style={styles.infoLabel}>NOTAS GERAIS:</Text>
+                  <Text style={styles.blockText}>{rdo.observacoes_gerais}</Text>
+                </View>
+              )}
             </View>
           </View>
         )}
 
-        {/* Galeria de Fotos */}
+        {/* SEÇÃO 6: GALERIA FOTOGRÁFICA */}
         {allPhotos.length > 0 && (
-          <View style={{ marginTop: 15 }}>
-            <Text style={styles.sectionTitle}>Galeria Fotográfica</Text>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Evidências Fotográficas</Text>
             <View style={styles.photoGrid}>
-              {allPhotos.map((photo, index) => (
-                <View key={index} style={styles.photoCard} wrap={false}>
-                  <Image src={photo.url} style={styles.photoImage} />
-                  <Text style={styles.photoCaption}>{photo.caption || `Foto ${index + 1}`}</Text>
+              {allPhotos.map((photo, i) => (
+                <View key={i} style={styles.photoWrapper} wrap={false}>
+                  <Image src={photo.url} style={styles.photo} />
+                  {photo.desc && <Text style={styles.photoCaption}>{photo.desc}</Text>}
                 </View>
               ))}
             </View>
           </View>
         )}
 
-        {/* Footer / Assinaturas */}
-        <View style={styles.footerContainer} wrap={false}>
-          <View style={styles.signatureBox}>
-            {rdo.responsible_signature_url && <Image src={rdo.responsible_signature_url} style={styles.signatureImg} />}
+        {/* ASSINATURAS */}
+        <View style={styles.signatureRow} wrap={false}>
+          <View style={styles.signatureCol}>
+            {rdo.responsible_signature_url && <Image src={rdo.responsible_signature_url} style={styles.signatureImage} />}
             <View style={styles.signatureLine} />
-            <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold' }}>RESPONSÁVEL TÉCNICO</Text>
-            <Text style={{ fontSize: 6, color: colors.textLight }}>{(rdo as any).signer_name}</Text>
+            <Text style={styles.signatureLabel}>Responsável Técnico</Text>
+            <Text style={styles.companyDetails}>{(rdo as any).signer_name || profile?.first_name}</Text>
           </View>
-          <View style={styles.signatureBox}>
-            {rdo.client_signature_url && <Image src={rdo.client_signature_url} style={styles.signatureImg} />}
+          <View style={styles.signatureCol}>
+            {rdo.client_signature_url && <Image src={rdo.client_signature_url} style={styles.signatureImage} />}
             <View style={styles.signatureLine} />
-            <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold' }}>FISCALIZAÇÃO / CLIENTE</Text>
+            <Text style={styles.signatureLabel}>Fiscalização / Cliente</Text>
           </View>
         </View>
 
-        <Text style={{ position: 'absolute', bottom: 10, left: 0, right: 0, textAlign: 'center', fontSize: 6, color: colors.textLight }}>
-          Gerado automaticamente pela plataforma Meu RDO
+        {/* RODAPÉ SISTEMA */}
+        <Text style={{ position: 'absolute', bottom: 15, left: 0, right: 0, textAlign: 'center', fontSize: 7, color: colors.textLight }}>
+          Este documento é um registro técnico oficial gerado pela plataforma Meu RDO.
         </Text>
+
       </Page>
     </Document>
   );
