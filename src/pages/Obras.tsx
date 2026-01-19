@@ -1,6 +1,6 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2, Loader2, MapPin, Construction, Zap, ArrowRight, ImageIcon, Calendar, TrendingUp } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2, MapPin, Construction, Zap, ArrowRight, ImageIcon, Calendar, TrendingUp, AlertTriangle } from "lucide-react";
 import ObraDialog from "@/components/obras/ObraDialog";
 import { useDeleteObra, useObras, Obra, useObrasProgress } from "@/hooks/use-obras";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,7 +37,7 @@ const Obras = () => {
   const handleDelete = async (id: string, nome: string) => {
     try {
       await deleteMutation.mutateAsync(id);
-      showSuccess(`Obra "${nome}" excluída.`);
+      showSuccess(`Obra "${nome}" e todos os seus dados foram excluídos permanentemente.`);
     } catch (err) {
       showError(`Erro ao excluir obra.`);
     }
@@ -109,7 +109,6 @@ const Obras = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {obras?.map((obra) => {
-              // Agora usamos o progresso físico real (média das atividades)
               const progress = progressMap?.[obra.id] || 0;
 
               return (
@@ -169,20 +168,24 @@ const Obras = () => {
                               <Trash2 className="w-4 h-4 text-destructive" />
                             </Button>
                           </AlertDialogTrigger>
-                          <AlertDialogContent className="rounded-2xl">
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Excluir obra?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Isso removerá permanentemente os diários vinculados.
+                          <AlertDialogContent className="rounded-[2rem] border-none shadow-2xl">
+                            <AlertDialogHeader className="items-center text-center">
+                              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                                <AlertTriangle className="h-8 w-8 text-red-600" />
+                              </div>
+                              <AlertDialogTitle className="text-2xl font-black uppercase tracking-tight">Excluir Obra Permanentemente?</AlertDialogTitle>
+                              <AlertDialogDescription className="text-base">
+                                <p className="font-bold text-red-600 mb-2">ESTA AÇÃO NÃO PODE SER DESFEITA.</p>
+                                <p>Todos os <strong>Diários de Obra (RDOs)</strong>, <strong>Lançamentos Financeiros</strong>, <strong>Fotos de Atividades</strong> e <strong>Documentos</strong> vinculados a "{obra.nome}" serão apagados para sempre.</p>
                               </AlertDialogDescription>
                             </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+                            <AlertDialogFooter className="flex-col sm:flex-row gap-3 pt-4">
+                              <AlertDialogCancel className="rounded-xl h-12 font-bold flex-1">Manter Obra</AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() => handleDelete(obra.id, obra.nome)}
-                                className="bg-destructive rounded-xl"
+                                className="bg-destructive hover:bg-destructive/90 rounded-xl h-12 font-bold flex-1"
                               >
-                                Confirmar Exclusão
+                                Sim, Apagar Tudo
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
