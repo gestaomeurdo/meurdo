@@ -69,8 +69,8 @@ const RdoHeader = ({
     <div className="space-y-4">
       <div className={cn("flex flex-col sm:flex-row justify-between items-start sm:items-center p-6 bg-card border rounded-[2rem] shadow-sm gap-4 border-l-8 transition-all", statusConfig.border)}>
         <div className="flex items-center gap-4">
-          <div className={cn("p-3.5 rounded-2xl transition-all", isApproved ? "bg-emerald-100" : "bg-primary/10")}>
-            {isApproved ? <Check className="w-8 h-8 text-emerald-600" /> : <DollarSign className="w-8 h-8 text-primary" />}
+          <div className={cn("p-3.5 rounded-2xl transition-all", isApproved ? "bg-emerald-100 dark:bg-emerald-950/30" : "bg-primary/10 dark:bg-blue-900/20")}>
+            {isApproved ? <Check className="w-8 h-8 text-emerald-600 dark:text-emerald-400" /> : <DollarSign className="w-8 h-8 text-primary dark:text-blue-400" />}
           </div>
           <div>
             <div className="flex items-center gap-2 mb-1.5">
@@ -92,7 +92,7 @@ const RdoHeader = ({
                 type="button" 
                 variant="outline" 
                 onClick={onCopyPrevious}
-                className="flex-1 sm:flex-none rounded-xl h-12 font-black uppercase text-[9px] tracking-widest border-primary/20 text-primary hover:bg-primary/5"
+                className="flex-1 sm:flex-none rounded-xl h-12 font-black uppercase text-[9px] tracking-widest border-primary/20 text-primary dark:text-blue-400 hover:bg-primary/5 dark:hover:bg-blue-900/10"
             >
                 <Copy className="w-3.5 h-3.5 mr-2" /> Copiar Anterior
             </Button>
@@ -112,13 +112,13 @@ const RdoHeader = ({
             variant="outline" 
             onClick={() => initialData && generateRdoPdf(initialData, obraNome, profile, selectedObra, rdoList)} 
             disabled={!isEditing} 
-            className="flex-1 sm:flex-none rounded-xl h-12 font-black uppercase text-[9px] tracking-widest"
+            className="flex-1 sm:flex-none rounded-xl h-12 font-black uppercase text-[9px] tracking-widest dark:bg-slate-900 dark:border-slate-800"
           >
             <FileDown className="w-4 h-4 mr-2" /> PDF
           </Button>
 
           {isApproved ? (
-            <div className="flex items-center justify-center bg-slate-100 text-slate-400 px-6 rounded-xl h-12 border font-black uppercase text-[9px] tracking-widest gap-2">
+            <div className="flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 px-6 rounded-xl h-12 border dark:border-slate-700 font-black uppercase text-[9px] tracking-widest gap-2">
               <Lock className="w-3.5 h-3.5" /> RDO Travado
             </div>
           ) : isRejected ? (

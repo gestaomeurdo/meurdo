@@ -48,7 +48,7 @@ const Dashboard = () => {
   return (
     <DashboardLayout>
       {!isPro && <WelcomeFreeModal />}
-      <div className="p-4 sm:p-6 space-y-10">
+      <div className="p-4 sm:p-6 space-y-10 bg-transparent">
         <div className="flex justify-between items-center">
           <div className="space-y-1">
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
@@ -57,16 +57,16 @@ const Dashboard = () => {
             <p className="text-sm text-muted-foreground font-medium">Status operacional das suas obras.</p>
           </div>
           {isPro && (
-             <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 py-1 px-3 rounded-full font-bold text-[10px] uppercase">
+             <Badge variant="outline" className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 py-1 px-3 rounded-full font-bold text-[10px] uppercase">
                 Membro PRO Ativo
              </Badge>
           )}
         </div>
 
         {showWelcomePro && (
-          <Alert className="bg-green-500/10 border-green-500/30 text-green-800 rounded-2xl animate-in slide-in-from-top-4">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertTitle className="text-green-700 font-bold">Assinatura Ativada!</AlertTitle>
+          <Alert className="bg-green-500/10 border-green-500/30 text-green-800 dark:text-green-200 rounded-2xl animate-in slide-in-from-top-4">
+            <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <AlertTitle className="text-green-700 dark:text-green-400 font-bold">Assinatura Ativada!</AlertTitle>
             <AlertDescription>Você agora tem acesso ilimitado e relatórios sem marca d'água.</AlertDescription>
           </Alert>
         )}
@@ -74,10 +74,10 @@ const Dashboard = () => {
         {/* Status KPIs com Efeito Glow translúcido */}
         <div className="grid gap-6 grid-cols-2 lg:grid-cols-4">
           {[
-            { label: "Aprovações Pendentes", value: metrics?.pendingCount ?? 0, icon: FileClock, color: "bg-orange-500", textColor: "text-orange-600", borderColor: "border-orange-500/20", glow: "bg-orange-500/10" },
-            { label: "RDOs Aprovados", value: metrics?.approvedCount ?? 0, icon: FileCheck, color: "bg-emerald-500", textColor: "text-emerald-600", borderColor: "border-emerald-500/20", glow: "bg-emerald-500/10" },
-            { label: "Rascunhos em Aberto", value: metrics?.draftCount ?? 0, icon: FileEdit, color: "bg-slate-400", textColor: "text-slate-500", borderColor: "border-slate-400/20", glow: "bg-slate-400/10" },
-            { label: "Efetivo Médio", value: metrics?.averageManpower ?? 0, icon: HardHat, color: "bg-blue-500", textColor: "text-blue-600", borderColor: "border-blue-500/20", glow: "bg-blue-500/10" },
+            { label: "Aprovações Pendentes", value: metrics?.pendingCount ?? 0, icon: FileClock, color: "bg-orange-500", textColor: "text-orange-600 dark:text-orange-400", borderColor: "border-orange-500/20", glow: "bg-orange-500/10" },
+            { label: "RDOs Aprovados", value: metrics?.approvedCount ?? 0, icon: FileCheck, color: "bg-emerald-500", textColor: "text-emerald-600 dark:text-emerald-400", borderColor: "border-emerald-500/20", glow: "bg-emerald-500/10" },
+            { label: "Rascunhos em Aberto", value: metrics?.draftCount ?? 0, icon: FileEdit, color: "bg-slate-400", textColor: "text-slate-500 dark:text-slate-400", borderColor: "border-slate-400/20", glow: "bg-slate-400/10" },
+            { label: "Efetivo Médio", value: metrics?.averageManpower ?? 0, icon: HardHat, color: "bg-blue-500", textColor: "text-blue-600 dark:text-blue-400", borderColor: "border-blue-500/20", glow: "bg-blue-500/10" },
           ].map((stat, i) => (
             <Card key={i} className="shadow-md border-none bg-card overflow-hidden hover:shadow-lg transition-all rounded-3xl group">
                 <div className={cn("h-1.5 w-full", stat.color)}></div>
@@ -87,7 +87,7 @@ const Dashboard = () => {
                             <stat.icon className={cn("w-6 h-6", stat.textColor)} />
                         </div>
                     </div>
-                    <div className="text-4xl font-black tracking-tight">{stat.value}</div>
+                    <div className="text-4xl font-black tracking-tight text-foreground">{stat.value}</div>
                     <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mt-2">{stat.label}</p>
                 </CardContent>
             </Card>
@@ -101,8 +101,8 @@ const Dashboard = () => {
 
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold tracking-tight">Canteiro de Obras</h2>
-                <Link to="/obras" className="text-xs text-primary font-black uppercase tracking-widest hover:underline flex items-center bg-primary/5 px-5 py-2.5 rounded-xl border border-primary/10">
+                <h2 className="text-2xl font-bold tracking-tight text-foreground">Canteiro de Obras</h2>
+                <Link to="/obras" className="text-xs text-primary dark:text-blue-400 font-black uppercase tracking-widest hover:underline flex items-center bg-primary/5 dark:bg-blue-900/10 px-5 py-2.5 rounded-xl border border-primary/10 dark:border-blue-800/20">
                     Ver Portfólio <ArrowRight className="w-3.5 h-3.5 ml-2" />
                 </Link>
             </div>
@@ -141,12 +141,12 @@ const Dashboard = () => {
                                                 <span className="text-[10px] uppercase font-black text-slate-400 flex items-center gap-1">
                                                     <TrendingUp className="w-3 h-3" /> Progresso Físico
                                                 </span>
-                                                <span className="text-xs font-black text-primary">{progress}%</span>
+                                                <span className="text-xs font-black text-primary dark:text-blue-400">{progress}%</span>
                                             </div>
                                             <Progress value={progress} className="h-1.5" />
                                         </div>
                                         <div className="flex items-center text-[10px] text-muted-foreground font-bold uppercase truncate">
-                                            <MapPin className="w-3 h-3 mr-1.5 text-primary shrink-0" />
+                                            <MapPin className="w-3 h-3 mr-1.5 text-primary dark:text-blue-400 shrink-0" />
                                             <span className="truncate">{obra.endereco || "Local não informado"}</span>
                                         </div>
                                     </CardContent>

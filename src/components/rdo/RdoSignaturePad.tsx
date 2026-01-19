@@ -49,6 +49,7 @@ const RdoSignaturePad = ({ diarioId, obraId, currentSignatureUrl, onSignatureSav
           cacheControl: '3600',
           upsert: true,
           contentType: 'image/png',
+          duplex: 'half'
         });
 
       if (uploadError) throw uploadError;
@@ -70,15 +71,15 @@ const RdoSignaturePad = ({ diarioId, obraId, currentSignatureUrl, onSignatureSav
 
   if (currentSignatureUrl) {
     return (
-      <Card className="border-green-500/50 bg-green-50/5">
+      <Card className="border-green-500/50 bg-green-50/5 dark:bg-emerald-950/10">
         <CardHeader className="p-4 flex flex-row items-center justify-between">
-          <CardTitle className="text-sm font-bold text-green-700 flex items-center">
+          <CardTitle className="text-sm font-bold text-green-700 dark:text-emerald-400 flex items-center">
             <CheckCircle className="w-4 h-4 mr-2" /> ASSINATURA REGISTRADA
           </CardTitle>
           <Button variant="ghost" size="sm" onClick={() => onSignatureSave('')} className="h-7 text-xs" disabled={disabled}>Trocar</Button>
         </CardHeader>
         <CardContent className="p-4 pt-0">
-          <div className="bg-white border rounded-xl p-2 flex items-center justify-center">
+          <div className="bg-slate-50 dark:bg-slate-200 border dark:border-slate-800 rounded-xl p-2 flex items-center justify-center">
             <img src={currentSignatureUrl} alt="Assinatura registrada" className="max-h-[100px] object-contain" />
           </div>
         </CardContent>
@@ -87,12 +88,12 @@ const RdoSignaturePad = ({ diarioId, obraId, currentSignatureUrl, onSignatureSav
   }
 
   return (
-    <Card className={cn("transition-all border-dashed overflow-hidden", isDrawing && "ring-2 ring-[#066abc] border-[#066abc]")}>
+    <Card className={cn("transition-all border-dashed overflow-hidden dark:bg-slate-900 dark:border-slate-700", isDrawing && "ring-2 ring-[#066abc] border-[#066abc]")}>
       <CardHeader className="p-4 bg-muted/30">
-        <CardTitle className="text-sm font-bold uppercase tracking-tight">Desenhe sua Assinatura</CardTitle>
+        <CardTitle className="text-sm font-bold uppercase tracking-tight text-foreground">Desenhe sua Assinatura</CardTitle>
       </CardHeader>
       <CardContent className="p-4 space-y-4">
-        <div className="border-2 border-dashed rounded-xl bg-white overflow-hidden relative">
+        <div className="border-2 border-dashed rounded-xl bg-slate-50 dark:bg-slate-200 overflow-hidden relative">
           <SignatureCanvas
             ref={sigPad}
             penColor='black'
@@ -104,7 +105,7 @@ const RdoSignaturePad = ({ diarioId, obraId, currentSignatureUrl, onSignatureSav
             onBegin={() => setIsDrawing(true)}
           />
           {!isDrawing && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-muted-foreground/30 text-xs font-bold uppercase tracking-widest">
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-muted-foreground/40 text-[10px] font-black uppercase tracking-widest">
                 Assine aqui com o dedo ou mouse
             </div>
           )}
@@ -117,7 +118,7 @@ const RdoSignaturePad = ({ diarioId, obraId, currentSignatureUrl, onSignatureSav
             size="sm" 
             onClick={clearSignature} 
             disabled={isUploading || disabled} 
-            className="flex-1 rounded-xl"
+            className="flex-1 rounded-xl dark:bg-slate-900 dark:border-slate-800"
           >
             <Eraser className="w-4 h-4 mr-2" /> Limpar
           </Button>

@@ -100,7 +100,7 @@ const Relatorios = () => {
       return (
         <div className="text-center py-24 border border-dashed rounded-[3rem] bg-accent/5">
           <FileText className="w-16 h-16 mx-auto text-muted-foreground/20 mb-4" />
-          <h2 className="text-xl font-bold mb-2">Sem histórico no período</h2>
+          <h2 className="text-xl font-bold mb-2 text-foreground">Sem histórico no período</h2>
           <p className="text-muted-foreground text-sm uppercase font-black tracking-widest">
             {periodoString}
           </p>
@@ -127,15 +127,15 @@ const Relatorios = () => {
         <OccurrenceHorizontalTimeline rdos={rdoMetrics.allRdos} />
 
         {/* Detailed Status Table */}
-        <div className="pt-4 border-t border-slate-100">
+        <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
           <ActivityStatusTable obraId={selectedObraId} />
         </div>
 
         {/* Export Action Bar */}
-        <div className="bg-card p-8 rounded-[2.5rem] border shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
+        <div className="bg-card p-8 rounded-[2.5rem] border dark:border-slate-800 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="space-y-1 text-center md:text-left">
             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Consolidação de Dados</p>
-            <h4 className="text-lg font-bold">Relatório Executivo de Performance</h4>
+            <h4 className="text-lg font-bold text-foreground">Relatório Executivo de Performance</h4>
             <p className="text-xs text-muted-foreground">{rdoMetrics.allRdos.length} Diários analisados entre {periodoString}</p>
           </div>
           
@@ -152,10 +152,10 @@ const Relatorios = () => {
               endDate={endDateString}
             />
           ) : (
-            <div className="flex flex-col sm:flex-row items-center gap-4 bg-orange-50 p-4 rounded-2xl border border-orange-100">
+            <div className="flex flex-col sm:flex-row items-center gap-4 bg-orange-50 dark:bg-orange-950/20 p-4 rounded-2xl border border-orange-100 dark:border-orange-900/30">
               <div className="flex items-center gap-2">
-                <Zap className="h-5 w-5 text-orange-600 fill-current" />
-                <span className="text-[10px] font-black text-orange-800 uppercase">Upgrade para Exportar PDF Premium</span>
+                <Zap className="h-5 w-5 text-orange-600 dark:text-orange-400 fill-current" />
+                <span className="text-[10px] font-black text-orange-800 dark:text-orange-300 uppercase">Upgrade para Exportar PDF Premium</span>
               </div>
               <UpgradeButton />
             </div>
@@ -167,10 +167,10 @@ const Relatorios = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-4 sm:p-8 space-y-8 bg-slate-50/30 min-h-screen">
+      <div className="p-4 sm:p-8 space-y-8 min-h-screen bg-transparent">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div className="space-y-1">
-            <h1 className="text-3xl font-black uppercase tracking-tighter text-slate-800">Relatórios de Campo</h1>
+            <h1 className="text-3xl font-black uppercase tracking-tighter text-foreground">Relatórios de Campo</h1>
             <p className="text-sm text-muted-foreground font-medium">Visão executiva e controle técnico de produtividade.</p>
           </div>
 
@@ -181,8 +181,8 @@ const Relatorios = () => {
             
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="h-10 justify-start text-left font-bold rounded-xl bg-white border-slate-200">
-                  <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
+                <Button variant="outline" className="h-10 justify-start text-left font-bold rounded-xl bg-card border-slate-200 dark:border-slate-800">
+                  <CalendarIcon className="mr-2 h-4 w-4 text-primary dark:text-blue-400" />
                   <span className="truncate text-xs">
                     {date?.from ? (
                       date.to ? `${format(date.from, "dd/MM/yy")} - ${format(date.to, "dd/MM/yy")}` : format(date.from, "dd/MM/yy")
