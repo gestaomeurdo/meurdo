@@ -1,8 +1,11 @@
+"use client";
+
 import { useFieldArray, useFormContext } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Upload, Loader2, Image as ImageIcon, CheckSquare, X, ListTodo, TrendingUp, Zap } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -95,8 +98,6 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
         const currentDesc = watch(`atividades.${index}.descricao_servico`);
         const currentProgress = watch(`atividades.${index}.avanco_percentual`) || 0;
         const fieldErrors = (errors as any)?.atividades?.[index];
-        const linkedActivity = atividadesCronograma?.find(a => a.descricao === currentDesc);
-        const baseProgress = linkedActivity?.progresso_atual || 0;
 
         return (
           <div key={field.id} className={cn("p-4 border rounded-xl space-y-4 bg-slate-50/50 dark:bg-slate-900/50 dark:border-slate-700", fieldErrors ? "border-destructive/50 bg-destructive/5" : "")}>
@@ -104,7 +105,7 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
               <Label className={cn("text-[10px] font-black uppercase tracking-widest", fieldErrors ? "text-destructive" : "text-primary")}>
                 Atividade #{index + 1}
               </Label>
-              <Button variant="ghost" size="icon" onClick={() => remove(index)} className="h-6 w-6 text-destructive">
+              <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="h-6 w-6 text-destructive">
                 <Trash2 className="w-4 h-4" />
               </Button>
             </div>
@@ -143,14 +144,14 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
                     "flex items-center justify-center px-4 py-2 border rounded-xl cursor-pointer transition-all text-xs font-bold uppercase tracking-wider h-10",
                     uploadingIndex === index ? "bg-muted cursor-not-allowed" : "hover:bg-accent border-dashed border-primary/30 text-primary"
                 )}>
-                    {uploadingIndex === index ? <Loader2 className="w-3 h-3 mr-2 animate-spin" /> : <Upload className="w-3 h-3 mr-2" />}
+                    {uploadingIndex === index ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : <Upload className="w-3 h-3 mr-2" />}
                     {photoUrl ? "Alterar Foto" : "Anexar Foto"}
                 </Label>
                 <Input id={`foto-${index}`} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], index)} />
                 {photoUrl && (
                     <div className="flex items-center gap-2">
                         <a href={photoUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-primary hover:underline flex items-center"><ImageIcon className="w-3 h-3 mr-1" /> Ver</a>
-                        <Button variant="ghost" size="icon" onClick={() => setValue(`atividades.${index}.foto_anexo_url`, null)} className="h-6 w-6 text-destructive"><X className="w-3 h-3" /></Button>
+                        <Button type="button" variant="ghost" size="icon" onClick={() => setValue(`atividades.${index}.foto_anexo_url`, null)} className="h-6 w-6 text-destructive"><X className="w-3 h-3" /></Button>
                     </div>
                 )}
             </div>
