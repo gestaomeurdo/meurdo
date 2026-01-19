@@ -23,8 +23,13 @@ import Profile from "./pages/Profile";
 import UpdatePassword from "./pages/UpdatePassword";
 import AuthCallback from "./pages/AuthCallback";
 import PublicRdoApproval from "./pages/PublicRdoApproval";
-import AdminTickets from "./pages/AdminTickets";
-import AdminRoute from "./components/auth/AdminRoute";
+
+// Admin Pages
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminTickets from "./pages/admin/AdminTickets";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminGuard from "./components/auth/AdminGuard";
+
 import { ThemeProvider } from "./components/layout/ThemeProvider";
 
 const queryClient = new QueryClient();
@@ -56,14 +61,14 @@ const App = () => (
               <Route path="/profile" element={<Profile />} />
               <Route path="/update-password" element={<UpdatePassword />} />
               
-              {/* Rotas Administrativas Protegidas */}
-              <Route element={<AdminRoute />}>
+              {/* BACKOFFICE ADMINISTRATIVO (PROTEGIDO) */}
+              <Route element={<AdminGuard />}>
+                <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/admin/tickets" element={<AdminTickets />} />
+                <Route path="/admin/users" element={<AdminUsers />} />
               </Route>
               
-              {/* Rota Pública de Aprovação */}
               <Route path="/rdo/share/:token" element={<PublicRdoApproval />} />
-              
               <Route path="*" element={<NotFound />} />
             </Routes>
           </SessionContextProvider>
