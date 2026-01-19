@@ -92,7 +92,8 @@ const RdoForm = ({ obraId, initialData, onSuccess, selectedDate, previousRdoData
       impedimentos_comentarios: initialData?.impedimentos_comentarios || "",
       responsible_signature_url: initialData?.responsible_signature_url || null,
       client_signature_url: initialData?.client_signature_url || null,
-      signer_name: (initialData as any)?.signer_name || `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim(),
+      // CORREÇÃO: Não preencher automaticamente com o nome do perfil logado se for novo ou nulo
+      signer_name: (initialData as any)?.signer_name || "",
       safety_nr35: initialData?.safety_nr35 || false,
       safety_epi: initialData?.safety_epi || false,
       safety_cleaning: initialData?.safety_cleaning || false,

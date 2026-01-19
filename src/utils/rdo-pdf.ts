@@ -40,13 +40,15 @@ export const generateRdoPdf = async (
         if (index !== -1) sequenceNumber = (index + 1).toString().padStart(2, '0');
     }
 
-    // Carrega Logotipo e Capa da Obra
-    const [logoBase64, obraPhotoBase64] = await Promise.all([
+    // Carrega Imagens em paralelo
+    const [logoBase64, obraPhotoBase64, sigResponsibleBase64, sigClientBase64] = await Promise.all([
         urlToBase64(profile?.avatar_url),
-        urlToBase64(obra?.foto_url)
+        urlToBase64(obra?.foto_url),
+        urlToBase64(rdo.responsible_signature_url),
+        urlToBase64(rdo.client_signature_url)
     ]);
 
-    // Mapeia fotos das atividades de forma individual para o template
+    // Mapeia fotos das atividades de forma individual
     const activityPhotosMap: Record<string, string> = {};
     if (rdo.rdo_atividades_detalhe) {
         for (const atv of rdo.rdo_atividades_detalhe) {
@@ -66,7 +68,9 @@ export const generateRdoPdf = async (
         sequenceNumber,
         logoBase64,
         obraPhotoBase64,
-        activityPhotosMap
+        activityPhotosMap,
+        sigResponsibleBase64,
+        sigClientBase64
       })
     ).toBlob();
 

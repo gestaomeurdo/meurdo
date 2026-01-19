@@ -70,7 +70,8 @@ const styles = StyleSheet.create({
 });
 
 export const RdoPdfTemplate = ({ 
-    rdo, obraNome, profile, obra, sequenceNumber, logoBase64, obraPhotoBase64, activityPhotosMap 
+    rdo, obraNome, profile, obra, sequenceNumber, logoBase64, obraPhotoBase64, activityPhotosMap,
+    sigResponsibleBase64, sigClientBase64 
 }: any) => {
     
     const climaData = rdo.clima_condicoes?.split(', ') || [];
@@ -158,11 +159,13 @@ export const RdoPdfTemplate = ({
                 <View style={styles.footerContainer}>
                     <View style={styles.sigRow}>
                         <View style={styles.sigBox}>
+                            {sigResponsibleBase64 && <Image src={sigResponsibleBase64} style={styles.sigImg} />}
                             <View style={styles.sigLine} />
                             <Text style={styles.sigName}>{profile?.first_name} {profile?.last_name}</Text>
                             <Text style={styles.sigRole}>Responsável Técnico</Text>
                         </View>
                         <View style={styles.sigBox}>
+                            {sigClientBase64 && <Image src={sigClientBase64} style={styles.sigImg} />}
                             <View style={styles.sigLine} />
                             <Text style={styles.sigName}>{rdo.signer_name || "Aguardando Aprovação"}</Text>
                             <Text style={styles.sigRole}>Contratante / Fiscalização</Text>
