@@ -3,7 +3,7 @@
 import { useProfile, useStripeCustomerPortal } from "@/hooks/use-profile";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Zap, CreditCard, ShieldCheck, ExternalLink, Loader2, Download, Receipt, HelpCircle, Send, MessageSquare } from "lucide-react";
+import { CheckCircle2, Zap, CreditCard, ShieldCheck, ExternalLink, Loader2, Download, Receipt, HelpCircle, Send, MessageSquare, AlertCircle } from "lucide-react";
 import UpgradeButton from "../subscription/UpgradeButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -68,18 +68,20 @@ const SubscriptionTab = () => {
       <section className="space-y-10">
           <div className="flex flex-col items-center text-center gap-6">
               <div className="space-y-2">
-                <h2 className="text-2xl font-black uppercase tracking-tight">Escolha o seu plano</h2>
-                <p className="text-muted-foreground text-sm font-medium">Gestão profissional para engenheiros e construtoras.</p>
+                <h2 className="text-2xl font-black uppercase tracking-tight">Planos e Assinatura</h2>
+                <p className="text-muted-foreground text-sm font-medium">Gerencie seu nível de acesso e faturamento.</p>
               </div>
 
-              <div className="flex items-center gap-4 bg-slate-100 dark:bg-slate-900 p-2 rounded-full border dark:border-slate-800 shadow-inner">
-                  <span className={cn("text-xs font-black px-4 transition-colors uppercase tracking-widest", !isYearly ? "text-primary" : "text-muted-foreground")}>Mensal</span>
-                  <Switch checked={isYearly} onCheckedChange={setIsYearly} className="data-[state=checked]:bg-[#066abc]" />
-                  <div className="flex items-center gap-3 pr-2">
-                    <span className={cn("text-xs font-black px-2 transition-colors uppercase tracking-widest", isYearly ? "text-primary" : "text-muted-foreground")}>Anual</span>
-                    <Badge className="bg-emerald-500 text-white border-none text-[9px] font-black uppercase tracking-tighter px-3">Economize 15%</Badge>
-                  </div>
-              </div>
+              {!isPro && (
+                <div className="flex items-center gap-4 bg-slate-100 dark:bg-slate-900 p-2 rounded-full border dark:border-slate-800 shadow-inner">
+                    <span className={cn("text-xs font-black px-4 transition-colors uppercase tracking-widest", !isYearly ? "text-primary" : "text-muted-foreground")}>Mensal</span>
+                    <Switch checked={isYearly} onCheckedChange={setIsYearly} className="data-[state=checked]:bg-[#066abc]" />
+                    <div className="flex items-center gap-3 pr-2">
+                        <span className={cn("text-xs font-black px-2 transition-colors uppercase tracking-widest", isYearly ? "text-primary" : "text-muted-foreground")}>Anual</span>
+                        <Badge className="bg-emerald-500 text-white border-none text-[9px] font-black uppercase tracking-tighter px-3">Economize 15%</Badge>
+                    </div>
+                </div>
+              )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto items-stretch">
@@ -106,23 +108,28 @@ const SubscriptionTab = () => {
               </Card>
 
               {/* PLANO PRO (DESTAQUE) */}
-              <Card className="bg-card border-2 border-[#066abc] dark:bg-slate-900 ring-8 ring-[#066abc]/5 rounded-[3rem] shadow-2xl flex flex-col p-2 relative scale-105 z-10 h-full">
+              <Card className={cn(
+                  "bg-card border-2 dark:bg-slate-900 rounded-[3rem] shadow-2xl flex flex-col p-2 relative h-full transition-all",
+                  isPro ? "border-emerald-500 ring-8 ring-emerald-500/5" : "border-[#066abc] ring-8 ring-[#066abc]/5 scale-105 z-10"
+              )}>
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-[#066abc] text-white border-none px-6 py-1.5 rounded-full font-black text-[9px] uppercase tracking-widest shadow-xl animate-bounce">Destaque</Badge>
+                      <Badge className={cn("text-white border-none px-6 py-1.5 rounded-full font-black text-[9px] uppercase tracking-widest shadow-xl", isPro ? "bg-emerald-500" : "bg-[#066abc] animate-bounce")}>
+                          {isPro ? "Plano Ativo" : "Recomendado"}
+                      </Badge>
                   </div>
                   <CardHeader className="text-center pt-12">
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#066abc] mb-2">Ilimitado</p>
-                      <CardTitle className="text-3xl font-black">Profissional</CardTitle>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#066abc] mb-2">Profissional</p>
+                      <CardTitle className="text-3xl font-black">Ilimitado</CardTitle>
                       
                       <div className="pt-6 flex flex-col items-center">
                           <div className="flex items-baseline gap-2">
-                              {isYearly && (
+                              {!isPro && isYearly && (
                                 <span className="text-xl font-bold text-slate-400 line-through opacity-50">R$ 100</span>
                               )}
-                              <span className="text-5xl font-black text-[#066abc]">R$ {isYearly ? "85" : "100"}</span>
+                              <span className="text-5xl font-black text-foreground">R$ {isPro ? "49,90" : (isYearly ? "85" : "100")}</span>
                               <span className="text-slate-500 text-xs font-bold">/mês</span>
                           </div>
-                          {isYearly && (
+                          {isYearly && !isPro && (
                               <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mt-2 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1 rounded-full">
                                 Faturado R$ 1.020 anualmente
                               </p>
@@ -134,9 +141,9 @@ const SubscriptionTab = () => {
                           {[
                             "Obras e RDOs Ilimitados", 
                             "PDF Profissional (Sem marca d'água)", 
-                            "Galeria de Fotos Ilimitada", 
+                            "Logo da Empresa nos relatórios", 
                             "Suporte Prioritário", 
-                            "Gestão de Equipe Completa"
+                            "Gestão de Equipe e Máquinas"
                           ].map(i => (
                               <li key={i} className="flex items-center gap-3 text-sm font-black">
                                   <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" /> {i}
@@ -144,9 +151,15 @@ const SubscriptionTab = () => {
                           ))}
                       </ul>
                       {isPro ? (
-                          <Button onClick={() => openPortal()} disabled={isOpeningPortal} className="w-full h-16 rounded-2xl bg-[#066abc] hover:bg-[#066abc]/90 text-white font-black uppercase text-xs tracking-widest border-none shadow-xl shadow-blue-500/20">
-                              {isOpeningPortal ? <Loader2 className="animate-spin h-5 w-5" /> : <CreditCard className="w-5 h-5 mr-2" />} Gerenciar Assinatura
-                          </Button>
+                          <div className="space-y-4">
+                            <Button onClick={() => openPortal()} disabled={isOpeningPortal} className="w-full h-16 rounded-2xl bg-[#066abc] hover:bg-[#066abc]/90 text-white font-black uppercase text-xs tracking-widest border-none shadow-xl shadow-blue-500/20">
+                                {isOpeningPortal ? <Loader2 className="animate-spin h-5 w-5" /> : <ExternalLink className="w-5 h-5 mr-2" />} 
+                                Gerenciar Assinatura
+                            </Button>
+                            <p className="text-[10px] text-center text-muted-foreground uppercase font-bold px-4">
+                                Clique para baixar recibos, alterar cartão ou voltar para o plano grátis.
+                            </p>
+                          </div>
                       ) : (
                           <div className="h-16">
                             <UpgradeButton />
@@ -169,26 +182,35 @@ const SubscriptionTab = () => {
                   <Table>
                       <TableHeader className="bg-muted/50 dark:bg-slate-950/50">
                           <TableRow className="border-slate-100 dark:border-slate-800">
-                              <TableHead className="text-[9px] font-black uppercase tracking-widest py-4 pl-6">Data</TableHead>
-                              <TableHead className="text-[9px] font-black uppercase tracking-widest py-4">Valor</TableHead>
-                              <TableHead className="text-[9px] font-black uppercase tracking-widest py-4">Status</TableHead>
-                              <TableHead className="text-right text-[9px] font-black uppercase tracking-widest py-4 pr-6">Recibo</TableHead>
+                              <TableHead className="text-[9px] font-black uppercase tracking-widest py-4 pl-6">Histórico de Cobrança</TableHead>
+                              <TableHead className="text-right text-[9px] font-black uppercase tracking-widest py-4 pr-6">Ação</TableHead>
                           </TableRow>
                       </TableHeader>
                       <TableBody>
                           {isPro ? (
                               <TableRow className="border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                                  <TableCell className="text-xs font-bold pl-6">05/03/2024</TableCell>
-                                  <TableCell className="text-xs font-bold">R$ 49,90</TableCell>
-                                  <TableCell><Badge className="bg-emerald-500/10 text-emerald-500 border-none text-[8px] font-black uppercase px-2">Liquidado</Badge></TableCell>
+                                  <TableCell className="py-8 pl-6">
+                                      <div className="flex items-center gap-3">
+                                          <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-950/30 rounded-xl flex items-center justify-center">
+                                              <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                                          </div>
+                                          <div>
+                                              <p className="text-xs font-black uppercase">Assinatura Ativa</p>
+                                              <p className="text-[10px] text-muted-foreground">Faturas e recibos detalhados estão disponíveis no portal.</p>
+                                          </div>
+                                      </div>
+                                  </TableCell>
                                   <TableCell className="text-right pr-6">
-                                      <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-400 hover:text-primary rounded-full"><Download className="w-4 h-4" /></Button>
+                                      <Button variant="outline" size="sm" onClick={() => openPortal()} disabled={isOpeningPortal} className="rounded-xl font-bold text-[10px] uppercase">
+                                          Abrir Portal <ExternalLink className="w-3 h-3 ml-2" />
+                                      </Button>
                                   </TableCell>
                               </TableRow>
                           ) : (
                             <TableRow>
-                                <TableCell colSpan={4} className="text-center py-16 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">
-                                    Nenhum faturamento registrado.
+                                <TableCell colSpan={2} className="text-center py-16 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">
+                                    <AlertCircle className="w-8 h-8 mx-auto mb-4 opacity-20" />
+                                    Nenhuma fatura pendente.
                                 </TableCell>
                             </TableRow>
                           )}
