@@ -254,6 +254,9 @@ export const useCreateRdo = () => {
       queryClient.invalidateQueries({ queryKey: ['rdo', data.obra_id, data.data_rdo] });
       queryClient.invalidateQueries({ queryKey: ['rdoDashboardMetrics'] });
       queryClient.invalidateQueries({ queryKey: ['rdoCount'] });
+      // Força a atualização do progresso das obras e das atividades
+      queryClient.invalidateQueries({ queryKey: ['obrasProgress'] });
+      queryClient.invalidateQueries({ queryKey: ['atividades'] });
     },
   });
 };
@@ -290,6 +293,9 @@ export const useUpdateRdo = () => {
       queryClient.invalidateQueries({ queryKey: ['rdoList', data.obra_id] });
       queryClient.invalidateQueries({ queryKey: ['rdo', data.obra_id, data.data_rdo] });
       queryClient.invalidateQueries({ queryKey: ['rdoDashboardMetrics'] });
+      // Força a atualização do progresso das obras e das atividades
+      queryClient.invalidateQueries({ queryKey: ['obrasProgress'] });
+      queryClient.invalidateQueries({ queryKey: ['atividades'] });
     },
   });
 };
@@ -305,6 +311,8 @@ export const useDeleteRdo = () => {
       queryClient.invalidateQueries({ queryKey: ['rdoList', variables.obraId] });
       queryClient.invalidateQueries({ queryKey: ['rdoDashboardMetrics'] });
       queryClient.invalidateQueries({ queryKey: ['rdoCount'] });
+      // Força a atualização do progresso das obras (caso a exclusão afete o cálculo)
+      queryClient.invalidateQueries({ queryKey: ['obrasProgress'] });
     },
   });
 };
@@ -323,6 +331,7 @@ export const useDeleteAllRdo = () => {
       queryClient.invalidateQueries({ queryKey: ['rdoList', obraId] });
       queryClient.invalidateQueries({ queryKey: ['rdoDashboardMetrics'] });
       queryClient.invalidateQueries({ queryKey: ['rdoCount'] });
+      queryClient.invalidateQueries({ queryKey: ['obrasProgress'] });
     },
   });
 };
