@@ -56,27 +56,25 @@ export const generateRdoPdf = async (
     const dateObj = parseISO(rdo.data_rdo);
     const dayOfWeek = isValid(dateObj) ? format(dateObj, "EEEE", { locale: ptBR }) : "";
 
-    // Promessas de imagens cruciais
     const [logoBase64, responsibleSigBase64, clientSigBase64] = await Promise.all([
         urlToBase64(profile?.avatar_url),
         urlToBase64(rdo.responsible_signature_url),
         urlToBase64(rdo.client_signature_url)
     ]);
 
-    // Coletar fotos de atividades e segurança
     const rawPhotos = [
         ...(rdo.rdo_atividades_detalhe?.filter(a => a.foto_anexo_url).map(a => ({ 
             url: a.foto_anexo_url!, 
             desc: `Serviço: ${a.descricao_servico}` 
         })) || []),
-        ...(rdo.rdo_equipamentos?.filter(e => (e as any).foto_url).map(e => ({
-            url: (e as any).foto_url!,
+        ...(rdo.rdo_equipamentos?.filter(e => e.foto_url).map(e => ({
+            url: e.foto_url!,
             desc: `Máquina: ${e.equipamento}`
         })) || []),
-        { url: (rdo as any).safety_nr35_photo, desc: "Segurança: NR-35" },
-        { url: (rdo as any).safety_epi_photo, desc: "Segurança: EPIs" },
-        { url: (rdo as any).safety_cleaning_photo, desc: "Segurança: Limpeza" },
-        { url: (rdo as any).safety_dds_photo, desc: "Segurança: DDS" }
+        { url: rdo.safety_nr35_photo, desc: "Segurança: NR-35" },
+        { url: rdo.safety_epi_photo, desc: "Segurança: EPIs" },
+        { url: rdo.safety_cleaning_photo, desc: "Segurança: Limpeza" },
+        { url: rdo.safety_dds_photo, desc: "Segurança: DDS" }
     ].filter(p => p.url && typeof p.url === 'string');
 
     const processedPhotos = [];
@@ -112,18 +110,16 @@ export const generateRdoPdf = async (
     document.body.appendChild(link);
     link.click();
     
-    // Cleanup seguro
     setTimeout(() => {
         if (link.parentNode) document.body.removeChild(link);
         if (url) URL.revokeObjectURL(url);
-    }, 200);
+    }, 500);
     
     console.log("[PDF Generator] Download iniciado com sucesso.");
     
   } catch (error) {
     console.error("[PDF Generator] Erro Crítico:", error);
-    // Tenta limpar a URL se ela foi criada mas algo falhou depois
     if (url) URL.revokeObjectURL(url);
-    throw new Error("Erro ao gerar PDF técnico. Verifique as fotos anexadas.");
+    throw new Error(`Erro ao gerar PDF: ${error instanceof Error ? error.message : 'Verifique os dados e fotos anexadas.'}`);
   }
 };

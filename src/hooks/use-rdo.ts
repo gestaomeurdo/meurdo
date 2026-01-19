@@ -24,6 +24,7 @@ export interface RdoMaoDeObra {
   custo_unitario: number; 
   cargo_id: string | null;
   tipo: WorkforceType; 
+  observacao?: string | null;
 }
 
 export interface RdoEquipamento {
@@ -32,7 +33,9 @@ export interface RdoEquipamento {
   equipamento: string;
   horas_trabalhadas: number;
   horas_paradas: number;
-  custo_hora: number; // Added field
+  custo_hora: number;
+  foto_url?: string | null;
+  observacao?: string | null;
 }
 
 export interface RdoMaterial {
@@ -47,7 +50,6 @@ export interface RdoMaterial {
 
 // --- Main RDO Type ---
 export type RdoStatusDia = 'Operacional' | 'Parcialmente Paralisado' | 'Totalmente Paralisado - Não Praticável';
-// Changed to string to support "Manhã: Sol, Tarde: Chuva"
 export type RdoClima = string; 
 export type RdoPeriodo = string; 
 
@@ -75,6 +77,12 @@ export interface DiarioObra {
   safety_dds: boolean;
   safety_comments: string | null;
   safety_photo_url: string | null;
+  
+  // Specific Safety Photos (from DB schema)
+  safety_nr35_photo?: string | null;
+  safety_epi_photo?: string | null;
+  safety_cleaning_photo?: string | null;
+  safety_dds_photo?: string | null;
   
   // Signatures
   signer_name: string | null;
@@ -148,7 +156,6 @@ export const useRdoList = (obraId: string) => {
   });
 };
 
-// Improved to fetch the MOST RECENT RDO before the current date
 export const fetchPreviousRdo = async (obraId: string, currentDate: Date): Promise<DiarioObra | null> => {
   const dateString = format(currentDate, 'yyyy-MM-dd');
 
@@ -165,8 +172,8 @@ export const fetchPreviousRdo = async (obraId: string, currentDate: Date): Promi
       rdo_materiais (*)
     `)
     .eq('obra_id', obraId)
-    .lt('data_rdo', dateString) // Less than current date
-    .order('data_rdo', { ascending: false }) // Get the most recent one
+    .lt('data_rdo', dateString)
+    .order('data_rdo', { ascending: false })
     .limit(1)
     .maybeSingle();
 
@@ -195,6 +202,11 @@ export interface RdoInput {
   safety_dds: boolean;
   safety_comments?: string | null;
   safety_photo_url?: string | null;
+  
+  safety_nr35_photo?: string | null;
+  safety_epi_photo?: string | null;
+  safety_cleaning_photo?: string | null;
+  safety_dds_photo?: string | null;
 
   // Signer
   signer_name?: string | null;
@@ -254,7 +266,6 @@ export const useCreateRdo = () => {
       queryClient.invalidateQueries({ queryKey: ['rdo', data.obra_id, data.data_rdo] });
       queryClient.invalidateQueries({ queryKey: ['rdoDashboardMetrics'] });
       queryClient.invalidateQueries({ queryKey: ['rdoCount'] });
-      // Força a atualização do progresso das obras e das atividades
       queryClient.invalidateQueries({ queryKey: ['obrasProgress'] });
       queryClient.invalidateQueries({ queryKey: ['atividades'] });
     },
@@ -277,7 +288,6 @@ export const useUpdateRdo = () => {
 
       if (updateError) throw new Error(updateError.message);
       
-      // Limpar detalhes antigos e reinserir (estratégia simples)
       await supabase.from('rdo_atividades_detalhe').delete().eq('diario_id', id);
       await supabase.from('rdo_mao_de_obra').delete().eq('diario_id', id);
       await supabase.from('rdo_equipamentos').delete().eq('diario_id', id);
@@ -293,7 +303,6 @@ export const useUpdateRdo = () => {
       queryClient.invalidateQueries({ queryKey: ['rdoList', data.obra_id] });
       queryClient.invalidateQueries({ queryKey: ['rdo', data.obra_id, data.data_rdo] });
       queryClient.invalidateQueries({ queryKey: ['rdoDashboardMetrics'] });
-      // Força a atualização do progresso das obras e das atividades
       queryClient.invalidateQueries({ queryKey: ['obrasProgress'] });
       queryClient.invalidateQueries({ queryKey: ['atividades'] });
     },
@@ -311,7 +320,6 @@ export const useDeleteRdo = () => {
       queryClient.invalidateQueries({ queryKey: ['rdoList', variables.obraId] });
       queryClient.invalidateQueries({ queryKey: ['rdoDashboardMetrics'] });
       queryClient.invalidateQueries({ queryKey: ['rdoCount'] });
-      // Força a atualização do progresso das obras (caso a exclusão afete o cálculo)
       queryClient.invalidateQueries({ queryKey: ['obrasProgress'] });
     },
   });
@@ -343,22 +351,20 @@ interface RdoPaymentInput {
   rdoDate: string; 
   totalCost: number;
   manpowerDetails: { funcao: string, quantidade: number, custo_unitario: number }[];
-  equipmentDetails: { equipamento: string, horas: number, custo_hora: number }[]; // Added
+  equipmentDetails: { equipamento: string, horas: number, custo_hora: number }[]; 
 }
 
 const getManpowerCategoryId = async (userId: string): Promise<string> => {
-  // 1. Try match by user and partial name
   const { data, error } = await supabase
     .from('categorias_despesa')
     .select('id')
     .eq('user_id', userId)
-    .ilike('nome', '%Mão de Obra%') // Case insensitive partial match
+    .ilike('nome', '%Mão de Obra%')
     .limit(1)
     .maybeSingle();
 
   if (data) return data.id;
 
-  // 2. Create if missing
   const { data: newCategory, error: createError } = await supabase
     .from('categorias_despesa')
     .insert({ 
@@ -415,8 +421,7 @@ export const usePayRdo = () => {
         throw new Error(error.message);
       }
     },
-    onSuccess: (_, variables) => {
-      // Invalidate all related queries to force refresh
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['financialEntries'] });
       queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
       queryClient.invalidateQueries({ queryKey: ['reportData'] });
