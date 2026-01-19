@@ -298,6 +298,7 @@ export const useCreateRdo = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['rdoList', data.obra_id] });
       queryClient.invalidateQueries({ queryKey: ['rdo', data.obra_id, data.data_rdo] });
+      queryClient.invalidateQueries({ queryKey: ['rdoDashboardMetrics'] });
     },
   });
 };
@@ -331,6 +332,27 @@ export const useUpdateRdo = () => {
       queryClient.invalidateQueries({ queryKey: ['rdo', data.obra_id, data.data_rdo] });
     },
   });
+};
+
+export const useResubmitRdo = () => {
+    const queryClient = useQueryClient();
+    return useMutation<void, Error, { id: string, obraId: string }>({
+        mutationFn: async ({ id }) => {
+            const { error } = await supabase
+                .from('diarios_obra')
+                .update({ 
+                    status: 'pending',
+                    rejection_reason: null 
+                })
+                .eq('id', id);
+            if (error) throw error;
+        },
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['rdoList', variables.obraId] });
+            queryClient.invalidateQueries({ queryKey: ['rdo'] });
+            queryClient.invalidateQueries({ queryKey: ['rdoAlerts'] });
+        },
+    });
 };
 
 export const useApproveRdo = () => {
