@@ -3,58 +3,21 @@
 import { useProfile, useStripeCustomerPortal } from "@/hooks/use-profile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Zap, CreditCard, ShieldCheck, ExternalLink, Loader2, Download, Receipt, HelpCircle, Send, MessageSquare, AlertCircle, Lock } from "lucide-react";
+import { CheckCircle2, Zap, CreditCard, ShieldCheck, ExternalLink, Loader2, Lock, HelpCircle, MessageSquare } from "lucide-react";
 import UpgradeButton from "../subscription/UpgradeButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { useState } from "react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/integrations/supabase/client";
-import { showError, showSuccess } from "@/utils/toast";
+import SupportTicketList from "./SupportTicketList";
+import CreateTicketDialog from "./CreateTicketDialog";
 
 const SubscriptionTab = () => {
   const { data: profile, isLoading } = useProfile();
   const { mutate: openPortal, isPending: isOpeningPortal } = useStripeCustomerPortal();
   const [isYearly, setIsYearly] = useState(false);
   
-  const [supportSubject, setSupportSubject] = useState("");
-  const [supportMessage, setSupportMessage] = useState("");
-  const [isSendingSupport, setIsSendingSupport] = useState(false);
-
-  const handleSendSupport = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!supportSubject || !supportMessage) {
-        showError("Preencha o assunto e a mensagem.");
-        return;
-    }
-
-    setIsSendingSupport(true);
-    try {
-        const { error } = await supabase.functions.invoke('send-support-email', {
-            body: {
-                subject: supportSubject,
-                message: supportMessage,
-                plan: profile?.plan_type || 'free',
-                userId: profile?.id
-            }
-        });
-
-        if (error) throw error;
-        showSuccess("Mensagem enviada! Nossa equipe responderá em breve.");
-        setSupportMessage("");
-        setSupportSubject("");
-    } catch (err) {
-        showError("Falha ao enviar ticket.");
-    } finally {
-        setIsSendingSupport(false);
-    }
-  };
-
   if (isLoading) return <Skeleton className="h-[600px] w-full rounded-3xl" />;
 
   const isPro = profile?.subscription_status === 'active' || profile?.plan_type === 'pro';
@@ -66,7 +29,7 @@ const SubscriptionTab = () => {
       <section className="space-y-10">
           <div className="flex flex-col items-center text-center gap-6">
               <div className="space-y-2">
-                <h2 className="text-2xl font-black uppercase tracking-tight">Escolha seu Nível de Gestão</h2>
+                <h2 className="text-2xl font-black uppercase tracking-tight text-foreground">Escolha seu Nível de Gestão</h2>
                 <p className="text-muted-foreground text-sm font-medium">Planos simplificados para engenheiros de alta performance.</p>
               </div>
 
@@ -143,61 +106,40 @@ const SubscriptionTab = () => {
           </div>
       </section>
 
-      {/* 2. SUPORTE */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-16 border-t dark:border-slate-800">
-          <div className="space-y-6">
+      {/* 2. SUPORTE INTERNO (TICKETS) */}
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-16 border-t dark:border-slate-800">
+          <div className="lg:col-span-4 space-y-6">
               <div className="flex items-center gap-3 px-2">
                   <div className="p-2.5 bg-primary/10 rounded-xl border border-primary/20"><HelpCircle className="w-5 h-5 text-primary" /></div>
-                  <h3 className="text-lg font-black uppercase tracking-tight">Ajuda e Suporte</h3>
+                  <h3 className="text-lg font-black uppercase tracking-tight">Central de Ajuda</h3>
               </div>
-              <Card className="bg-card dark:bg-slate-900 border dark:border-slate-800 rounded-[2.5rem] p-8 shadow-sm">
-                  <form onSubmit={handleSendSupport} className="space-y-6">
-                      <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase tracking-widest ml-2">Assunto</Label>
-                          <Select value={supportSubject} onValueChange={setSupportSubject}>
-                              <SelectTrigger className="h-12 bg-white dark:bg-slate-950 rounded-2xl">
-                                  <SelectValue placeholder="Selecione um tópico" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                  <SelectItem value="Dúvida Técnica">Dúvida Técnica</SelectItem>
-                                  <SelectItem value="Erro/Bug">Reportar Bug</SelectItem>
-                                  <SelectItem value="Financeiro">Financeiro</SelectItem>
-                                  <SelectItem value="Melhoria">Sugestão de Recurso</SelectItem>
-                              </SelectContent>
-                          </Select>
-                      </div>
-                      <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase tracking-widest ml-2">Mensagem</Label>
-                          <Textarea 
-                            value={supportMessage}
-                            onChange={(e) => setSupportMessage(e.target.value)}
-                            placeholder="Descreva detalhadamente seu problema..." 
-                            rows={5} 
-                            className="bg-white dark:bg-slate-950 rounded-2xl resize-none" 
-                          />
-                      </div>
-                      <Button type="submit" disabled={isSendingSupport} className="w-full h-14 rounded-2xl bg-[#066abc] font-black uppercase text-xs tracking-widest">
-                          {isSendingSupport ? <Loader2 className="animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />} Enviar Chamado
-                      </Button>
-                  </form>
+              <Card className="bg-slate-50 dark:bg-slate-800/50 border-none rounded-[2.5rem] p-8 space-y-6">
+                  <p className="text-sm text-muted-foreground font-medium leading-relaxed">
+                      Precisa de suporte? Nossa equipe técnica responde em até 24h úteis. 
+                      Utilize o chat para acompanhar seus chamados.
+                  </p>
+                  <CreateTicketDialog />
+              </Card>
+              
+              <Card className="bg-emerald-500/5 border-emerald-500/10 border-none rounded-[2.5rem] p-8">
+                  <div className="flex items-center gap-2 mb-4">
+                      <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Segurança Ativa</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                      Sua conta e dados financeiros são processados via Stripe com criptografia SSL 256 bits.
+                  </p>
               </Card>
           </div>
           
-          <div className="space-y-6">
-            <div className="flex items-center gap-3 px-2">
-                <div className="p-2.5 bg-emerald-500/10 rounded-xl border border-emerald-500/20"><ShieldCheck className="w-5 h-5 text-emerald-600" /></div>
-                <h3 className="text-lg font-black uppercase tracking-tight">Segurança dos Dados</h3>
-            </div>
-            <Card className="bg-slate-50 dark:bg-slate-800/50 border-none rounded-[2.5rem] p-8">
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                    Seus dados são criptografados e armazenados em servidores seguros. O faturamento é processado pela <strong>Stripe</strong>, garantindo total conformidade com padrões internacionais de segurança bancária.
-                </p>
-                <div className="mt-8 flex items-center gap-6 opacity-30 grayscale">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg" className="h-6" alt="Stripe" />
-                    <div className="h-4 w-px bg-slate-300" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">PCI Compliance</span>
+          <div className="lg:col-span-8 space-y-6">
+            <div className="flex items-center justify-between px-2">
+                <div className="flex items-center gap-3">
+                    <MessageSquare className="w-5 h-5 text-muted-foreground" />
+                    <h3 className="text-lg font-black uppercase tracking-tight">Meus Chamados</h3>
                 </div>
-            </Card>
+            </div>
+            <SupportTicketList />
           </div>
       </section>
     </div>
