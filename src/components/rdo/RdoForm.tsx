@@ -8,9 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { showSuccess, showError } from "@/utils/toast";
-import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, UserCheck, Sun, Clock, Copy, Upload, Image as ImageIcon, X, Handshake, Moon, SunMedium, CheckCircle, Trash2, AlertTriangle, StickyNote } from "lucide-react";
+import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, UserCheck, Sun, Clock, Copy, Upload, Image as ImageIcon, X, Handshake, Moon, SunMedium, CheckCircle, Trash2, AlertTriangle, StickyNote, MessageSquare, AlertOctagon } from "lucide-react";
 import { DiarioObra, useCreateRdo, useUpdateRdo, WorkforceType, useDeleteRdo, useRdoList } from "@/hooks/use-rdo";
 import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
@@ -31,8 +30,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
-const statusOptions = ['Operacional', 'Não Praticável'];
-const climaOptions = ['Sol', 'Nublado', 'Chuva Leve', 'Chuva Forte'];
 const workforceTypes: WorkforceType[] = ['Própria', 'Terceirizada'];
 
 const RdoDetailSchema = z.object({
@@ -118,13 +115,11 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
   const isPro = profile?.subscription_status === 'active' || profile?.plan_type === 'pro';
   const createMutation = useCreateRdo();
   const updateMutation = useUpdateRdo();
-  const deleteMutation = useDeleteRdo();
   const { data: obras } = useObras();
   const { data: rdoList } = useRdoList(obraId);
   const currentObra = obras?.find(o => o.id === obraId);
   const obraNome = currentObra?.nome || "Obra";
   
-  const [uploadingState, setUploadingState] = useState<Record<string, boolean>>({});
   const [weatherMap, setWeatherMap] = useState<Record<string, string>>({});
   const [statusMap, setStatusMap] = useState<Record<string, string>>({});
 
@@ -332,9 +327,41 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
           <TabsContent value="equipamentos" className="pt-4"><RdoEquipmentForm /></TabsContent>
           <TabsContent value="materiais" className="pt-4"><RdoMaterialsForm /></TabsContent>
           <TabsContent value="seguranca" className="pt-4"><div className="p-4 text-center text-muted-foreground">Checklist de Segurança</div></TabsContent>
-          <TabsContent value="ocorrencias" className="pt-4">
+          <TabsContent value="ocorrencias" className="pt-4 space-y-6">
             <FormField control={methods.control} name="impedimentos_comentarios" render={({ field }) => (
-                <FormItem><FormLabel>Impedimentos</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={4} /></FormControl></FormItem>
+                <FormItem>
+                    <FormLabel className="flex items-center gap-2 text-destructive font-black uppercase text-xs tracking-widest">
+                        <AlertOctagon className="w-4 h-4" /> 
+                        Causas de Paralisação / Impedimentos
+                    </FormLabel>
+                    <FormControl>
+                        <Textarea 
+                            placeholder="Descreva problemas que travaram a obra (ex: Falta de energia, Greve, Chuva torrencial...)" 
+                            {...field} 
+                            value={field.value || ""} 
+                            rows={4} 
+                            className="bg-red-50/30 border-red-100"
+                        />
+                    </FormControl>
+                </FormItem>
+            )} />
+
+            <FormField control={methods.control} name="observacoes_gerais" render={({ field }) => (
+                <FormItem>
+                    <FormLabel className="flex items-center gap-2 text-primary font-black uppercase text-xs tracking-widest">
+                        <MessageSquare className="w-4 h-4" /> 
+                        Observações Gerais do Dia
+                    </FormLabel>
+                    <FormControl>
+                        <Textarea 
+                            placeholder="Notas diversas (ex: Sumiço de materiais, visita de fiscalização, entrega de documentos...)" 
+                            {...field} 
+                            value={field.value || ""} 
+                            rows={4} 
+                            className="bg-blue-50/30 border-blue-100"
+                        />
+                    </FormControl>
+                </FormItem>
             )} />
           </TabsContent>
         </Tabs>
