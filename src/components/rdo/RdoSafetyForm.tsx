@@ -46,7 +46,7 @@ const RdoSafetyForm = () => {
   };
 
   const safetyItems = [
-    { id: "safety_nr35", label: "Trabalho em Altura (NR-35)", photoField: "safety_nr35_photo" },
+    { id: "safety_nr35", label: "Trabalho em Altura", photoField: "safety_nr35_photo" },
     { id: "safety_epi", label: "Uso Obrigatório de EPIs", photoField: "safety_epi_photo" },
     { id: "safety_cleaning", label: "Organização e Limpeza", photoField: "safety_cleaning_photo" },
     { id: "safety_dds", label: "Diálogo Diário de Segurança (DDS)", photoField: "safety_dds_photo" },

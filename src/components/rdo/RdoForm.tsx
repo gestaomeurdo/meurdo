@@ -9,8 +9,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { showSuccess, showError } from "@/utils/toast";
-import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, UserCheck, Sun, Clock, Copy, Upload, Image as ImageIcon, X, Handshake, Moon, SunMedium, CheckCircle, Trash2, AlertTriangle, StickyNote, MessageSquare, AlertOctagon } from "lucide-react";
-import { DiarioObra, useCreateRdo, useUpdateRdo, WorkforceType, useDeleteRdo, useRdoList } from "@/hooks/use-rdo";
+import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, Sun, Clock, Upload, Image as ImageIcon, X, MessageSquare, AlertOctagon } from "lucide-react";
+import { DiarioObra, useCreateRdo, useUpdateRdo, WorkforceType, useRdoList } from "@/hooks/use-rdo";
 import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
 import RdoEquipmentForm from "./RdoEquipmentForm";
@@ -18,7 +18,7 @@ import RdoMaterialsForm from "./RdoMaterialsForm";
 import RdoSafetyForm from "./RdoSafetyForm";
 import RdoSignaturePad from "./RdoSignaturePad";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { formatCurrency } from "@/utils/formatters";
 import { generateRdoPdf } from "@/utils/rdo-pdf";
 import { useObras } from "@/hooks/use-obras";
@@ -26,8 +26,6 @@ import { useAuth } from "@/integrations/supabase/auth-provider";
 import UpgradeModal from "../subscription/UpgradeModal";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 
 const workforceTypes: WorkforceType[] = ['Própria', 'Terceirizada'];
 
@@ -127,7 +125,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
         ? new Date(initialData.data_rdo + 'T12:00:00') 
         : (selectedDate || new Date()),
       periodo: initialData?.periodo || "Integral",
-      clima_condicoes: initialData?.clima_condicoes || "Sol",
+      clima_condicoes: initialData?.clima_condicoes || "Manhã: Sol, Tarde: Nublado, Noite: Sol",
       status_dia: (initialData?.status_dia as string) || 'Operacional',
       observacoes_gerais: initialData?.observacoes_gerais || "",
       impedimentos_comentarios: initialData?.impedimentos_comentarios || "",
@@ -257,60 +255,54 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <FormField
-            control={methods.control}
-            name="periodo"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-xs font-black uppercase">Período</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl><SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger></FormControl>
-                  <SelectContent>
-                    <SelectItem value="Integral">Integral</SelectItem>
-                    <SelectItem value="Manhã">Manhã</SelectItem>
-                    <SelectItem value="Tarde">Tarde</SelectItem>
-                    <SelectItem value="Noite">Noite</SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={methods.control}
-            name="clima_condicoes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-xs font-black uppercase">Clima</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value || "Sol"}>
-                  <FormControl><SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger></FormControl>
-                  <SelectContent>
-                    <SelectItem value="Sol">Sol</SelectItem>
-                    <SelectItem value="Nublado">Nublado</SelectItem>
-                    <SelectItem value="Chuva Leve">Chuva Leve</SelectItem>
-                    <SelectItem value="Chuva Forte">Chuva Forte</SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={methods.control}
-            name="status_dia"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-xs font-black uppercase">Status do Dia</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl><SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger></FormControl>
-                  <SelectContent>
-                    <SelectItem value="Operacional">Operacional</SelectItem>
-                    <SelectItem value="Parcialmente Paralisado">Parcialmente Paralisado</SelectItem>
-                    <SelectItem value="Totalmente Paralisado - Não Praticável">Não Praticável</SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormItem>
-            )}
-          />
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+          <div className="md:col-span-3">
+              <FormField
+                control={methods.control}
+                name="periodo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-black uppercase">Período de Trabalho</FormLabel>
+                    <FormControl>
+                        <Input {...field} placeholder="Ex: Manhã, Tarde, Noite" className="rounded-xl h-11" />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+          </div>
+          <div className="md:col-span-6">
+              <FormField
+                control={methods.control}
+                name="clima_condicoes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-black uppercase">Condições Climáticas (Múltiplas)</FormLabel>
+                    <FormControl>
+                        <Input {...field} value={field.value || ""} placeholder="Ex: Manhã: Sol, Tarde: Chuva Forte" className="rounded-xl h-11" />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+          </div>
+          <div className="md:col-span-3">
+              <FormField
+                control={methods.control}
+                name="status_dia"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-black uppercase">Status Operacional</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl><SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        <SelectItem value="Operacional">Operacional</SelectItem>
+                        <SelectItem value="Parcialmente Paralisado">Parcialmente Paralisado</SelectItem>
+                        <SelectItem value="Totalmente Paralisado - Não Praticável">Não Praticável</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+          </div>
         </div>
 
         <Tabs defaultValue="atividades" className="w-full">
