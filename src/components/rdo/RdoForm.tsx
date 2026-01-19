@@ -91,7 +91,7 @@ const RdoSchema = z.object({
   safety_nr35: z.boolean().default(false),
   safety_epi: z.boolean().default(false),
   safety_cleaning: z.boolean().default(false),
-  safety_dds: boolean.default(false),
+  safety_dds: z.boolean().default(false),
   safety_comments: z.string().nullable().optional(),
   
   safety_nr35_photo: z.string().nullable().optional(),
