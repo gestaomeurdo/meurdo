@@ -39,6 +39,34 @@ const fetchObra = async (id: string): Promise<Obra> => {
   return data as Obra;
 };
 
+// New function to calculate physical progress based on activities
+const fetchObrasProgress = async (userId: string): Promise<Record<string, number>> => {
+  const { data, error } = await supabase
+    .from('atividades_obra')
+    .select('obra_id, progresso_atual')
+    .eq('user_id', userId);
+
+  if (error) throw new Error(error.message);
+
+  const progressSum: Record<string, number> = {};
+  const countMap: Record<string, number> = {};
+
+  data.forEach(item => {
+    const val = item.progresso_atual || 0;
+    progressSum[item.obra_id] = (progressSum[item.obra_id] || 0) + val;
+    countMap[item.obra_id] = (countMap[item.obra_id] || 0) + 1;
+  });
+
+  const finalMap: Record<string, number> = {};
+  
+  // Calculate average
+  Object.keys(progressSum).forEach(obraId => {
+    finalMap[obraId] = Math.round(progressSum[obraId] / countMap[obraId]);
+  });
+
+  return finalMap;
+};
+
 export const useObras = () => {
   const { user } = useAuth();
   const userId = user?.id;
@@ -57,6 +85,18 @@ export const useObra = (id: string | undefined) => {
     queryFn: () => fetchObra(id!),
     enabled: !!id,
     staleTime: 1000 * 60,
+  });
+};
+
+export const useObrasProgress = () => {
+  const { user } = useAuth();
+  const userId = user?.id;
+
+  return useQuery<Record<string, number>, Error>({
+    queryKey: ['obrasProgress', userId],
+    queryFn: () => fetchObrasProgress(userId!),
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };
 
@@ -128,6 +168,7 @@ export const useCreateObra = () => {
       queryClient.invalidateQueries({ queryKey: ['obras'] });
       queryClient.invalidateQueries({ queryKey: ['atividades'] });
       queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
+      queryClient.invalidateQueries({ queryKey: ['obrasProgress'] });
     },
   });
 };
@@ -171,6 +212,7 @@ export const useDeleteObra = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['obras'] });
       queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
+      queryClient.invalidateQueries({ queryKey: ['obrasProgress'] });
     },
   });
 };

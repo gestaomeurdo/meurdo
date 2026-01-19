@@ -3,13 +3,13 @@
 import { Atividade } from "@/hooks/use-atividades";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, User, MoreVertical, Edit, Trash2 } from "lucide-react";
-import { formatDate } from "@/utils/formatters";
+import { User, MoreVertical, Edit, Trash2, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import AtividadeDialog from "./AtividadeDialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { Progress } from "@/components/ui/progress";
 
 interface AtividadeCardProps {
   atividade: Atividade;
@@ -19,6 +19,8 @@ interface AtividadeCardProps {
 }
 
 const AtividadeCard = ({ atividade, onDelete, isSelected, onSelect }: AtividadeCardProps) => {
+  const progress = atividade.progresso_atual || 0;
+
   return (
     <Card className={cn(
       "shadow-clean hover:shadow-md transition-all border-none overflow-hidden group relative",
@@ -62,16 +64,18 @@ const AtividadeCard = ({ atividade, onDelete, isSelected, onSelect }: AtividadeC
           {atividade.descricao}
         </CardTitle>
       </CardHeader>
-      <CardContent className={cn("p-4 pt-0 space-y-4", onSelect && "pl-12")}>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="flex items-center text-xs text-muted-foreground">
+      <CardContent className={cn("p-4 pt-0 space-y-3", onSelect && "pl-12")}>
+        <div className="flex items-center text-xs text-muted-foreground">
             <User className="w-3 h-3 mr-1.5 text-primary" />
-            <span className="truncate">{atividade.responsavel_nome || "Não definido"}</span>
-          </div>
-          <div className="flex items-center text-xs text-muted-foreground justify-end">
-            <Calendar className="w-3 h-3 mr-1.5" />
-            <span>Previsão: {atividade.data_prevista ? formatDate(atividade.data_prevista) : "N/A"}</span>
-          </div>
+            <span className="truncate">{atividade.responsavel_nome || "Responsável não definido"}</span>
+        </div>
+        
+        <div className="space-y-1 pt-1">
+            <div className="flex justify-between text-xs font-bold">
+                <span className="flex items-center text-primary"><TrendingUp className="w-3 h-3 mr-1" /> Progresso</span>
+                <span className="text-primary">{progress}%</span>
+            </div>
+            <Progress value={progress} className="h-1.5" />
         </div>
       </CardContent>
     </Card>

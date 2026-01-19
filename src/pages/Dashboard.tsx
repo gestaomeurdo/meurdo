@@ -1,7 +1,7 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/integrations/supabase/auth-provider";
-import { Loader2, CheckCircle, Zap, MapPin, Calendar, ArrowRight, ImageIcon, HardHat, Truck, FileStack, Building2 } from "lucide-react";
+import { Loader2, CheckCircle, Zap, MapPin, Calendar, ArrowRight, ImageIcon, HardHat, Truck, FileStack, Building2, TrendingUp } from "lucide-react";
 import { useRdoDashboardMetrics } from "@/hooks/use-rdo-dashboard-metrics";
 import { useEffect, useState } from "react";
 import { useLocation, Link } from "react-router-dom";
@@ -11,17 +11,18 @@ import { useCanCreateObra } from "@/hooks/use-subscription-limits";
 import LimitReachedModal from "@/components/subscription/LimitReachedModal";
 import WelcomeFreeModal from "@/components/subscription/WelcomeFreeModal";
 import { cn } from "@/lib/utils";
-import { useObras } from "@/hooks/use-obras";
-import { formatDate, calculateObraProgress } from "@/utils/formatters";
+import { useObras, useObrasProgress } from "@/hooks/use-obras";
+import { formatDate } from "@/utils/formatters";
 import { useRdoLimits } from "@/hooks/use-rdo-limits";
 import { Progress } from "@/components/ui/progress";
 
 const Dashboard = () => {
   const { user, isLoading: authLoading, profile, isPro } = useAuth();
-  const { data: rdoMetrics, isLoading: isLoadingRdoMetrics } = useRdoDashboardMetrics();
+  const { data: rdoMetrics } = useRdoDashboardMetrics();
   const { isLoading: isLoadingLimits } = useCanCreateObra();
   const { data: obras, isLoading: isLoadingObras } = useObras();
-  const { rdoCount: totalRdosLifetime, isLoading: isLoadingRdoCount } = useRdoLimits();
+  const { isLoading: isLoadingRdoCount } = useRdoLimits();
+  const { data: progressMap, isLoading: isLoadingProgress } = useObrasProgress();
   
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -40,7 +41,7 @@ const Dashboard = () => {
     }
   }, [location.search, queryClient]);
 
-  if (authLoading || isLoadingLimits || isLoadingObras || isLoadingRdoCount) {
+  if (authLoading || isLoadingLimits || isLoadingObras || isLoadingRdoCount || isLoadingProgress) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -141,7 +142,7 @@ const Dashboard = () => {
             {obras && obras.length > 0 ? (
                 <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                     {obras.slice(0, 6).map((obra) => {
-                        const progress = calculateObraProgress(obra.data_inicio, obra.previsao_entrega, obra.status);
+                        const progress = progressMap?.[obra.id] || 0;
                         
                         return (
                             <Link to={`/obras/${obra.id}`} key={obra.id}>
@@ -172,7 +173,7 @@ const Dashboard = () => {
                                         <div className="space-y-1">
                                             <div className="flex justify-between items-end">
                                                 <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
-                                                    Prazo Decorrido
+                                                    <TrendingUp className="w-3 h-3" /> Progresso Físico Real
                                                 </span>
                                                 <span className="text-xs font-black text-primary">{progress}%</span>
                                             </div>

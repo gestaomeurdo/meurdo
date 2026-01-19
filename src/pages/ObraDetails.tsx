@@ -1,11 +1,11 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useObra, useDeleteObra } from "@/hooks/use-obras";
-import { Loader2, ArrowLeft, MapPin, Calendar, DollarSign, Edit, Trash2, FileText, BarChart3, Package, ClipboardList, HardDrive } from "lucide-react";
+import { useObra, useDeleteObra, useObrasProgress } from "@/hooks/use-obras";
+import { Loader2, ArrowLeft, MapPin, Calendar, DollarSign, Edit, Trash2, FileText, BarChart3, Package, ClipboardList, HardDrive, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency, formatDate, calculateObraProgress } from "@/utils/formatters";
+import { formatCurrency, formatDate } from "@/utils/formatters";
 import ObraDialog from "@/components/obras/ObraDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { showSuccess, showError } from "@/utils/toast";
@@ -26,6 +26,7 @@ const statusLabelMap = {
 const ObraDetails = () => {
   const { id } = useParams<{ id: string }>();
   const { data: obra, isLoading, error } = useObra(id);
+  const { data: progressMap } = useObrasProgress();
   const deleteMutation = useDeleteObra();
   const navigate = useNavigate();
 
@@ -114,7 +115,7 @@ const ObraDetails = () => {
     },
   ];
 
-  const progress = calculateObraProgress(obra.data_inicio, obra.previsao_entrega, obra.status);
+  const progress = progressMap?.[obra.id] || 0;
 
   return (
     <DashboardLayout>
@@ -150,7 +151,7 @@ const ObraDetails = () => {
                     
                     <div className="max-w-xs">
                         <div className="flex justify-between text-[10px] uppercase font-bold text-muted-foreground mb-1">
-                            <span>Prazo Decorrido</span>
+                            <span className="flex items-center gap-1"><TrendingUp className="w-3 h-3" /> Progresso Físico Real</span>
                             <span>{progress}%</span>
                         </div>
                         <Progress value={progress} className="h-2" />

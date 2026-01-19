@@ -20,6 +20,7 @@ import RdoOccurrenceTimeline from "@/components/relatorios/RdoOccurrenceTimeline
 import RdoSummaryCards from "@/components/relatorios/RdoSummaryCards";
 import RdoActivityProgressChart from "@/components/relatorios/RdoActivityProgressChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import ActivityStatusTable from "@/components/relatorios/ActivityStatusTable";
 
 const Relatorios = () => {
   const { profile } = useAuth();
@@ -134,6 +135,9 @@ const Relatorios = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Tabela de Progresso Detalhado */}
+        <ActivityStatusTable obraId={selectedObraId} />
 
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 border-t">
           <div className="text-xs text-muted-foreground font-medium uppercase tracking-widest">

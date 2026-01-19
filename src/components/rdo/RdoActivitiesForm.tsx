@@ -148,7 +148,7 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
                         <span className="text-lg font-black text-primary">{currentProgress}%</span>
                     </div>
                     
-                    <Progress value={currentProgress} className="h-2" />
+                    <Progress value={currentProgress} className="h-2 bg-primary/20" />
                     
                     <div className="flex items-center gap-2">
                         <Input
@@ -157,7 +157,7 @@ const RdoActivitiesForm = ({ obraId }: RdoActivitiesFormProps) => {
                             max="100"
                             step="5"
                             {...register(`atividades.${index}.avanco_percentual`, { valueAsNumber: true })}
-                            className="h-6 p-0 bg-transparent border-0 cursor-pointer"
+                            className="h-6 p-0 bg-transparent border-0 cursor-pointer accent-[#066abc]"
                         />
                     </div>
                 </div>
