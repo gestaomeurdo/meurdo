@@ -40,7 +40,7 @@ export const generateRdoPdf = async (
   rdoList?: DiarioObra[]
 ) => {
   try {
-    console.log("[PDF Generator] Preparando ativos para o grid...");
+    console.log("[PDF Generator] Iniciando Varredura Profunda de Dados...");
 
     // 1. Data Sanitization
     let dateStr = "";
@@ -61,31 +61,41 @@ export const generateRdoPdf = async (
         }
     }
 
-    // 3. Pre-fetching de Imagens
+    // 3. Pre-fetching de Ativos Fixos (Logo e Assinaturas)
     const [logoBase64, responsibleSigBase64, clientSigBase64] = await Promise.all([
         urlToBase64(profile?.avatar_url || SYSTEM_LOGO_URL),
         urlToBase64(rdo.responsible_signature_url),
         urlToBase64(rdo.client_signature_url)
     ]);
 
-    // Consolidar fotos de Atividades e Checklist de Segurança
+    // 4. DATA HARVESTING: Varrer todos os cantos em busca de fotos
     const rawPhotos = [
+        // Fotos das Atividades
         ...(rdo.rdo_atividades_detalhe?.filter(a => a.foto_anexo_url).map(a => ({ 
             url: a.foto_anexo_url!, 
-            desc: a.descricao_servico 
+            desc: `Atividade: ${a.descricao_servico}` 
         })) || []),
-        { url: (rdo as any).safety_nr35_photo, desc: "Segurança: NR-35" },
-        { url: (rdo as any).safety_epi_photo, desc: "Segurança: EPIs" },
-        { url: (rdo as any).safety_cleaning_photo, desc: "Segurança: Limpeza" },
-        { url: (rdo as any).safety_dds_photo, desc: "Segurança: DDS" }
+        
+        // Fotos dos Equipamentos
+        ...(rdo.rdo_equipamentos?.filter(e => (e as any).foto_url).map(e => ({
+            url: (e as any).foto_url!,
+            desc: `Equipamento: ${e.equipamento}`
+        })) || []),
+
+        // Fotos do Checklist de Segurança (Se existirem)
+        { url: (rdo as any).safety_nr35_photo, desc: "Segurança: Registro NR-35" },
+        { url: (rdo as any).safety_epi_photo, desc: "Segurança: Uso de EPIs" },
+        { url: (rdo as any).safety_cleaning_photo, desc: "Segurança: Organização e Limpeza" },
+        { url: (rdo as any).safety_dds_photo, desc: "Segurança: Registro de DDS" }
     ].filter(p => p.url && typeof p.url === 'string');
 
+    // Converter todas as fotos coletadas para Base64
     const photosWithBase64 = await Promise.all(rawPhotos.map(async (p) => ({
         desc: p.desc,
         base64: await urlToBase64(p.url)
     })));
 
-    // 4. Renderização
+    // 5. Renderização
     const blob = await pdf(
       React.createElement(RdoPdfTemplate, { 
         rdo: { ...rdo, data_rdo: dateStr }, 
@@ -111,6 +121,6 @@ export const generateRdoPdf = async (
     
   } catch (error) {
     console.error("[PDF Generator] Erro Crítico:", error);
-    throw new Error("Falha técnica ao gerar PDF. Certifique-se de salvar o RDO antes.");
+    throw new Error("Falha ao processar dados do relatório.");
   }
 };
