@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { showSuccess, showError } from "@/utils/toast";
-import { Loader2, Save, FileDown, DollarSign, Lock, Sun, Cloud, CloudRain, CloudLightning, CheckCircle2, AlertCircle, Moon, Zap, Clock, ChevronDown, Send } from "lucide-react";
+import { Loader2, Save, FileDown, DollarSign, Lock, Sun, Cloud, CloudRain, CloudLightning, CheckCircle2, AlertCircle, Send, Signature } from "lucide-react";
 import { DiarioObra, useCreateRdo, useUpdateRdo, WorkforceType, useRdoList, useRequestRdoApproval } from "@/hooks/use-rdo";
 import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
@@ -246,7 +246,10 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
   }, [maoDeObra, equipamentos]);
 
   const handleRequestApproval = async () => {
-    if (!initialData) return;
+    if (!initialData) {
+        showError("Salve o diário primeiro antes de solicitar aprovação.");
+        return;
+    }
     
     try {
         await requestApprovalMutation.mutateAsync({ id: initialData.id, obraId });
@@ -391,21 +394,24 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
             </div>
           </div>
           <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-            {isEditing && (
-              <>
-                <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={handleRequestApproval}
-                    className="flex-1 sm:flex-none rounded-xl h-12 font-bold uppercase text-[10px] tracking-widest border-orange-500 text-orange-600 hover:bg-orange-50"
-                >
-                    <Send className="w-4 h-4 mr-2" /> Solicitar Aprovação (WhatsApp)
-                </Button>
-                <Button type="button" variant="outline" onClick={() => generateRdoPdf(initialData, obras?.find(o => o.id === obraId)?.nome || "Obra", profile, obras?.find(o => o.id === obraId), rdoList)} disabled={isGeneratingPdf} className="flex-1 sm:flex-none rounded-xl h-12 font-bold uppercase text-[10px] tracking-widest">
-                    <FileDown className="w-4 h-4 mr-2" /> PDF
-                </Button>
-              </>
-            )}
+            <Button 
+                type="button" 
+                variant="outline" 
+                onClick={handleRequestApproval}
+                disabled={!isEditing}
+                className="flex-1 sm:flex-none rounded-xl h-12 font-bold uppercase text-[10px] tracking-widest border-orange-500 text-orange-600 hover:bg-orange-50 disabled:opacity-50"
+            >
+                <Send className="w-4 h-4 mr-2" /> Solicitar Aprovação (WhatsApp)
+            </Button>
+            <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => generateRdoPdf(initialData!, obras?.find(o => o.id === obraId)?.nome || "Obra", profile, obras?.find(o => o.id === obraId), rdoList)} 
+                disabled={isGeneratingPdf || !isEditing} 
+                className="flex-1 sm:flex-none rounded-xl h-12 font-bold uppercase text-[10px] tracking-widest disabled:opacity-50"
+            >
+                <FileDown className="w-4 h-4 mr-2" /> PDF
+            </Button>
             <Button type="submit" disabled={updateMutation.isPending || createMutation.isPending} className="flex-1 sm:flex-none rounded-xl bg-primary hover:bg-primary/90 h-12 font-bold uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20">
               {(updateMutation.isPending || createMutation.isPending) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
               Salvar
@@ -432,13 +438,14 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
         </div>
 
         <Tabs defaultValue="atividades" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 h-auto bg-muted/40 p-1 rounded-2xl gap-1 border">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-7 h-auto bg-muted/40 p-1 rounded-2xl gap-1 border">
             <TabsTrigger value="atividades" className="rounded-xl text-[9px] uppercase font-black py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">Serviços</TabsTrigger>
             <TabsTrigger value="mao_de_obra" className="rounded-xl text-[9px] uppercase font-black py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">Equipe</TabsTrigger>
             <TabsTrigger value="equipamentos" className="rounded-xl text-[9px] uppercase font-black py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">Máquinas</TabsTrigger>
             <TabsTrigger value="materiais" className="rounded-xl text-[9px] uppercase font-black py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">Materiais</TabsTrigger>
             <TabsTrigger value="seguranca" className="rounded-xl text-[9px] uppercase font-black py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">Segurança</TabsTrigger>
             <TabsTrigger value="ocorrencias" className="rounded-xl text-[9px] uppercase font-black py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">Ocorrências</TabsTrigger>
+            <TabsTrigger value="assinaturas" className="rounded-xl text-[9px] uppercase font-black py-2.5 data-[state=active]:bg-[#066abc] data-[state=active]:text-white">Assinar</TabsTrigger>
           </TabsList>
           
           <TabsContent value="atividades" className="pt-6"><RdoActivitiesForm obraId={obraId} /></TabsContent>
@@ -460,20 +467,42 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                 </FormItem>
             )} />
           </TabsContent>
+          <TabsContent value="assinaturas" className="pt-6">
+            <div className="space-y-6">
+                <div className="flex items-center gap-2 border-b pb-2 mb-4">
+                    <Signature className="w-5 h-5 text-primary" />
+                    <h3 className="text-lg font-bold uppercase tracking-tight">Coleta de Assinaturas Digitais</h3>
+                </div>
+                
+                {isPro ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-muted-foreground ml-2">Assinatura do Engenheiro / Responsável</Label>
+                            <RdoSignaturePad diarioId={initialData?.id || 'new'} obraId={obraId} currentSignatureUrl={methods.watch('responsible_signature_url') || null} onSignatureSave={(url) => methods.setValue('responsible_signature_url', url, { shouldDirty: true })} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-muted-foreground ml-2">Assinatura do Cliente / Fiscal (Opcional no App)</Label>
+                            <RdoSignaturePad diarioId={initialData?.id || 'new-client'} obraId={obraId} currentSignatureUrl={methods.watch('client_signature_url') || null} onSignatureSave={(url) => methods.setValue('client_signature_url', url, { shouldDirty: true })} />
+                            <p className="text-[10px] text-muted-foreground mt-2 px-2 leading-relaxed">
+                                Dica: Você também pode enviar o link de aprovação para o cliente assinar do próprio celular.
+                            </p>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="p-10 text-center bg-muted/10 rounded-[2.5rem] border-dashed border-2 border-border cursor-pointer hover:bg-muted/20 transition-all group" onClick={() => setShowUpgrade(true)}>
+                        <Lock className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30 group-hover:scale-110 transition-transform" />
+                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Assinaturas Digitais Exclusivas PRO</p>
+                        <p className="text-xs text-muted-foreground mt-2">Clique aqui para desbloquear o Plano PRO.</p>
+                    </div>
+                )}
+            </div>
+          </TabsContent>
         </Tabs>
         
-        <div className="pt-8 border-t border-dashed">
-            {isPro ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <RdoSignaturePad diarioId={initialData?.id || 'new'} obraId={obraId} currentSignatureUrl={methods.watch('responsible_signature_url') || null} onSignatureSave={(url) => methods.setValue('responsible_signature_url', url, { shouldDirty: true })} />
-                    <RdoSignaturePad diarioId={initialData?.id || 'new-client'} obraId={obraId} currentSignatureUrl={methods.watch('client_signature_url') || null} onSignatureSave={(url) => methods.setValue('client_signature_url', url, { shouldDirty: true })} />
-                </div>
-            ) : (
-                <div className="p-10 text-center bg-muted/10 rounded-[2.5rem] border-dashed border-2 border-border cursor-pointer hover:bg-muted/20 transition-all group" onClick={() => setShowUpgrade(true)}>
-                    <Lock className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30 group-hover:scale-110 transition-transform" />
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Assinaturas Digitais Exclusivas PRO</p>
-                </div>
-            )}
+        <div className="pt-4 flex justify-center">
+            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
+                {isEditing ? "Edição de Registro Existente" : "Novo Registro em Rascunho"}
+            </p>
         </div>
       </form>
     </FormProvider>
