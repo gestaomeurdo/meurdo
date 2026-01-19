@@ -1,20 +1,24 @@
 import { useObras } from "./use-obras";
 import { useProfile } from "./use-profile";
-import { FREE_PLAN_LIMIT } from "@/config/stripe";
 
-export const useCanCreateObra = () => {
-  const { data: profile, isLoading: isLoadingProfile } = useProfile();
-  const { data: obras, isLoading: isLoadingObras } = useObras();
+export const FREE_PLAN_LIMITS = {
+    OBRAS: 1,
+    PHOTOS_PER_RDO: 5
+};
 
-  const isPro = profile?.subscription_status === 'active';
+export const useSubscriptionLimits = () => {
+  const { data: profile } = useProfile();
+  const { data: obras } = useObras();
+
+  const isPro = profile?.subscription_status === 'active' || profile?.plan_type === 'pro';
   const obraCount = obras?.length || 0;
   
-  const canCreate = isPro || obraCount < FREE_PLAN_LIMIT;
+  const canCreateObra = isPro || obraCount < FREE_PLAN_LIMITS.OBRAS;
 
   return {
-    canCreate,
     isPro,
+    canCreateObra,
     obraCount,
-    isLoading: isLoadingProfile || isLoadingObras,
+    limits: FREE_PLAN_LIMITS
   };
 };

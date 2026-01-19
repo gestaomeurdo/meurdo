@@ -1,239 +1,57 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2, Loader2, MapPin, Construction, Zap, ArrowRight, ImageIcon, Calendar, TrendingUp, AlertTriangle } from "lucide-react";
+import { Plus, Loader2, Construction, Zap } from "lucide-react";
 import ObraDialog from "@/components/obras/ObraDialog";
-import { useDeleteObra, useObras, Obra, useObrasProgress } from "@/hooks/use-obras";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { showSuccess, showError } from "@/utils/toast";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { formatCurrency, formatDate } from "@/utils/formatters";
-import { useCanCreateObra } from "@/hooks/use-subscription-limits";
+import { useObras } from "@/hooks/use-obras";
+import { Card, CardContent } from "@/components/ui/card";
+import { useSubscriptionLimits } from "@/hooks/use-subscription-limits";
 import { useState } from "react";
 import UpgradeModal from "@/components/subscription/UpgradeModal";
-import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
-import { Progress } from "@/components/ui/progress";
-
-const statusMap: Record<Obra['status'], string> = {
-  ativa: "Ativa",
-  concluida: "Concluída",
-  pausada: "Pausada",
-};
-
-const statusColorMap: Record<Obra['status'], "default" | "secondary" | "destructive" | "outline"> = {
-  ativa: "default",
-  concluida: "secondary",
-  pausada: "destructive",
-};
 
 const Obras = () => {
-  const { data: obras, isLoading, error } = useObras();
-  const { data: progressMap, isLoading: isLoadingProgress } = useObrasProgress();
-  const deleteMutation = useDeleteObra();
-  const { canCreate, isPro, isLoading: isLoadingLimits } = useCanCreateObra();
+  const { data: obras, isLoading } = useObras();
+  const { canCreateObra, isPro, obraCount, limits } = useSubscriptionLimits();
   const [showUpgrade, setShowUpgrade] = useState(false);
 
-  const handleDelete = async (id: string, nome: string) => {
-    try {
-      await deleteMutation.mutateAsync(id);
-      showSuccess(`Obra "${nome}" e todos os seus dados foram excluídos permanentemente.`);
-    } catch (err) {
-      showError(`Erro ao excluir obra.`);
-    }
-  };
-
-  if (isLoading || isLoadingLimits || isLoadingProgress) {
-    return (
-      <DashboardLayout>
-        <div className="p-6 flex justify-center items-center h-[60vh]">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        </div>
-      </DashboardLayout>
-    );
-  }
+  if (isLoading) return <DashboardLayout><div className="p-6 flex justify-center items-center h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div></DashboardLayout>;
 
   return (
     <DashboardLayout>
       <div className="p-4 sm:p-6 space-y-8">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex justify-between items-center">
           <div className="space-y-1">
-            <h1 className="text-3xl font-black text-foreground tracking-tight">
-              Obras <span className="text-primary">({obras?.length || 0})</span>
-            </h1>
+            <h1 className="text-3xl font-black text-foreground">Obras <span className="text-primary">({obras?.length || 0})</span></h1>
             <p className="text-muted-foreground text-sm">Gerencie seu portfólio de construção.</p>
           </div>
-          <div className="flex items-center gap-3">
-            {canCreate ? (
-              <ObraDialog
-                trigger={
-                  <Button size="lg" className="rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-transform">
-                    <Plus className="w-5 h-5 mr-2" />
-                    Nova Obra
-                  </Button>
-                }
-              />
-            ) : (
-              <Button
-                size="lg"
-                onClick={() => setShowUpgrade(true)}
-                className="rounded-xl shadow-lg hover:scale-105 transition-transform bg-orange-500 hover:bg-orange-600"
-              >
-                <Zap className="w-5 h-5 mr-2 fill-current" />
-                Limite Atingido
-              </Button>
-            )}
-          </div>
+          
+          {canCreateObra ? (
+            <ObraDialog trigger={<Button size="lg" className="rounded-xl shadow-lg"><Plus className="w-5 h-5 mr-2" /> Nova Obra</Button>} />
+          ) : (
+            <Button size="lg" onClick={() => setShowUpgrade(true)} className="rounded-xl bg-orange-500 hover:bg-orange-600 shadow-lg"><Zap className="w-5 h-5 mr-2" /> Limite Atingido</Button>
+          )}
         </div>
         
-        <UpgradeModal 
-          open={showUpgrade} 
-          onOpenChange={setShowUpgrade} 
-          title="Limite de 1 Obra Atingido"
-          description="Engenheiros PRO gerenciam obras ilimitadas com relatórios automáticos."
-        />
+        <UpgradeModal open={showUpgrade} onOpenChange={setShowUpgrade} title="Limite de 1 Obra Atingido" description="Engenheiros PRO gerenciam obras ilimitadas e geram relatórios de performance avançados." />
 
         {obras && obras.length === 0 ? (
-          <Card className="border-dashed py-20 text-center shadow-none bg-accent/20 rounded-2xl">
+          <Card className="border-dashed py-20 text-center bg-accent/20 rounded-2xl">
             <CardContent>
               <Construction className="w-16 h-16 mx-auto text-primary/30 mb-6" />
               <h2 className="text-xl font-bold mb-2">Sua jornada começa aqui</h2>
-              <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
-                Cadastre sua primeira obra para começar a gerar diários profissionais.
-              </p>
-              <ObraDialog
-                trigger={<Button size="lg" className="rounded-xl">Cadastrar Minha Obra</Button>}
-              />
+              <ObraDialog trigger={<Button size="lg" className="rounded-xl">Cadastrar Minha Obra</Button>} />
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {obras?.map((obra) => {
-              const progress = progressMap?.[obra.id] || 0;
-
-              return (
-                <Card
-                  key={obra.id}
-                  className="group hover:shadow-xl transition-all duration-300 border-none bg-card shadow-clean rounded-2xl overflow-hidden flex flex-col"
-                >
-                  <Link to={`/obras/${obra.id}`} className="block relative h-32 bg-muted w-full overflow-hidden cursor-pointer">
-                      {obra.foto_url ? (
-                          <img src={obra.foto_url} alt={obra.nome} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                      ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-accent/30">
-                              <ImageIcon className="w-8 h-8 text-muted-foreground/30" />
-                          </div>
-                      )}
-                      <div className="absolute top-2 right-2">
-                          <Badge
-                              variant={statusColorMap[obra.status]}
-                              className="rounded-full px-3 py-0.5 text-[10px] font-black uppercase tracking-widest shadow-sm border border-white/20 backdrop-blur-md"
-                          >
-                              {statusMap[obra.status]}
-                          </Badge>
-                      </div>
-                      <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  </Link>
-                  
-                  <CardHeader className="pb-4 relative -mt-4 pt-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1">
-                          <Link to={`/obras/${obra.id}`} className="hover:underline">
-                              <CardTitle className="text-xl font-bold truncate leading-tight mt-1">
-                                  {obra.nome}
-                              </CardTitle>
-                          </Link>
-                          <CardDescription className="flex items-center text-xs pt-1">
-                              <MapPin className="w-3 h-3 mr-1 text-primary" />
-                              {obra.endereco || "Local não informado"}
-                          </CardDescription>
-                      </div>
-                      
-                      <div className="flex gap-1 ml-2">
-                        <ObraDialog
-                          initialData={obra}
-                          trigger={
-                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                              <Edit className="w-4 h-4 text-muted-foreground" />
-                            </Button>
-                          }
-                        />
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 rounded-full hover:bg-destructive/10"
-                            >
-                              <Trash2 className="w-4 h-4 text-destructive" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent className="rounded-[2rem] border-none shadow-2xl">
-                            <AlertDialogHeader className="items-center text-center">
-                              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                                <AlertTriangle className="h-8 w-8 text-red-600" />
-                              </div>
-                              <AlertDialogTitle className="text-2xl font-black uppercase tracking-tight">Excluir Obra Permanentemente?</AlertDialogTitle>
-                              <AlertDialogDescription className="text-base">
-                                <p className="font-bold text-red-600 mb-2">ESTA AÇÃO NÃO PODE SER DESFEITA.</p>
-                                <p>Todos os <strong>Diários de Obra (RDOs)</strong>, <strong>Lançamentos Financeiros</strong>, <strong>Fotos de Atividades</strong> e <strong>Documentos</strong> vinculados a "{obra.nome}" serão apagados para sempre.</p>
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter className="flex-col sm:flex-row gap-3 pt-4">
-                              <AlertDialogCancel className="rounded-xl h-12 font-bold flex-1">Manter Obra</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDelete(obra.id, obra.nome)}
-                                className="bg-destructive hover:bg-destructive/90 rounded-xl h-12 font-bold flex-1"
-                              >
-                                Sim, Apagar Tudo
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <Link to={`/obras/${obra.id}`} className="flex-grow">
-                      <CardContent className="flex-grow space-y-4 pt-0">
-                      <div className="space-y-1">
-                          <div className="flex justify-between text-[10px] uppercase font-bold text-muted-foreground mb-1">
-                              <span className="flex items-center gap-1"><TrendingUp className="w-3 h-3" /> Progresso Físico Real</span>
-                              <span className="text-primary">{progress}%</span>
-                          </div>
-                          <Progress value={progress} className="h-1.5" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4 bg-accent/30 p-3 rounded-xl">
-                          <div className="space-y-1">
-                          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
-                              Orçamento
-                          </p>
-                          <p className="text-sm font-bold text-primary">
-                              {formatCurrency(obra.orcamento_inicial)}
-                          </p>
-                          </div>
-                          <div className="space-y-1">
-                          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
-                              Início
-                          </p>
-                          <p className="text-sm font-bold">{formatDate(obra.data_inicio)}</p>
-                          </div>
-                      </div>
-                      </CardContent>
-                  </Link>
-                  <div className="px-6 py-4 border-t bg-accent/10">
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-between text-primary font-bold hover:bg-primary/10 rounded-xl"
-                      asChild
-                    >
-                      <Link to={`/obras/${obra.id}`}>
-                        Acessar Painel da Obra <ArrowRight className="w-4 h-4" />
-                      </Link>
-                    </Button>
-                  </div>
-                </Card>
-              );
-            })}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {obras?.map((obra) => (
+                <Link to={`/obras/${obra.id}`} key={obra.id}>
+                    <Card className="hover:shadow-xl transition-all cursor-pointer border-none rounded-[2rem] overflow-hidden bg-card p-6 shadow-clean">
+                        <h3 className="text-xl font-black uppercase mb-4">{obra.nome}</h3>
+                        <Badge>{obra.status}</Badge>
+                    </Card>
+                </Link>
+            ))}
           </div>
         )}
       </div>
