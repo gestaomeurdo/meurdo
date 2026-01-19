@@ -22,6 +22,16 @@ const RdoCalendar = ({ obraId, rdoList, currentDate }: RdoCalendarProps) => {
     end: endDate,
   });
 
+  // Criamos um mapa de números sequenciais baseado na data
+  const rdoSequences = React.useMemo(() => {
+    const sorted = [...rdoList].sort((a, b) => a.data_rdo.localeCompare(b.data_rdo));
+    const map: Record<string, string> = {};
+    sorted.forEach((rdo, idx) => {
+        map[rdo.id] = (idx + 1).toString().padStart(2, '0');
+    });
+    return map;
+  }, [rdoList]);
+
   const getRdosForDay = (day: Date) => {
     return rdoList.filter(rdo => isSameDay(parseISO(rdo.data_rdo), day));
   };
@@ -35,16 +45,7 @@ const RdoCalendar = ({ obraId, rdoList, currentDate }: RdoCalendarProps) => {
         case 'rejected': 
             return "bg-red-500 text-white border-red-600 hover:bg-red-600";
         default: 
-            return "bg-slate-200 text-slate-600 border-slate-300 hover:bg-slate-300";
-    }
-  };
-
-  const getStatusLabel = (status: string | undefined) => {
-    switch (status) {
-        case 'approved': return "✓ Aprovado";
-        case 'pending': return "⌛ Aguardando";
-        case 'rejected': return "✖ Ajuste";
-        default: return "✎ Rascunho";
+            return "bg-white text-slate-600 border-slate-200 hover:bg-slate-50";
     }
   };
 
@@ -90,9 +91,12 @@ const RdoCalendar = ({ obraId, rdoList, currentDate }: RdoCalendarProps) => {
                         "w-full text-left p-1.5 rounded-md text-[9px] font-black border shadow-sm transition-transform active:scale-95",
                         getStatusConfig(rdo.status)
                       )}>
-                        <div className="truncate">{getStatusLabel(rdo.status)}</div>
-                        <div className="truncate opacity-80 uppercase tracking-tighter">
-                            {rdo.clima_condicoes?.split(',')[0].replace('M:', '') || 'Sem Clima'}
+                        <div className="flex justify-between items-center mb-0.5">
+                            <span className="uppercase">RDO #{rdoSequences[rdo.id]}</span>
+                            {rdo.status === 'approved' && <span className="text-[7px]">✓</span>}
+                        </div>
+                        <div className="truncate opacity-70 font-medium">
+                            {rdo.clima_condicoes?.split(',')[0].replace('M:', '') || 'N/T'}
                         </div>
                       </button>
                     }

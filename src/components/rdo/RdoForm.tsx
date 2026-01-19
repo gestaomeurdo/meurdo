@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { showError, showSuccess } from "@/utils/toast";
-import { AlertCircle, Lock, Signature } from "lucide-react";
+import { AlertCircle, Lock, Signature, Clock, MessageSquare, UserCheck, Smartphone } from "lucide-react";
 import { DiarioObra, useCreateRdo, useUpdateRdo, useRdoList } from "@/hooks/use-rdo";
 import { RdoSchema, RdoFormValues } from "@/schemas/rdo-schema";
 import RdoHeader from "./RdoHeader";
@@ -16,6 +16,7 @@ import RdoEquipmentForm from "./RdoEquipmentForm";
 import RdoMaterialsForm from "./RdoMaterialsForm";
 import RdoSafetyForm from "./RdoSafetyForm";
 import RdoSignaturePad from "./RdoSignaturePad";
+import RdoShareMenu from "./RdoShareMenu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMemo, useEffect, useState } from "react";
 import { useObras } from "@/hooks/use-obras";
@@ -23,12 +24,13 @@ import { useAuth } from "@/integrations/supabase/auth-provider";
 import UpgradeModal from "../subscription/UpgradeModal";
 import { format } from "date-fns";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface RdoFormProps {
   obraId: string;
   initialData?: DiarioObra;
   onSuccess: () => void;
-  previousRdoData?: DiarioObra | null;
   selectedDate?: Date;
 }
 
@@ -42,6 +44,7 @@ const statusStyles: Record<string, { bg: string, text: string, label: string, bo
 const RdoForm = ({ obraId, initialData, onSuccess, selectedDate }: RdoFormProps) => {
   const { profile } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [isManualClientSig, setIsManualClientSig] = useState(false);
   const isEditing = !!initialData;
   const currentStatus = initialData?.status || 'draft';
   const statusConfig = statusStyles[currentStatus];
@@ -202,12 +205,58 @@ const RdoForm = ({ obraId, initialData, onSuccess, selectedDate }: RdoFormProps)
               {isPro ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-2">Assinatura Responsável</Label>
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-2">Assinatura Responsável (Você)</Label>
                     <RdoSignaturePad diarioId={initialData?.id || 'new'} obraId={obraId} currentSignatureUrl={methods.watch('responsible_signature_url') || null} onSignatureSave={(url) => methods.setValue('responsible_signature_url', url, { shouldDirty: true })} disabled={isApproved} />
                   </div>
+                  
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-2">Assinatura Cliente</Label>
-                    <RdoSignaturePad diarioId={initialData?.id || 'new-client'} obraId={obraId} currentSignatureUrl={methods.watch('client_signature_url') || null} onSignatureSave={(url) => methods.setValue('client_signature_url', url, { shouldDirty: true })} disabled={isApproved} />
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-2">Assinatura do Cliente</Label>
+                    
+                    {!isApproved && !isManualClientSig ? (
+                        <Card className="border-dashed border-2 bg-slate-50/50 min-h-[220px] flex flex-col items-center justify-center text-center p-6 rounded-2xl transition-all hover:bg-slate-50">
+                            <Clock className="w-10 h-10 text-orange-400 mb-4 animate-pulse" />
+                            <h4 className="font-bold text-sm text-slate-800 uppercase tracking-tight">Aguardando Validação Remota</h4>
+                            <p className="text-[10px] text-muted-foreground mt-1 max-w-[200px]">
+                                O cliente deve assinar através do link enviado pelo WhatsApp.
+                            </p>
+                            
+                            <div className="mt-6 w-full space-y-3">
+                                <RdoShareMenu 
+                                    obraId={obraId} 
+                                    obraNome={obras?.find(o => o.id === obraId)?.nome || "Obra"} 
+                                    approvalToken={initialData?.approval_token} 
+                                    isEditing={isEditing} 
+                                    isApproved={isApproved} 
+                                    rdoId={initialData?.id} 
+                                />
+                                <button 
+                                    type="button"
+                                    onClick={() => setIsManualClientSig(true)}
+                                    className="text-[9px] font-black text-primary uppercase tracking-widest hover:underline block w-full text-center"
+                                >
+                                    <Smartphone className="w-3 h-3 inline mr-1" /> Assinar Presencialmente
+                                </button>
+                            </div>
+                        </Card>
+                    ) : (
+                        <div className="relative">
+                            <RdoSignaturePad 
+                                diarioId={initialData?.id || 'new-client'} 
+                                obraId={obraId} 
+                                currentSignatureUrl={methods.watch('client_signature_url') || null} 
+                                onSignatureSave={(url) => methods.setValue('client_signature_url', url, { shouldDirty: true })} 
+                                disabled={isApproved} 
+                            />
+                            {isManualClientSig && !isApproved && (
+                                <button 
+                                    onClick={() => setIsManualClientSig(false)}
+                                    className="absolute -top-2 -right-2 bg-slate-200 text-slate-600 rounded-full p-1 hover:bg-slate-300"
+                                >
+                                    <X className="w-3 h-3" />
+                                </button>
+                            )}
+                        </div>
+                    )}
                   </div>
                 </div>
               ) : (
