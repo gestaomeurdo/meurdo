@@ -7,6 +7,8 @@ import { User, Mail, Zap, Loader2, Search, ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 const AdminUsers = () => {
   const [search, setSearch] = useState("");
@@ -21,7 +23,8 @@ const AdminUsers = () => {
 
   const filtered = users?.filter(u => 
     u.first_name?.toLowerCase().includes(search.toLowerCase()) || 
-    u.last_name?.toLowerCase().includes(search.toLowerCase())
+    u.last_name?.toLowerCase().includes(search.toLowerCase()) ||
+    u.email?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -29,7 +32,7 @@ const AdminUsers = () => {
       <div className="space-y-8">
         <div className="flex justify-between items-end">
             <div className="space-y-1">
-                <h1 className="text-3xl font-black uppercase tracking-tight text-slate-800">Base de Usuários</h1>
+                <h1 className="text-3xl font-black uppercase tracking-tight text-slate-800 dark:text-slate-100">Base de Usuários</h1>
                 <p className="text-sm text-muted-foreground font-medium">Gerencie permissões e visualize planos.</p>
             </div>
             <div className="relative w-72">
@@ -38,10 +41,10 @@ const AdminUsers = () => {
             </div>
         </div>
 
-        <div className="bg-white rounded-[2rem] shadow-clean border overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-clean border overflow-hidden">
             {isLoading ? <div className="p-20 text-center"><Loader2 className="animate-spin mx-auto text-purple-600" /></div> : (
                 <Table>
-                    <TableHeader className="bg-slate-50">
+                    <TableHeader className="bg-slate-50 dark:bg-slate-800/50">
                         <TableRow>
                             <TableHead className="font-black uppercase text-[10px] tracking-widest pl-8">Nome</TableHead>
                             <TableHead className="font-black uppercase text-[10px] tracking-widest">Plano</TableHead>
@@ -51,29 +54,34 @@ const AdminUsers = () => {
                     </TableHeader>
                     <TableBody>
                         {filtered?.map(u => (
-                            <TableRow key={u.id} className="hover:bg-slate-50/50 transition-colors">
+                            <TableRow key={u.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors border-b dark:border-slate-800">
                                 <TableCell className="pl-8 py-5">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600 font-bold uppercase">{u.first_name?.[0]}{u.last_name?.[0]}</div>
+                                        <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold uppercase">{u.first_name?.[0]}{u.last_name?.[0]}</div>
                                         <div>
-                                            <p className="font-bold text-sm leading-none">{u.first_name} {u.last_name}</p>
-                                            <p className="text-[10px] text-muted-foreground font-medium mt-1 uppercase">{u.email || 'N/A'}</p>
+                                            <p className="font-bold text-sm leading-none text-slate-800 dark:text-slate-100">{u.first_name} {u.last_name}</p>
+                                            <p className="text-[10px] text-muted-foreground font-medium mt-1 uppercase">ID: {u.id.slice(0,8)}</p>
                                         </div>
                                     </div>
                                 </TableCell>
                                 <TableCell>
-                                    <Badge className={cn("text-[9px] font-black uppercase tracking-tighter px-3 border-none", u.plan_type === 'pro' ? "bg-emerald-500" : "bg-slate-200 text-slate-500")}>
+                                    <Badge className={cn("text-[9px] font-black uppercase tracking-tighter px-3 border-none", u.plan_type === 'pro' ? "bg-emerald-500" : "bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400")}>
                                         {u.plan_type || 'FREE'}
                                     </Badge>
                                 </TableCell>
-                                <TableCell className="text-xs font-bold text-slate-600">{u.company_name || 'Individual'}</TableCell>
+                                <TableCell className="text-xs font-bold text-slate-600 dark:text-slate-400">{u.company_name || 'Individual'}</TableCell>
                                 <TableCell className="text-right pr-8">
-                                    <Button variant="ghost" size="sm" className="rounded-xl h-9 text-[10px] font-black uppercase text-purple-600" asChild>
+                                    <Button variant="ghost" size="sm" className="rounded-xl h-9 text-[10px] font-black uppercase text-purple-600 dark:text-purple-400" asChild>
                                         <Link to="/dashboard"><ExternalLink className="w-3 h-3 mr-1.5" /> Investigar</Link>
                                     </Button>
                                 </TableCell>
                             </TableRow>
                         ))}
+                        {filtered?.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={4} className="text-center py-20 text-muted-foreground uppercase text-xs font-bold">Nenhum usuário encontrado.</TableCell>
+                            </TableRow>
+                        )}
                     </TableBody>
                 </Table>
             )}
