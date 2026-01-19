@@ -3,224 +3,217 @@ import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/render
 import { DiarioObra } from "@/hooks/use-rdo";
 import { Profile } from "@/hooks/use-profile";
 import { Obra } from "@/hooks/use-obras";
-import { format, isValid } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-// Logo Padrão "Meu RDO" em Base64 para evitar erros de CORS (Versão simplificada para o código)
-const LOGO_PADRAO_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAACOEfKtAAAACXBIWXMAAAsTAAALEwEAmpwYAAAD3ElEQVR4nO2bz2sTQRSAX8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE+T/8A80eXfL0NAnVAAAAABJRU5ErkJggg==";
-
-const colors = {
-  primary: '#066abc',
-  secondary: '#ff9f1c',
-  text: '#1e293b',
-  textLight: '#64748b',
-  border: '#e2e8f0',
-  success: '#10b981',
-  danger: '#ef4444',
-  highlight: '#f8fafc',
-};
+const LOGO_PADRAO_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAACOEfKtAAAACXBIWXMAAAsTAAALEwEAmpwYAAAD3ElEQVR4nO2bz2sTQRSAX8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE8SDePNo9SAIerByE+T/8A80eXfL0NAnVAAAAABJRU5ErkJggg==";
 
 const styles = StyleSheet.create({
   page: {
-    padding: 35,
+    padding: 30,
     backgroundColor: '#ffffff',
     fontFamily: 'Helvetica',
-    color: colors.text,
     fontSize: 9,
+    color: '#1e293b',
   },
-  titleContainer: {
-    marginBottom: 10,
-    borderBottomWidth: 1.5,
-    borderBottomColor: colors.primary,
-    paddingBottom: 5,
-    alignItems: 'center',
-  },
-  mainTitle: {
-    fontSize: 14,
-    fontFamily: 'Helvetica-Bold',
-    color: colors.primary,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  headerGrid: {
+  header: {
     flexDirection: 'row',
-    marginBottom: 15,
-    gap: 15,
-  },
-  headerLeft: {
-    flex: 1.5,
-    borderRightWidth: 1,
-    borderRightColor: colors.border,
-    paddingRight: 10,
-  },
-  headerRight: {
-    flex: 1,
-    paddingLeft: 5,
+    marginBottom: 20,
+    borderBottomWidth: 2,
+    borderBottomColor: '#066abc',
+    paddingBottom: 10,
   },
   logo: {
-    height: 40,
     width: 100,
+    height: 40,
     objectFit: 'contain',
-    marginBottom: 8,
   },
-  dataLabel: {
-    fontSize: 7,
-    fontFamily: 'Helvetica-Bold',
-    color: colors.textLight,
-    textTransform: 'uppercase',
-    marginTop: 4,
+  headerInfo: {
+    flex: 1,
+    textAlign: 'right',
+    justifyContent: 'center',
   },
-  dataValue: {
-    fontSize: 9,
+  title: {
+    fontSize: 16,
     fontFamily: 'Helvetica-Bold',
+    color: '#066abc',
     marginBottom: 2,
   },
-  rdoInfo: {
-    backgroundColor: colors.primary,
-    padding: 10,
-    borderRadius: 6,
-    color: '#ffffff',
-    alignItems: 'center',
-    marginBottom: 15,
+  
+  // Grid de Dados Identificação
+  infoGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: 15,
   },
-  rdoNumber: {
-    fontSize: 14,
+  infoBox: {
+    flex: 1,
+    backgroundColor: '#f9fafb',
+    padding: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+  },
+  label: {
+    fontSize: 7,
     fontFamily: 'Helvetica-Bold',
+    color: '#64748b',
+    textTransform: 'uppercase',
+    marginBottom: 2,
   },
-  rdoDate: {
-    fontSize: 10,
+  value: {
+    fontSize: 9,
+    fontFamily: 'Helvetica-Bold',
+    color: '#1e293b',
   },
+
+  // Resumo Horizontal (KPIs)
+  summaryRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 15,
+  },
+  kpiCard: {
+    flex: 1,
+    backgroundColor: '#066abc',
+    padding: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  kpiLabel: {
+    fontSize: 7,
+    color: '#e2e8f0',
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  kpiValue: {
+    fontSize: 11,
+    fontFamily: 'Helvetica-Bold',
+    color: '#ffffff',
+  },
+
   section: {
     marginBottom: 15,
   },
   sectionTitle: {
-    fontSize: 9,
+    fontSize: 10,
     fontFamily: 'Helvetica-Bold',
-    color: colors.primary,
+    color: '#066abc',
     textTransform: 'uppercase',
-    backgroundColor: colors.highlight,
-    padding: 5,
+    backgroundColor: '#f1f5f9',
+    padding: 6,
     marginBottom: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.secondary,
+    borderRadius: 4,
   },
+
+  // Atividades
+  activityItem: {
+    flexDirection: 'row',
+    paddingVertical: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  progress: {
+    width: 40,
+    fontFamily: 'Helvetica-Bold',
+    color: '#066abc',
+  },
+
+  // Mão de Obra
   table: {
     width: '100%',
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 4,
+    borderColor: '#e2e8f0',
+    borderRadius: 6,
     overflow: 'hidden',
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: colors.primary,
+    backgroundColor: '#f8fafc',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
     padding: 5,
-  },
-  tableHeaderCell: {
-    color: '#ffffff',
-    fontFamily: 'Helvetica-Bold',
-    fontSize: 8,
   },
   tableRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: '#f1f5f9',
     padding: 5,
   },
-  tableCell: {
-    fontSize: 8,
+
+  // Grid de Fotos Blindado
+  gallerySection: { 
+    marginTop: 10 
   },
-  activityRow: {
-    flexDirection: 'row',
-    marginBottom: 5,
-    paddingBottom: 5,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#eeeeee',
-  },
-  progressTag: {
-    width: 35,
-    fontFamily: 'Helvetica-Bold',
-    color: colors.primary,
-    textAlign: 'right',
-    marginRight: 10,
-  },
-  occurrenceBox: {
-    backgroundColor: '#fffbeb',
-    borderWidth: 1,
-    borderColor: '#fef3c7',
-    padding: 8,
-    borderRadius: 4,
-  },
-  photosGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
+  grid: { 
+    flexDirection: 'row', 
+    flexWrap: 'wrap', 
+    justifyContent: 'flex-start',
+    gap: 8 
   },
   photoCard: {
-    width: '31%',
+    width: '31.5%', // 3 fotos por linha com folga para o gap
+    marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#eeeeee',
+    borderColor: '#f1f5f9',
     borderRadius: 4,
-    padding: 3,
-    marginBottom: 5,
+    backgroundColor: '#ffffff',
+    padding: 2,
   },
-  photo: {
+  image: {
     width: '100%',
-    height: 90,
+    height: 100, 
     objectFit: 'cover',
+    backgroundColor: '#f1f5f9',
     borderRadius: 2,
   },
-  photoCaption: {
-    fontSize: 6,
-    color: colors.textLight,
-    marginTop: 3,
+  caption: {
+    fontSize: 7,
+    padding: 4,
+    color: '#64748b',
     textAlign: 'center',
-    height: 15,
+    height: 25, // Espaço fixo para legenda não quebrar o grid
   },
-  signatureArea: {
+
+  // Assinaturas
+  signatureGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
-    gap: 40,
+    marginTop: 30,
+    gap: 50,
   },
-  signatureBox: {
+  signatureLine: {
     flex: 1,
     alignItems: 'center',
   },
-  signatureImg: {
-    height: 45,
-    width: 110,
+  sigImage: {
+    height: 40,
+    width: 100,
     objectFit: 'contain',
+    marginBottom: 5,
   },
-  sigLine: {
+  line: {
     width: '100%',
     borderTopWidth: 1,
-    borderTopColor: '#000000',
-    marginTop: 2,
+    borderTopColor: '#cbd5e1',
     marginBottom: 4,
   },
-  sigText: {
-    fontSize: 7,
+  sigName: {
+    fontSize: 8,
     fontFamily: 'Helvetica-Bold',
     textTransform: 'uppercase',
   },
-  sigSubtext: {
-    fontSize: 7,
-    color: colors.textLight,
-  },
+
   footer: {
     position: 'absolute',
     bottom: 20,
-    left: 35,
-    right: 35,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: 5,
+    left: 30,
+    right: 30,
     textAlign: 'center',
     fontSize: 7,
-    color: colors.textLight,
+    color: '#94a3b8',
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+    paddingTop: 5,
   }
 });
 
@@ -249,170 +242,140 @@ export const RdoPdfTemplate = ({
 }: RdoPdfTemplateProps) => {
 
   const dateStr = format(new Date(rdo.data_rdo + 'T12:00:00'), "dd/MM/yyyy");
-  const dayStr = format(new Date(rdo.data_rdo + 'T12:00:00'), "EEEE", { locale: ptBR });
+  const totalEquipe = rdo.rdo_mao_de_obra?.reduce((sum, m) => sum + m.quantidade, 0) || 0;
 
   return (
-    <Document title={`RDO ${sequenceNumber} - ${obraNome}`}>
+    <Document>
       <Page size="A4" style={styles.page}>
         
-        {/* TÍTULO PRINCIPAL */}
-        <View style={styles.titleContainer}>
-          <Text style={styles.mainTitle}>Relatório Diário de Obra</Text>
-        </View>
-
-        {/* CABEÇALHO COMPLETO */}
-        <View style={styles.headerGrid}>
-          <View style={styles.headerLeft}>
-            {/* Logo do Cliente ou Padrão do Sistema */}
-            <Image src={logoBase64 || LOGO_PADRAO_BASE64} style={styles.logo} />
-            
-            <Text style={styles.dataLabel}>Identificação da Obra:</Text>
-            <Text style={styles.dataValue}>{obraNome.toUpperCase()}</Text>
-            
-            <Text style={styles.dataLabel}>Localização / Endereço:</Text>
-            <Text style={styles.dataValue}>{obra?.endereco || "Endereço não informado"}</Text>
-            
-            <Text style={styles.dataLabel}>Proprietário / Cliente:</Text>
-            <Text style={styles.dataValue}>{obra?.dono_cliente || "Não informado"}</Text>
-          </View>
-
-          <View style={styles.headerRight}>
-            <Text style={styles.dataLabel}>Executora / Construtora:</Text>
-            <Text style={styles.dataValue}>{profile?.company_name || "N/A"}</Text>
-            {profile?.cnpj && <Text style={{fontSize: 8, marginBottom: 5}}>CNPJ: {profile.cnpj}</Text>}
-            
-            <Text style={styles.dataLabel}>Responsável Técnico:</Text>
-            <Text style={styles.dataValue}>{obra?.responsavel_tecnico || "N/A"}</Text>
-            
-            <Text style={styles.dataLabel}>Período de Execução:</Text>
-            <Text style={styles.dataValue}>{rdo.periodo || "Integral"}</Text>
+        {/* HEADER */}
+        <View style={styles.header}>
+          <Image src={logoBase64 || LOGO_PADRAO_BASE64} style={styles.logo} />
+          <View style={styles.headerInfo}>
+            <Text style={styles.title}>DIÁRIO DE OBRA</Text>
+            <Text style={{ fontSize: 9, color: '#64748b' }}>Relatório nº {sequenceNumber || '01'}</Text>
           </View>
         </View>
 
-        {/* BADGE DE IDENTIFICAÇÃO DO RDO */}
-        <View style={styles.rdoInfo}>
-          <Text style={styles.rdoNumber}>SEQUENCIAL: nº {sequenceNumber || '01'}</Text>
-          <Text style={styles.rdoDate}>{dateStr} ({dayStr.toUpperCase()})</Text>
-          <Text style={{fontSize: 10, fontFamily: 'Helvetica-Bold'}}>STATUS: {rdo.status_dia?.toUpperCase() || 'OPERACIONAL'}</Text>
+        {/* IDENTIFICAÇÃO EM 2 COLUNAS */}
+        <View style={styles.infoGrid}>
+          <View style={styles.infoBox}>
+            <Text style={styles.label}>Obra</Text>
+            <Text style={styles.value}>{obraNome.toUpperCase()}</Text>
+            <Text style={[styles.label, { marginTop: 6 }]}>Localização</Text>
+            <Text style={styles.value}>{obra?.endereco || "N/A"}</Text>
+          </View>
+          <View style={styles.infoBox}>
+            <Text style={styles.label}>Construtora</Text>
+            <Text style={styles.value}>{profile?.company_name || "N/A"}</Text>
+            <Text style={[styles.label, { marginTop: 6 }]}>Responsável Técnico</Text>
+            <Text style={styles.value}>{obra?.responsavel_tecnico || "N/A"}</Text>
+          </View>
         </View>
 
-        {/* CONDIÇÕES CLIMÁTICAS */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Condições de Campo</Text>
-          <View style={{flexDirection: 'row', gap: 15}}>
-             <View style={{flex: 1}}>
-                <Text style={styles.dataLabel}>Clima / Tempo:</Text>
-                <Text style={styles.dataValue}>{rdo.clima_condicoes || "N/A"}</Text>
-             </View>
-             <View style={{flex: 1}}>
-                <Text style={styles.dataLabel}>Efetivo Total:</Text>
-                <Text style={styles.dataValue}>{rdo.rdo_mao_de_obra?.reduce((sum, m) => sum + m.quantidade, 0) || 0} Colaboradores</Text>
-             </View>
+        {/* DASHBOARD SUMMARY (KPIs) */}
+        <View style={styles.summaryRow}>
+          <View style={styles.kpiCard}>
+            <Text style={styles.kpiLabel}>Data do Registro</Text>
+            <Text style={styles.kpiValue}>{dateStr}</Text>
+          </View>
+          <View style={[styles.kpiCard, { backgroundColor: '#f97316' }]}>
+            <Text style={styles.kpiLabel}>Clima / Tempo</Text>
+            <Text style={styles.kpiValue}>{rdo.clima_condicoes || 'Sol'}</Text>
+          </View>
+          <View style={[styles.kpiCard, { backgroundColor: '#10b981' }]}>
+            <Text style={styles.kpiLabel}>Efetivo Total</Text>
+            <Text style={styles.kpiValue}>{totalEquipe} Colab.</Text>
+          </View>
+          <View style={[styles.kpiCard, { backgroundColor: '#334155' }]}>
+            <Text style={styles.kpiLabel}>Status do Dia</Text>
+            <Text style={styles.kpiValue}>{rdo.status_dia?.split(': ')[1] || 'Operacional'}</Text>
           </View>
         </View>
 
         {/* ATIVIDADES */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Serviços Executados e Evolução</Text>
+          <Text style={styles.sectionTitle}>Serviços Executados</Text>
           {rdo.rdo_atividades_detalhe && rdo.rdo_atividades_detalhe.length > 0 ? (
-            rdo.rdo_atividades_detalhe.map((item, i) => (
-              <View key={i} style={styles.activityRow}>
-                <Text style={styles.progressTag}>{item.avanco_percentual}%</Text>
-                <View style={{flex: 1}}>
-                  <Text style={{fontFamily: 'Helvetica-Bold'}}>{item.descricao_servico}</Text>
-                  {item.observacao && <Text style={{fontSize: 7, color: colors.textLight, marginTop: 1}}>{item.observacao}</Text>}
+            rdo.rdo_atividades_detalhe.map((atv, i) => (
+              <View key={i} style={styles.activityItem}>
+                <Text style={styles.progress}>{atv.avanco_percentual}%</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: 'Helvetica-Bold' }}>{atv.descricao_servico}</Text>
+                  {atv.observacao && <Text style={{ fontSize: 7, color: '#64748b' }}>{atv.observacao}</Text>}
                 </View>
               </View>
             ))
           ) : (
-            <Text style={{fontSize: 8, color: colors.textLight}}>Nenhum serviço registrado neste dia.</Text>
+            <Text style={{ fontSize: 8, color: '#94a3b8' }}>Nenhuma atividade registrada.</Text>
           )}
         </View>
 
-        {/* MÃO DE OBRA TABELA */}
+        {/* EQUIPE TABELA */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Efetivo por Função</Text>
+          <Text style={styles.sectionTitle}>Efetivo em Campo</Text>
           <View style={styles.table}>
             <View style={styles.tableHeader}>
-              <Text style={[styles.tableHeaderCell, { flex: 3 }]}>Função / Atividade</Text>
-              <Text style={[styles.tableHeaderCell, { flex: 1.5, textAlign: 'center' }]}>Contratação</Text>
-              <Text style={[styles.tableHeaderCell, { flex: 1, textAlign: 'center' }]}>Qtd.</Text>
+              <Text style={{ flex: 3, fontSize: 8, fontFamily: 'Helvetica-Bold' }}>Função</Text>
+              <Text style={{ flex: 1, fontSize: 8, fontFamily: 'Helvetica-Bold', textAlign: 'center' }}>Qtd.</Text>
+              <Text style={{ flex: 1.5, fontSize: 8, fontFamily: 'Helvetica-Bold', textAlign: 'right' }}>Vínculo</Text>
             </View>
-            {rdo.rdo_mao_de_obra?.map((item, i) => (
+            {rdo.rdo_mao_de_obra?.map((m, i) => (
               <View key={i} style={styles.tableRow}>
-                <Text style={[styles.tableCell, { flex: 3, fontFamily: 'Helvetica-Bold' }]}>{item.funcao}</Text>
-                <Text style={[styles.tableCell, { flex: 1.5, textAlign: 'center' }]}>{item.tipo || 'Própria'}</Text>
-                <Text style={[styles.tableCell, { flex: 1, textAlign: 'center', fontFamily: 'Helvetica-Bold' }]}>{item.quantidade}</Text>
+                <Text style={{ flex: 3, fontSize: 8 }}>{m.funcao}</Text>
+                <Text style={{ flex: 1, fontSize: 8, textAlign: 'center', fontFamily: 'Helvetica-Bold' }}>{m.quantidade}</Text>
+                <Text style={{ flex: 1.5, fontSize: 8, textAlign: 'right', color: '#64748b' }}>{m.tipo}</Text>
               </View>
             ))}
           </View>
         </View>
 
         {/* OCORRÊNCIAS */}
-        {(rdo.impedimentos_comentarios || rdo.observacoes_gerais) && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Observações e Ocorrências Técnicas</Text>
-            <View style={styles.occurrenceBox}>
-              {rdo.impedimentos_comentarios && (
-                <View style={{ marginBottom: 5 }}>
-                  <Text style={[styles.dataLabel, { color: colors.danger }]}>IMPEDIMENTOS:</Text>
-                  <Text style={{fontSize: 8}}>{rdo.impedimentos_comentarios}</Text>
-                </View>
-              )}
-              {rdo.observacoes_gerais && (
-                <View>
-                  <Text style={styles.dataLabel}>NOTAS GERAIS:</Text>
-                  <Text style={{fontSize: 8}}>{rdo.observacoes_gerais}</Text>
-                </View>
-              )}
+        {rdo.impedimentos_comentarios && (
+          <View style={styles.section} wrap={false}>
+            <Text style={[styles.sectionTitle, { backgroundColor: '#fef2f2', color: '#b91c1c' }]}>Ocorrências / Impedimentos</Text>
+            <View style={{ padding: 8, backgroundColor: '#fff1f2', borderRadius: 6, borderWidth: 1, borderColor: '#fecaca' }}>
+              <Text style={{ fontSize: 8, lineHeight: 1.4 }}>{rdo.impedimentos_comentarios}</Text>
             </View>
           </View>
         )}
 
-        {/* GALERIA DE FOTOS (GRID REFORÇADO) */}
-        <View style={styles.section} wrap={false}>
-          <Text style={styles.sectionTitle}>Evidências Fotográficas</Text>
-          <View style={styles.photosGrid}>
-            {photosBase64.length > 0 ? (
-              photosBase64.map((photo, index) => (
-                <View key={index} style={styles.photoCard}>
-                  {photo.base64 ? (
-                    <Image src={photo.base64} style={styles.photo} />
-                  ) : (
-                    <View style={[styles.photo, {backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center'}]}>
-                       <Text style={{fontSize: 6}}>FOTO INDISPONÍVEL</Text>
-                    </View>
-                  )}
-                  <Text style={styles.photoCaption} numberOfLines={2}>
-                    {photo.desc || `Registro de campo #${index + 1}`}
-                  </Text>
-                </View>
-              ))
-            ) : (
-              <Text style={{fontSize: 8, fontStyle: 'italic'}}>Nenhum registro fotográfico anexado.</Text>
-            )}
+        {/* REGISTRO FOTOGRÁFICO - GRID BLINDADO */}
+        <View style={styles.gallerySection}>
+          <Text style={styles.sectionTitle}>Registro Fotográfico ({photosBase64.length} imagens)</Text>
+          <View style={styles.grid}>
+            {photosBase64.map((photo, index) => (
+              <View key={index} style={styles.photoCard} wrap={false}>
+                <Image 
+                  src={photo.base64 || LOGO_PADRAO_BASE64} 
+                  style={styles.image} 
+                />
+                <Text style={styles.caption} numberOfLines={2}>
+                  {photo.desc || `Registro de campo #${index + 1}`}
+                </Text>
+              </View>
+            ))}
           </View>
         </View>
 
         {/* ASSINATURAS */}
-        <View style={styles.signatureArea} wrap={false}>
-          <View style={styles.signatureBox}>
-            {responsibleSigBase64 && <Image src={responsibleSigBase64} style={styles.signatureImg} />}
-            <View style={styles.sigLine} />
-            <Text style={styles.sigText}>Responsável Técnico</Text>
-            <Text style={styles.sigSubtext}>{(rdo as any).signer_name || profile?.first_name}</Text>
+        <View style={styles.signatureGrid} wrap={false}>
+          <View style={styles.signatureLine}>
+            {responsibleSigBase64 && <Image src={responsibleSigBase64} style={styles.sigImage} />}
+            <View style={styles.line} />
+            <Text style={styles.sigName}>Responsável Técnico</Text>
+            <Text style={{ fontSize: 7, color: '#64748b' }}>{(rdo as any).signer_name || profile?.first_name}</Text>
           </View>
-          
-          <View style={styles.signatureBox}>
-            {clientSigBase64 && <Image src={clientSigBase64} style={styles.signatureImg} />}
-            <View style={styles.sigLine} />
-            <Text style={styles.sigText}>Fiscalização / Cliente</Text>
-            <Text style={styles.sigSubtext}>Visto Eletrônico</Text>
+          <View style={styles.signatureLine}>
+            {clientSigBase64 && <Image src={clientSigBase64} style={styles.sigImage} />}
+            <View style={styles.line} />
+            <Text style={styles.sigName}>Fiscalização / Cliente</Text>
+            <Text style={{ fontSize: 7, color: '#64748b' }}>Visto Eletrônico</Text>
           </View>
         </View>
 
         <Text style={styles.footer}>
-          Documento gerado eletronicamente pela plataforma Meu RDO - Gestão Digital de Obras.
+          Meu RDO - Gestão Digital de Obras | Gerado em {format(new Date(), "dd/MM/yyyy HH:mm")}
         </Text>
 
       </Page>
