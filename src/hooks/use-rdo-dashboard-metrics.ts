@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/integrations/supabase/auth-provider";
-import { format, subDays } from "date-fns";
 import { DiarioObra } from "./use-rdo";
 
 interface RdoMetrics {
@@ -11,20 +10,15 @@ interface RdoMetrics {
   pendingRdosCount: number;
   openOccurrencesCount: number;
   recentRdos: DiarioObra[];
+  actionRequiredRdos: (DiarioObra & { obra_nome: string })[];
 }
 
 const fetchRdoMetrics = async (userId: string): Promise<RdoMetrics> => {
-  // Fetch ALL RDOs for the user to get accumulated totals
+  // Busca RDOs com joins para obras
   const { data: rdosData, error } = await supabase
     .from('diarios_obra')
     .select(`
-      id,
-      obra_id,
-      data_rdo,
-      status_dia,
-      impedimentos_comentarios,
-      rdo_mao_de_obra (quantidade),
-      rdo_equipamentos (id),
+      *,
       obras!inner (nome)
     `)
     .eq('user_id', userId)
@@ -37,32 +31,32 @@ const fetchRdoMetrics = async (userId: string): Promise<RdoMetrics> => {
 
   const rdos = rdosData as any[];
 
-  // 1. Total RDOs
+  // 1. Totais
   const totalRdosCount = rdos.length;
-
-  // 2. Total Manpower Accumulated
   const totalManpowerAccumulated = rdos.reduce((sum, rdo) => {
     const dailyManpower = rdo.rdo_mao_de_obra?.reduce((mSum: number, m: any) => mSum + m.quantidade, 0) || 0;
     return sum + dailyManpower;
   }, 0);
-
-  // 3. Total Equipment Accumulated
   const totalEquipmentAccumulated = rdos.reduce((sum, rdo) => {
     const dailyEquipment = rdo.rdo_equipamentos?.length || 0;
     return sum + dailyEquipment;
   }, 0);
 
-  // 4. Pending RDOs (Not Operational)
-  const pendingRdosCount = rdos.filter(rdo => 
-    rdo.status_dia !== 'Operacional'
-  ).length;
+  // 2. Filtro de Pendências (Ação Requerida)
+  // Status: 'pending' ou 'rejected'
+  // Ordenação: Antigos primeiro (ascending) para priorizar o atraso
+  const actionRequired = rdos
+    .filter(rdo => rdo.status === 'pending' || rdo.status === 'rejected')
+    .sort((a, b) => a.data_rdo.localeCompare(b.data_rdo))
+    .slice(0, 5)
+    .map(rdo => ({
+      ...rdo,
+      obra_nome: rdo.obras.nome,
+    }));
 
-  // 5. Open Occurrences (Any RDO with comments)
-  const openOccurrencesCount = rdos.filter(rdo => 
-    !!rdo.impedimentos_comentarios && rdo.impedimentos_comentarios.trim().length > 0
-  ).length;
+  const pendingRdosCount = rdos.filter(rdo => rdo.status_dia !== 'Operacional').length;
+  const openOccurrencesCount = rdos.filter(rdo => !!rdo.impedimentos_comentarios && rdo.impedimentos_comentarios.trim().length > 0).length;
   
-  // Prepare recent RDOs list (last 5)
   const recentRdos = rdos.slice(0, 5).map(rdo => ({
     ...rdo,
     obra_nome: rdo.obras.nome,
@@ -75,6 +69,7 @@ const fetchRdoMetrics = async (userId: string): Promise<RdoMetrics> => {
     pendingRdosCount,
     openOccurrencesCount,
     recentRdos: recentRdos as DiarioObra[],
+    actionRequiredRdos: actionRequired as any,
   };
 };
 
@@ -86,6 +81,6 @@ export const useRdoDashboardMetrics = () => {
     queryKey: ['rdoDashboardMetrics', userId],
     queryFn: () => fetchRdoMetrics(userId!),
     enabled: !!userId,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
   });
 };

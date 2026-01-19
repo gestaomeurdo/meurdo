@@ -7,22 +7,16 @@ import { useEffect, useState } from "react";
 import { useLocation, Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useCanCreateObra } from "@/hooks/use-subscription-limits";
-import LimitReachedModal from "@/components/subscription/LimitReachedModal";
-import WelcomeFreeModal from "@/components/subscription/WelcomeFreeModal";
 import { cn } from "@/lib/utils";
 import { useObras, useObrasProgress } from "@/hooks/use-obras";
 import { formatDate } from "@/utils/formatters";
-import { useRdoLimits } from "@/hooks/use-rdo-limits";
 import { Progress } from "@/components/ui/progress";
-import { useRdoAlerts } from "@/hooks/use-rdo-alerts";
-import RdoDialog from "@/components/rdo/RdoDialog";
-import { Button } from "@/components/ui/button";
+import WelcomeFreeModal from "@/components/subscription/WelcomeFreeModal";
+import RdoActionCenter from "@/components/dashboard/RdoActionCenter";
 
 const Dashboard = () => {
   const { user, isLoading: authLoading, profile, isPro } = useAuth();
-  const { data: rdoMetrics } = useRdoDashboardMetrics();
-  const { data: alerts } = useRdoAlerts();
+  const { data: metrics, isLoading: metricsLoading } = useRdoDashboardMetrics();
   const { data: obras, isLoading: isLoadingObras } = useObras();
   const { data: progressMap, isLoading: isLoadingProgress } = useObrasProgress();
   
@@ -53,7 +47,7 @@ const Dashboard = () => {
   return (
     <DashboardLayout>
       {!isPro && <WelcomeFreeModal />}
-      <div className="p-4 sm:p-6 space-y-8">
+      <div className="p-4 sm:p-6 space-y-10">
         <div className="flex justify-between items-center">
           <div className="space-y-1">
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground truncate">
@@ -62,42 +56,6 @@ const Dashboard = () => {
             <p className="text-sm text-muted-foreground font-medium">Visão geral do seu portfólio de obras.</p>
           </div>
         </div>
-
-        {/* ALERTAS DE CORREÇÃO (NOVO) */}
-        {alerts && alerts.length > 0 && (
-          <div className="space-y-3 animate-in slide-in-from-top-4 duration-500">
-            <h3 className="text-xs font-black text-red-600 uppercase tracking-widest flex items-center gap-2">
-              <AlertCircle className="w-4 h-4" /> Atenção Necessária
-            </h3>
-            {alerts.map(alert => (
-              <Alert key={alert.id} variant="destructive" className="bg-red-50 border-red-200 shadow-sm rounded-2xl p-4">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
-                  <div className="flex items-start gap-3">
-                    <div className="bg-red-100 p-2 rounded-xl mt-1">
-                      <FileStack className="w-5 h-5 text-red-600" />
-                    </div>
-                    <div>
-                      <AlertTitle className="text-red-900 font-bold uppercase text-xs">Ajuste solicitado pelo cliente</AlertTitle>
-                      <AlertDescription className="text-red-700 text-sm font-medium mt-1">
-                        Obra: <span className="font-bold">{alert.obra_nome}</span> • Data: <span className="font-bold">{formatDate(alert.data_rdo)}</span>
-                        <p className="mt-1 italic text-xs opacity-80">"{alert.rejection_reason}"</p>
-                      </AlertDescription>
-                    </div>
-                  </div>
-                  <RdoDialog 
-                    obraId={alert.obra_id} 
-                    date={new Date(alert.data_rdo + 'T12:00:00')} 
-                    trigger={
-                      <Button className="bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold h-10 px-6">
-                        Corrigir Agora
-                      </Button>
-                    }
-                  />
-                </div>
-              </Alert>
-            ))}
-          </div>
-        )}
 
         {showWelcomePro && (
           <Alert className="bg-green-500/10 border-green-500/30 text-green-800 rounded-2xl">
@@ -111,9 +69,9 @@ const Dashboard = () => {
         <div className="grid gap-6 grid-cols-2 lg:grid-cols-4">
           {[
             { label: "Total de Obras", value: obras?.length || 0, icon: Building2, color: "bg-blue-500", textColor: "text-blue-600", bgColor: "bg-blue-50" },
-            { label: "Total de RDOs", value: rdoMetrics?.totalRdosCount ?? 0, icon: FileStack, color: "bg-purple-500", textColor: "text-purple-600", bgColor: "bg-purple-50" },
-            { label: "Efetivo Acumulado", value: rdoMetrics?.totalManpowerAccumulated ?? 0, icon: HardHat, color: "bg-green-500", textColor: "text-green-600", bgColor: "bg-green-50" },
-            { label: "Máquinas Acumulado", value: rdoMetrics?.totalEquipmentAccumulated ?? 0, icon: Truck, color: "bg-orange-500", textColor: "text-orange-600", bgColor: "bg-orange-50" },
+            { label: "Total de RDOs", value: metrics?.totalRdosCount ?? 0, icon: FileStack, color: "bg-purple-500", textColor: "text-purple-600", bgColor: "bg-purple-50" },
+            { label: "Efetivo Acumulado", value: metrics?.totalManpowerAccumulated ?? 0, icon: HardHat, color: "bg-green-500", textColor: "text-green-600", bgColor: "bg-green-50" },
+            { label: "Máquinas Acumulado", value: metrics?.totalEquipmentAccumulated ?? 0, icon: Truck, color: "bg-orange-500", textColor: "text-orange-600", bgColor: "bg-orange-50" },
           ].map((stat, i) => (
             <Card key={i} className="shadow-md border-none bg-card overflow-hidden hover:shadow-lg transition-all rounded-3xl">
                 <div className={cn("h-2 w-full", stat.color)}></div>
@@ -129,6 +87,12 @@ const Dashboard = () => {
             </Card>
           ))}
         </div>
+
+        {/* ACTION CENTER - WIDGET DE PENDÊNCIAS */}
+        <RdoActionCenter 
+          rdos={metrics?.actionRequiredRdos || []} 
+          isLoading={metricsLoading} 
+        />
 
         <div className="space-y-4">
             <div className="flex items-center justify-between">
