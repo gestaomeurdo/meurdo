@@ -27,9 +27,10 @@ const RdoManpowerForm = () => {
   const handleCargoSelect = (index: number, cargoId: string) => {
     const cargo = cargos?.find(c => c.id === cargoId);
     if (cargo) {
-      setValue(`mao_de_obra.${index}.funcao`, cargo.nome, { shouldValidate: true });
-      setValue(`mao_de_obra.${index}.custo_unitario`, cargo.custo_diario, { shouldValidate: true });
-      setValue(`mao_de_obra.${index}.tipo`, cargo.tipo === 'Próprio' ? 'Própria' : 'Terceirizada', { shouldValidate: true });
+      // Ao selecionar o cargo, atualizamos o nome, custo e o vínculo automaticamente
+      setValue(`mao_de_obra.${index}.funcao`, cargo.nome, { shouldValidate: true, shouldDirty: true });
+      setValue(`mao_de_obra.${index}.custo_unitario`, Number(cargo.custo_diario) || 0, { shouldValidate: true, shouldDirty: true });
+      setValue(`mao_de_obra.${index}.tipo`, cargo.tipo === 'Próprio' ? 'Própria' : 'Terceirizada', { shouldValidate: true, shouldDirty: true });
     }
   };
 
@@ -50,19 +51,10 @@ const RdoManpowerForm = () => {
         </div>
       </div>
 
-      {cargos && cargos.length === 0 && (
-        <div className="text-center p-4 bg-yellow-50 border border-yellow-200 rounded-xl mb-4">
-            <p className="text-xs text-yellow-800 mb-2">Nenhuma função cadastrada no banco.</p>
-            <Button variant="outline" size="sm" className="h-8 text-xs" asChild>
-                <Link to="/mao-de-obra">Cadastrar Funções</Link>
-            </Button>
-        </div>
-      )}
-
       <div className="space-y-4">
         {fields.map((field, index) => {
-          const qty = maoDeObra?.[index]?.quantidade || 0;
-          const price = maoDeObra?.[index]?.custo_unitario || 0;
+          const qty = Number(maoDeObra?.[index]?.quantidade || 0);
+          const price = Number(maoDeObra?.[index]?.custo_unitario || 0);
           const subtotal = qty * price;
           const type = maoDeObra?.[index]?.tipo;
           const showNote = showNoteMap[field.id] || !!maoDeObra?.[index]?.observacao;
@@ -87,37 +79,33 @@ const RdoManpowerForm = () => {
               </Button>
 
               <div className="grid grid-cols-12 gap-3">
-                {/* Seleção de Função */}
                 <div className="col-span-12 sm:col-span-5 space-y-1.5">
                   <Label className={cn("text-[10px] font-black uppercase", fieldErrors?.funcao ? "text-destructive" : "text-muted-foreground")}>
                     Função <span className="text-red-500">*</span>
                   </Label>
-                  <div className="relative">
-                    {cargos && cargos.length > 0 ? (
-                        <Select 
-                            value={cargos.find(c => c.nome === maoDeObra?.[index]?.funcao)?.id} 
-                            onValueChange={(val) => handleCargoSelect(index, val)}
-                        >
-                            <SelectTrigger className={cn("w-full bg-secondary/10 h-10 border-transparent hover:border-input", fieldErrors?.funcao && "border-destructive ring-1 ring-destructive")}>
-                                <SelectValue placeholder={maoDeObra?.[index]?.funcao || "Selecione..."} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {cargos.map(c => (
-                                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    ) : (
-                        <Input
-                            {...register(`mao_de_obra.${index}.funcao`)}
-                            placeholder="Ex: Pedreiro"
-                            className={cn("bg-secondary/10 rounded-xl h-10", fieldErrors?.funcao && "border-destructive")}
-                        />
-                    )}
-                  </div>
+                  {cargos && cargos.length > 0 ? (
+                      <Select 
+                          onValueChange={(val) => handleCargoSelect(index, val)}
+                          defaultValue={cargos.find(c => c.nome === maoDeObra?.[index]?.funcao)?.id}
+                      >
+                          <SelectTrigger className={cn("w-full bg-secondary/10 h-10 border-transparent hover:border-input", fieldErrors?.funcao && "border-destructive ring-1 ring-destructive")}>
+                              <SelectValue placeholder="Selecione a função..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                              {cargos.map(c => (
+                                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                              ))}
+                          </SelectContent>
+                      </Select>
+                  ) : (
+                      <Input
+                          {...register(`mao_de_obra.${index}.funcao`)}
+                          placeholder="Ex: Pedreiro"
+                          className={cn("bg-secondary/10 rounded-xl h-10", fieldErrors?.funcao && "border-destructive")}
+                      />
+                  )}
                 </div>
 
-                {/* Input Quantidade */}
                 <div className="col-span-4 sm:col-span-2 space-y-1.5">
                   <Label className={cn("text-[10px] font-black uppercase block text-center", fieldErrors?.quantidade ? "text-destructive" : "text-muted-foreground")}>
                     Qtd
@@ -130,7 +118,6 @@ const RdoManpowerForm = () => {
                   />
                 </div>
 
-                {/* Input Custo */}
                 <div className="col-span-4 sm:col-span-3 space-y-1.5">
                   <Label className="text-[10px] font-black uppercase text-muted-foreground block text-center">
                     Custo (R$)
@@ -143,7 +130,6 @@ const RdoManpowerForm = () => {
                   />
                 </div>
 
-                {/* Subtotal */}
                 <div className="col-span-4 sm:col-span-2 space-y-1.5">
                   <Label className="text-[10px] font-black uppercase text-primary block text-center">
                     Total
@@ -154,12 +140,9 @@ const RdoManpowerForm = () => {
                 </div>
               </div>
 
-              {/* Rodapé do Card: Tipo e Nota */}
               <div className="flex items-center justify-between pt-1 border-t border-dashed mt-2">
                 <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase">
-                    Vínculo:
-                    </span>
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase">Vínculo:</span>
                     <Badge
                         variant={type === 'Própria' ? 'default' : 'outline'}
                         className="text-[10px] uppercase font-black tracking-widest px-3 py-1 cursor-pointer hover:opacity-80 transition-opacity"
@@ -173,7 +156,7 @@ const RdoManpowerForm = () => {
                 </div>
                 
                 <div className="flex items-center gap-2">
-                    <Label htmlFor={`note-switch-${index}`} className="text-[10px] uppercase font-bold text-muted-foreground cursor-pointer">Adicionar Nota</Label>
+                    <Label htmlFor={`note-switch-${index}`} className="text-[10px] uppercase font-bold text-muted-foreground cursor-pointer">Nota</Label>
                     <Switch id={`note-switch-${index}`} checked={showNote} onCheckedChange={() => toggleNote(field.id)} />
                 </div>
               </div>
@@ -199,7 +182,7 @@ const RdoManpowerForm = () => {
         className="w-full border-dashed border-primary/40 py-6 rounded-2xl hover:bg-primary/5 hover:text-primary transition-all font-bold uppercase text-xs tracking-widest mt-4"
         onClick={() =>
           append({
-            funcao: "Pedreiro", 
+            funcao: "", // Começa vazio para o usuário escolher
             quantidade: 1,
             custo_unitario: 0,
             tipo: 'Própria',
