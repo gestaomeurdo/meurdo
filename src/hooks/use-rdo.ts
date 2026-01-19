@@ -61,6 +61,30 @@ export const useRdoList = (obraId: string) => {
   });
 };
 
+export const useRdoByDate = (obraId: string, date: string) => {
+  return useQuery({
+    queryKey: ["rdo-date", obraId, date],
+    queryFn: async () => {
+      if (!obraId || !date) return null;
+      const { data, error } = await supabase
+        .from("diarios_obra")
+        .select(`
+          *,
+          rdo_atividades_detalhe (*),
+          rdo_mao_de_obra (*),
+          rdo_equipamentos (*),
+          rdo_materiais (*)
+        `)
+        .eq("obra_id", obraId)
+        .eq("data_rdo", date)
+        .maybeSingle();
+      if (error) throw error;
+      return data as DiarioObra;
+    },
+    enabled: !!obraId && !!date,
+  });
+};
+
 export const useRdoByToken = (token?: string) => {
   return useQuery({
     queryKey: ["rdo-token", token],
@@ -84,6 +108,25 @@ export const useRdoByToken = (token?: string) => {
     },
     enabled: !!token,
   });
+};
+
+export const fetchPreviousRdo = async (obraId: string, date: Date) => {
+    const dateStr = date.toISOString().split('T')[0];
+    const { data, error } = await supabase
+        .from("diarios_obra")
+        .select(`
+            *,
+            rdo_mao_de_obra (*),
+            rdo_equipamentos (*)
+        `)
+        .eq("obra_id", obraId)
+        .lt("data_rdo", dateStr)
+        .order("data_rdo", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+    
+    if (error) throw error;
+    return data as DiarioObra;
 };
 
 export const useCreateRdo = () => {
@@ -128,6 +171,23 @@ export const useUpdateRdo = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["rdos"] });
+      queryClient.invalidateQueries({ queryKey: ["rdoDashboardMetrics"] });
+    },
+  });
+};
+
+export const useRequestRdoApproval = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id }: { id: string; obraId: string }) => {
+      const { error } = await supabase
+        .from("diarios_obra")
+        .update({ status: 'pending', rejection_reason: null })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["rdos", variables.obraId] });
       queryClient.invalidateQueries({ queryKey: ["rdoDashboardMetrics"] });
     },
   });
@@ -186,6 +246,34 @@ export const useRejectRdo = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rdos"] });
+      queryClient.invalidateQueries({ queryKey: ["rdoDashboardMetrics"] });
+    },
+  });
+};
+
+export const useDeleteRdo = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id }: { id: string; obraId: string }) => {
+      const { error } = await supabase.from("diarios_obra").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["rdos", variables.obraId] });
+      queryClient.invalidateQueries({ queryKey: ["rdoDashboardMetrics"] });
+    },
+  });
+};
+
+export const useDeleteAllRdo = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (obraId: string) => {
+      const { error } = await supabase.from("diarios_obra").delete().eq("obra_id", obraId);
+      if (error) throw error;
+    },
+    onSuccess: (_, obraId) => {
+      queryClient.invalidateQueries({ queryKey: ["rdos", obraId] });
       queryClient.invalidateQueries({ queryKey: ["rdoDashboardMetrics"] });
     },
   });
