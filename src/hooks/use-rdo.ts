@@ -207,19 +207,19 @@ export interface RdoInput {
 }
 
 const insertRdoDetails = async (diarioId: string, details: RdoInput) => {
-    if (details.atividades.length > 0) {
+    if (details.atividades && details.atividades.length > 0) {
         const { error } = await supabase.from('rdo_atividades_detalhe').insert(details.atividades.map(a => ({ ...a, diario_id: diarioId })));
         if (error) throw error;
     }
-    if (details.mao_de_obra.length > 0) {
+    if (details.mao_de_obra && details.mao_de_obra.length > 0) {
         const { error } = await supabase.from('rdo_mao_de_obra').insert(details.mao_de_obra.map(m => ({ ...m, diario_id: diarioId })));
         if (error) throw error;
     }
-    if (details.equipamentos.length > 0) {
+    if (details.equipamentos && details.equipamentos.length > 0) {
         const { error } = await supabase.from('rdo_equipamentos').insert(details.equipamentos.map(e => ({ ...e, diario_id: diarioId })));
         if (error) throw error;
     }
-    if (details.materiais.length > 0) { 
+    if (details.materiais && details.materiais.length > 0) { 
         const { error } = await supabase.from('rdo_materiais').insert(details.materiais.map(m => ({ ...m, diario_id: diarioId })));
         if (error) throw error;
     }

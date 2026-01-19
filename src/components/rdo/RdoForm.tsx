@@ -359,6 +359,10 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
       const dataToSubmit = {
         ...values,
         atividades: atividadesValidas,
+        // Ensure arrays are initialized as empty if undefined
+        mao_de_obra: values.mao_de_obra || [],
+        equipamentos: values.equipamentos || [],
+        materiais: values.materiais || [],
         data_rdo: format(values.data_rdo, 'yyyy-MM-dd'),
       };
 
@@ -370,8 +374,10 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
         showSuccess("RDO criado!");
       }
       onSuccess();
-    } catch (error) {
-      showError(`Erro ao salvar: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+    } catch (error: any) {
+      console.error("Erro ao salvar RDO:", error);
+      const errorMessage = error?.message || error?.error_description || "Erro desconhecido ao salvar.";
+      showError(`Erro ao salvar: ${errorMessage}`);
     }
   };
 
