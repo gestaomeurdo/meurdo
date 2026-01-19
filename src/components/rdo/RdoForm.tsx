@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { showSuccess, showError } from "@/utils/toast";
-import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, Sun, Clock, Upload, Image as ImageIcon, X, MessageSquare, AlertOctagon, Cloud, CloudRain, CloudLightning, CheckCircle2, AlertCircle } from "lucide-react";
+import { Loader2, Save, FileDown, DollarSign, Lock, ShieldCheck, Sun, Clock, Upload, Image as ImageIcon, X, MessageSquare, AlertOctagon, Cloud, CloudRain, CloudLightning, CheckCircle2, AlertCircle, Moon } from "lucide-react";
 import { DiarioObra, useCreateRdo, useUpdateRdo, WorkforceType, useRdoList } from "@/hooks/use-rdo";
 import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
@@ -18,7 +18,7 @@ import RdoMaterialsForm from "./RdoMaterialsForm";
 import RdoSafetyForm from "./RdoSafetyForm";
 import RdoSignaturePad from "./RdoSignaturePad";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { formatCurrency } from "@/utils/formatters";
 import { generateRdoPdf } from "@/utils/rdo-pdf";
 import { useObras } from "@/hooks/use-obras";
@@ -26,7 +26,6 @@ import { useAuth } from "@/integrations/supabase/auth-provider";
 import UpgradeModal from "../subscription/UpgradeModal";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Label } from "@/components/ui/label";
 
 const workforceTypes: WorkforceType[] = ['Própria', 'Terceirizada'];
 
@@ -103,6 +102,14 @@ const RdoSchema = z.object({
 
 type RdoFormValues = z.infer<typeof RdoSchema>;
 
+interface RdoFormProps {
+  obraId: string;
+  initialData?: DiarioObra;
+  onSuccess: () => void;
+  previousRdoData?: DiarioObra | null;
+  selectedDate?: Date;
+}
+
 const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate }: RdoFormProps) => {
   const { profile } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -116,10 +123,8 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
   const currentObra = obras?.find(o => o.id === obraId);
   const obraNome = currentObra?.nome || "Obra";
 
-  // Parse climas/status salvos no DB (string concatenada) para a UI
   const parseSavedClima = (data: string | null) => {
     if (!data) return { m: "Sol", ms: "Operacional", a: "Sol", as: "Operacional", n: "Sol", ns: "Operacional" };
-    // Formato esperado: "M: Sol (Op), T: Chuva (Par), N: Sol (Op)"
     const parts = data.split(', ');
     const getVal = (idx: number) => {
         if (!parts[idx]) return { c: "Sol", s: "Operacional" };
@@ -203,7 +208,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
 
   const onSubmit = async (values: RdoFormValues) => {
     try {
-      // Concatenar os 3 climas em uma string para o banco
       const climaString = `M: ${values.morning_clima} (${values.morning_status === "Operacional" ? "Op" : "Par"}), T: ${values.afternoon_clima} (${values.afternoon_status === "Operacional" ? "Op" : "Par"}), N: ${values.night_clima} (${values.night_status === "Operacional" ? "Op" : "Par"})`;
       
       const dataToSubmit = {
@@ -290,7 +294,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <PeriodBox label="Período Manhã" climaName="morning_clima" statusName="morning_status" icon={Sun} />
-            <PeriodBox label="Período Tarde" climaName="afternoon_clima" statusName="afternoon_status" icon={SunMedium} />
+            <PeriodBox label="Período Tarde" climaName="afternoon_clima" statusName="afternoon_status" icon={Sun} />
             <PeriodBox label="Período Noite" climaName="night_clima" statusName="night_status" icon={Moon} />
         </div>
 
