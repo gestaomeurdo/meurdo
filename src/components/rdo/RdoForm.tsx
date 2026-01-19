@@ -8,7 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { showSuccess, showError } from "@/utils/toast";
-import { Loader2, Save, FileDown, DollarSign, Lock, Sun, Cloud, CloudRain, CloudLightning, CheckCircle2, AlertCircle, Send, Signature } from "lucide-react";
+import { Loader2, Save, FileDown, DollarSign, Lock, Sun, Cloud, CloudRain, CloudLightning, CheckCircle2, AlertCircle, Send, Signature, Share2, Link2, Mail, Check, MessageSquare } from "lucide-react";
 import { DiarioObra, useCreateRdo, useUpdateRdo, WorkforceType, useRdoList, useRequestRdoApproval } from "@/hooks/use-rdo";
 import RdoActivitiesForm from "./RdoActivitiesForm";
 import RdoManpowerForm from "./RdoManpowerForm";
@@ -27,6 +27,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const workforceTypes: WorkforceType[] = ['Própria', 'Terceirizada'];
 
@@ -122,11 +123,22 @@ const WEATHER_OPTIONS = [
   { value: "Chuva Forte", icon: CloudLightning },
 ];
 
+const statusStyles: Record<string, { bg: string, text: string, label: string, border: string }> = {
+    'draft': { bg: 'bg-slate-100', text: 'text-slate-600', label: 'Rascunho', border: 'border-slate-200' },
+    'pending': { bg: 'bg-orange-100', text: 'text-orange-600', label: 'Aguardando Cliente', border: 'border-orange-200' },
+    'approved': { bg: 'bg-green-100', text: 'text-green-700', label: 'Aprovado ✅', border: 'border-green-300' },
+    'rejected': { bg: 'bg-red-100', text: 'text-red-600', label: 'Correção Solicitada', border: 'border-red-200' },
+};
+
 const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate }: RdoFormProps) => {
   const { profile } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const isEditing = !!initialData;
+  const currentStatus = initialData?.status || 'draft';
+  const statusConfig = statusStyles[currentStatus];
+  const isApproved = currentStatus === 'approved';
+  
   const isPro = profile?.subscription_status === 'active' || profile?.plan_type === 'pro';
   const createMutation = useCreateRdo();
   const updateMutation = useUpdateRdo();
@@ -246,22 +258,34 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
     return manpowerCost + equipmentCost;
   }, [maoDeObra, equipamentos]);
 
-  const handleRequestApproval = async () => {
-    if (!initialData) {
-        showError("Salve o diário primeiro antes de solicitar aprovação.");
-        return;
-    }
-    
+  const shareLink = useMemo(() => {
+      if (!initialData?.approval_token) return "";
+      return `${window.location.origin}/rdo/share/${initialData.approval_token}`;
+  }, [initialData]);
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(shareLink);
+    showSuccess("Link copiado para a área de transferência!");
+  };
+
+  const handleSendWhatsApp = async () => {
+    if (!initialData) return;
     try {
         await requestApprovalMutation.mutateAsync({ id: initialData.id, obraId });
         const obraNome = obras?.find(o => o.id === obraId)?.nome || "Obra";
-        const shareLink = `${window.location.origin}/rdo/share/${initialData.approval_token}`;
         const message = encodeURIComponent(`Olá! Segue o RDO da obra *${obraNome}* para sua conferência e assinatura digital:\n\n🔗 ${shareLink}`);
         window.open(`https://wa.me/?text=${message}`, '_blank');
-        showSuccess("Solicitação de aprovação enviada!");
+        showSuccess("Solicitação enviada!");
     } catch (err) {
-        showError("Erro ao gerar link de aprovação.");
+        showError("Erro ao processar solicitação.");
     }
+  };
+
+  const handleSendEmail = () => {
+    const obraNome = obras?.find(o => o.id === obraId)?.nome || "Obra";
+    const subject = encodeURIComponent(`Diário de Obra: ${obraNome} - ${initialData?.data_rdo}`);
+    const body = encodeURIComponent(`Olá,\n\nSegue o link para visualização e assinatura digital do Diário de Obra:\n\n${shareLink}\n\nAtenciosamente,\nEquipe de Engenharia.`);
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
 
   const onSubmit = async (values: RdoFormValues) => {
@@ -305,7 +329,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
     return (
         <div className={cn(
             "flex flex-col sm:flex-row sm:items-center justify-between py-4 border-b border-border last:border-0 transition-all",
-            !isEnabled && "opacity-40 grayscale pointer-events-none"
+            (!isEnabled || isApproved) && "opacity-40 grayscale pointer-events-none"
         )}>
             <div className="flex items-center justify-between sm:justify-start gap-4 mb-3 sm:mb-0 pointer-events-auto">
                 <span className="text-sm font-bold text-foreground w-16">{label}</span>
@@ -314,6 +338,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                         checked={field.value} 
                         onCheckedChange={field.onChange} 
                         className="data-[state=checked]:bg-primary h-5 w-9"
+                        disabled={isApproved}
                     />
                 )} />
             </div>
@@ -331,6 +356,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                                     ? "bg-primary text-white shadow-sm scale-110" 
                                     : "text-muted-foreground hover:bg-muted/60"
                             )}
+                            disabled={isApproved}
                         >
                             <opt.icon className="w-4 h-4" />
                         </button>
@@ -347,6 +373,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                             "flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg font-black text-[9px] uppercase tracking-wider transition-all",
                             currentStatus === "Operacional" ? "bg-green-600 text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
                         )}
+                        disabled={isApproved}
                     >
                         <CheckCircle2 className="w-3 h-3" /> Op.
                     </button>
@@ -357,6 +384,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                             "flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg font-black text-[9px] uppercase tracking-wider transition-all",
                             currentStatus === "Paralisado" ? "bg-destructive text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
                         )}
+                        disabled={isApproved}
                     >
                         <AlertCircle className="w-3 h-3" /> Par.
                     </button>
@@ -371,39 +399,50 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
       <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-6">
         <UpgradeModal open={showUpgrade} onOpenChange={setShowUpgrade} />
 
-        {/* Header de Custo Estilo Dashboard */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 bg-card border rounded-3xl shadow-clean gap-4">
+        {/* Header de Custo e Status */}
+        <div className={cn("flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 bg-card border rounded-3xl shadow-clean gap-4 border-l-8", statusConfig.border)}>
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-primary/10 rounded-2xl">
-                <DollarSign className="w-7 h-7 text-primary" />
+            <div className={cn("p-3 rounded-2xl", isApproved ? "bg-green-100" : "bg-primary/10")}>
+                {isApproved ? <Check className="w-7 h-7 text-green-600" /> : <DollarSign className="w-7 h-7 text-primary" />}
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
                   <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Gasto Estimado (Dia)</p>
-                  {initialData?.status && (
-                      <Badge className={cn(
-                          "text-[8px] font-black uppercase",
-                          initialData.status === 'approved' ? "bg-green-500" : 
-                          initialData.status === 'pending' ? "bg-orange-500" : 
-                          initialData.status === 'rejected' ? "bg-red-500" : "bg-slate-400"
-                      )}>
-                          {initialData.status}
-                      </Badge>
-                  )}
+                  <Badge className={cn("text-[8px] font-black uppercase", statusConfig.bg, statusConfig.text)}>
+                      {statusConfig.label}
+                  </Badge>
               </div>
               <h2 className="text-3xl font-black tracking-tight text-foreground">{formatCurrency(estimatedDailyCost)}</h2>
             </div>
           </div>
           <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-            <Button 
-                type="button" 
-                variant="outline" 
-                onClick={handleRequestApproval}
-                disabled={!isEditing}
-                className="flex-1 sm:flex-none rounded-xl h-12 font-bold uppercase text-[10px] tracking-widest border-orange-500 text-orange-600 hover:bg-orange-50 disabled:opacity-50"
-            >
-                <Send className="w-4 h-4 mr-2" /> Solicitar Aprovação (WhatsApp)
-            </Button>
+            {/* NOVO MENU SHARE */}
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button 
+                        variant="outline" 
+                        disabled={!isEditing}
+                        className="flex-1 sm:flex-none rounded-xl h-12 font-bold uppercase text-[10px] tracking-widest border-slate-300"
+                    >
+                        {isApproved ? <CheckCircle2 className="w-4 h-4 mr-2 text-green-600" /> : <Share2 className="w-4 h-4 mr-2" />}
+                        {isApproved ? "Ver Aprovação" : "Solicitar Aprovação"}
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-xl">
+                    <DropdownMenuLabel className="text-[10px] font-black uppercase text-slate-400">Opções de Envio</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={handleSendWhatsApp} className="gap-2 cursor-pointer focus:bg-green-50 focus:text-green-700">
+                        <MessageSquare className="w-4 h-4 text-green-500" /> 
+                        <span className="font-bold">Enviar no WhatsApp</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleCopyLink} className="gap-2 cursor-pointer">
+                        <Link2 className="w-4 h-4 text-slate-500" /> Copiar Link
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleSendEmail} className="gap-2 cursor-pointer">
+                        <Mail className="w-4 h-4 text-slate-500" /> Abrir no E-mail
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+
             <Button 
                 type="button" 
                 variant="outline" 
@@ -413,20 +452,27 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
             >
                 <FileDown className="w-4 h-4 mr-2" /> PDF
             </Button>
-            <Button type="submit" disabled={updateMutation.isPending || createMutation.isPending} className="flex-1 sm:flex-none rounded-xl bg-primary hover:bg-primary/90 h-12 font-bold uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20">
-              {(updateMutation.isPending || createMutation.isPending) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-              Salvar
-            </Button>
+
+            {isApproved ? (
+                <div className="flex items-center justify-center bg-slate-100 text-slate-500 px-6 rounded-xl h-12 border font-black uppercase text-[10px] tracking-widest gap-2">
+                    <Lock className="w-3 h-3" /> RDO Travado (Aprovado)
+                </div>
+            ) : (
+                <Button type="submit" disabled={updateMutation.isPending || createMutation.isPending} className="flex-1 sm:flex-none rounded-xl bg-primary hover:bg-primary/90 h-12 font-bold uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20">
+                    {(updateMutation.isPending || createMutation.isPending) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                    Salvar Registro
+                </Button>
+            )}
           </div>
         </div>
 
         {/* Notificação de Rejeição */}
         {initialData?.status === 'rejected' && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-3">
+            <div className="p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-3 animate-in slide-in-from-top-2">
                 <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
                 <div className="space-y-1">
                     <p className="text-xs font-black text-red-800 uppercase">Correção Solicitada pelo Cliente</p>
-                    <p className="text-sm text-red-700 font-medium">"{initialData.rejection_reason}"</p>
+                    <p className="text-sm text-red-700 font-medium italic">"{initialData.rejection_reason}"</p>
                 </div>
             </div>
         )}
@@ -458,13 +504,13 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
             <FormField control={methods.control} name="impedimentos_comentarios" render={({ field }) => (
                 <FormItem>
                     <FormLabel className="text-[10px] font-black uppercase text-destructive tracking-widest ml-2">Impedimentos e Paralisações</FormLabel>
-                    <FormControl><Textarea {...field} value={field.value || ""} rows={4} className="bg-red-50/5 rounded-2xl border-red-100" placeholder="Descreva problemas técnicos, falta de material ou atrasos..." /></FormControl>
+                    <FormControl><Textarea {...field} value={field.value || ""} rows={4} className="bg-red-50/5 rounded-2xl border-red-100" placeholder="Descreva problemas técnicos, falta de material ou atrasos..." disabled={isApproved} /></FormControl>
                 </FormItem>
             )} />
             <FormField control={methods.control} name="observacoes_gerais" render={({ field }) => (
                 <FormItem>
                     <FormLabel className="text-[10px] font-black uppercase text-primary tracking-widest ml-2">Observações Gerais</FormLabel>
-                    <FormControl><Textarea {...field} value={field.value || ""} rows={4} className="rounded-2xl" placeholder="Notas adicionais sobre o dia na obra..." /></FormControl>
+                    <FormControl><Textarea {...field} value={field.value || ""} rows={4} className="rounded-2xl" placeholder="Notas adicionais sobre o dia na obra..." disabled={isApproved} /></FormControl>
                 </FormItem>
             )} />
           </TabsContent>
@@ -479,14 +525,23 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="space-y-2">
                             <Label className="text-[10px] font-black uppercase text-muted-foreground ml-2">Assinatura do Engenheiro / Responsável</Label>
-                            <RdoSignaturePad diarioId={initialData?.id || 'new'} obraId={obraId} currentSignatureUrl={methods.watch('responsible_signature_url') || null} onSignatureSave={(url) => methods.setValue('responsible_signature_url', url, { shouldDirty: true })} />
+                            <RdoSignaturePad 
+                                diarioId={initialData?.id || 'new'} 
+                                obraId={obraId} 
+                                currentSignatureUrl={methods.watch('responsible_signature_url') || null} 
+                                onSignatureSave={(url) => methods.setValue('responsible_signature_url', url, { shouldDirty: true })} 
+                                disabled={isApproved}
+                            />
                         </div>
                         <div className="space-y-2">
                             <Label className="text-[10px] font-black uppercase text-muted-foreground ml-2">Assinatura do Cliente / Fiscal (Opcional no App)</Label>
-                            <RdoSignaturePad diarioId={initialData?.id || 'new-client'} obraId={obraId} currentSignatureUrl={methods.watch('client_signature_url') || null} onSignatureSave={(url) => methods.setValue('client_signature_url', url, { shouldDirty: true })} />
-                            <p className="text-[10px] text-muted-foreground mt-2 px-2 leading-relaxed">
-                                Dica: Você também pode enviar o link de aprovação para o cliente assinar do próprio celular.
-                            </p>
+                            <RdoSignaturePad 
+                                diarioId={initialData?.id || 'new-client'} 
+                                obraId={obraId} 
+                                currentSignatureUrl={methods.watch('client_signature_url') || null} 
+                                onSignatureSave={(url) => methods.setValue('client_signature_url', url, { shouldDirty: true })} 
+                                disabled={isApproved}
+                            />
                         </div>
                     </div>
                 ) : (
