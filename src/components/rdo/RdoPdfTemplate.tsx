@@ -7,9 +7,9 @@ const LOGO_MEU_RDO_B64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAABI
 
 const styles = StyleSheet.create({
   page: { padding: 40, backgroundColor: '#ffffff', fontFamily: 'Helvetica', fontSize: 9, color: '#1e293b' },
-  headerContainer: { flexDirection: 'row', border: '1px solid #e2e8f0', marginBottom: 20 },
-  headerCol1: { width: '20%', borderRight: '1px solid #e2e8f0', padding: 10, justifyContent: 'center', alignItems: 'center' },
-  headerCol2: { width: '55%', borderRight: '1px solid #e2e8f0', padding: 10 },
+  headerContainer: { flexDirection: 'row', borderStyle: 'solid', borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 20 },
+  headerCol1: { width: '20%', borderRightStyle: 'solid', borderRightWidth: 1, borderRightColor: '#e2e8f0', padding: 10, justifyContent: 'center', alignItems: 'center' },
+  headerCol2: { width: '55%', borderRightStyle: 'solid', borderRightWidth: 1, borderRightColor: '#e2e8f0', padding: 10 },
   headerCol3: { width: '25%', padding: 10, backgroundColor: '#f8fafc' },
   logo: { width: 80, objectFit: 'contain' },
   docTitle: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#066abc', marginBottom: 6, textTransform: 'uppercase' },
@@ -18,8 +18,8 @@ const styles = StyleSheet.create({
   controlBig: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: '#066abc', textAlign: 'center' },
   controlSmall: { fontSize: 7, textAlign: 'center', color: '#64748b', textTransform: 'uppercase' },
   climateSection: { marginBottom: 20 },
-  climateGrid: { flexDirection: 'row', border: '1px solid #e2e8f0', borderRadius: 4, overflow: 'hidden' },
-  climateCell: { flex: 1, borderRight: '1px solid #e2e8f0', padding: 8, alignItems: 'center' },
+  climateGrid: { flexDirection: 'row', borderStyle: 'solid', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 4, overflow: 'hidden' },
+  climateCell: { flex: 1, borderRightStyle: 'solid', borderRightWidth: 1, borderRightColor: '#e2e8f0', padding: 8, alignItems: 'center' },
   climateCellLast: { flex: 1, padding: 8, alignItems: 'center' },
   periodTitle: { fontSize: 6, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 4, fontFamily: 'Helvetica-Bold' },
   climateText: { fontSize: 9, fontFamily: 'Helvetica-Bold', marginBottom: 4 },
@@ -28,7 +28,9 @@ const styles = StyleSheet.create({
   section: { marginBottom: 15 },
   sectionHeader: { 
     backgroundColor: '#f3f4f6', 
-    borderLeft: '3px solid #066abc', 
+    borderLeftStyle: 'solid',
+    borderLeftWidth: 3, 
+    borderLeftColor: '#066abc', 
     padding: '4 8', 
     marginBottom: 8,
     flexDirection: 'row',
@@ -36,22 +38,22 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   sectionTitle: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#066abc', textTransform: 'uppercase' },
-  table: { width: '100%', borderWidth: 0, borderTopWidth: 1, borderColor: '#e2e8f0' },
-  tableHeader: { flexDirection: 'row', backgroundColor: '#f8fafc', borderBottomWidth: 1, borderBottomColor: '#e2e8f0', padding: 5 },
-  tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#f1f5f9', padding: 5, minHeight: 20 },
+  table: { width: '100%', borderWidth: 0, borderTopWidth: 1, borderTopStyle: 'solid', borderTopColor: '#e2e8f0' },
+  tableHeader: { flexDirection: 'row', backgroundColor: '#f8fafc', borderBottomWidth: 1, borderBottomStyle: 'solid', borderBottomColor: '#e2e8f0', padding: 5 },
+  tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomStyle: 'solid', borderBottomColor: '#f1f5f9', padding: 5, minHeight: 20 },
   colDesc: { flex: 4, fontSize: 8 },
   colVal: { flex: 1, fontSize: 8, textAlign: 'center' },
-  occurrenceBox: { backgroundColor: '#fff7ed', border: '1px solid #ffedd5', padding: 10, borderRadius: 4 },
+  occurrenceBox: { backgroundColor: '#fff7ed', borderStyle: 'solid', borderWidth: 1, borderColor: '#ffedd5', padding: 10, borderRadius: 4 },
   occurrenceLabel: { fontSize: 7, color: '#9a3412', fontFamily: 'Helvetica-Bold', marginBottom: 4, textTransform: 'uppercase' },
   occurrenceText: { fontSize: 8, color: '#431407', lineHeight: 1.4 },
   photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   photoItem: { width: '31%', marginBottom: 10 },
-  photoImg: { width: '100%', height: 100, objectFit: 'cover', borderRadius: 4, border: '1px solid #e2e8f0' },
+  photoImg: { width: '100%', height: 100, objectFit: 'cover', borderRadius: 4, borderStyle: 'solid', borderWidth: 1, borderColor: '#e2e8f0' },
   photoCap: { fontSize: 6, color: '#64748b', marginTop: 3, textAlign: 'center' },
-  sigSection: { flexDirection: 'row', marginTop: 30, gap: 40, borderTop: '1px solid #e2e8f0', paddingTop: 20 },
+  sigSection: { flexDirection: 'row', marginTop: 30, gap: 40, borderTopStyle: 'solid', borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingTop: 20 },
   sigBlock: { flex: 1, alignItems: 'center' },
   sigImg: { height: 45, marginBottom: 5, objectFit: 'contain' },
-  sigLine: { width: '80%', borderTop: '1px solid #94a3b8', marginBottom: 3 },
+  sigLine: { width: '80%', borderTopStyle: 'solid', borderTopWidth: 1, borderTopColor: '#94a3b8', marginBottom: 3 },
   sigText: { fontSize: 7, fontFamily: 'Helvetica-Bold' }
 });
 
@@ -144,11 +146,11 @@ export const RdoPdfTemplate = ({
 
                 {/* KPI Summary */}
                 <View style={[styles.section, { flexDirection: 'row', gap: 10 }]}>
-                    <View style={{ flex: 1, backgroundColor: '#f8fafc', padding: 8, borderRadius: 4, border: '1px solid #e2e8f0' }}>
+                    <View style={{ flex: 1, backgroundColor: '#f8fafc', padding: 8, borderRadius: 4, borderStyle: 'solid', borderWidth: 1, borderColor: '#e2e8f0' }}>
                         <Text style={styles.headerLabel}>Efetivo Total</Text>
                         <Text style={[styles.headerValue, { color: '#066abc', fontSize: 10 }]}>{totalEfetivo} Colaboradores</Text>
                     </View>
-                    <View style={{ flex: 1, backgroundColor: '#f8fafc', padding: 8, borderRadius: 4, border: '1px solid #e2e8f0' }}>
+                    <View style={{ flex: 1, backgroundColor: '#f8fafc', padding: 8, borderRadius: 4, borderStyle: 'solid', borderWidth: 1, borderColor: '#e2e8f0' }}>
                         <Text style={styles.headerLabel}>Responsável Técnico</Text>
                         <Text style={[styles.headerValue, { fontSize: 9 }]}>{rdo.signer_name || "N/A"}</Text>
                     </View>
