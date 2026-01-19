@@ -92,7 +92,6 @@ const RdoForm = ({ obraId, initialData, onSuccess, selectedDate, previousRdoData
       impedimentos_comentarios: initialData?.impedimentos_comentarios || "",
       responsible_signature_url: initialData?.responsible_signature_url || null,
       client_signature_url: initialData?.client_signature_url || null,
-      // CORREÇÃO: Não preencher automaticamente com o nome do perfil logado se for novo ou nulo
       signer_name: (initialData as any)?.signer_name || "",
       safety_nr35: initialData?.safety_nr35 || false,
       safety_epi: initialData?.safety_epi || false,
@@ -174,7 +173,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, selectedDate, previousRdoData
             <TabsTrigger value="mao_de_obra" className="rounded-xl text-[9px] uppercase font-black py-3 data-[state=active]:bg-white flex items-center gap-1.5"><Users className="w-3 h-3" /> Equipe</TabsTrigger>
             <TabsTrigger value="equipamentos" className="rounded-xl text-[9px] uppercase font-black py-3 data-[state=active]:bg-white flex items-center gap-1.5"><Truck className="w-3 h-3" /> Máquinas</TabsTrigger>
             <TabsTrigger value="materiais" className="rounded-xl text-[9px] uppercase font-black py-3 data-[state=active]:bg-white flex items-center gap-1.5"><Package className="w-3 h-3" /> Insumos</TabsTrigger>
-            <TabsTrigger value="seguranca" className="rounded-xl text-[9px] uppercase font-black py-3 data-[state=active]:bg-white flex items-center gap-1.5"><ShieldCheck className="w-3 h-3" /> HSE</TabsTrigger>
+            <TabsTrigger value="seguranca" className="rounded-xl text-[9px] uppercase font-black py-3 data-[state=active]:bg-white flex items-center gap-1.5"><ShieldCheck className="w-3 h-3" /> Segurança</TabsTrigger>
             <TabsTrigger value="ocorrencias" className="rounded-xl text-[9px] uppercase font-black py-3 data-[state=active]:bg-white flex items-center gap-1.5"><MessageSquare className="w-3 h-3" /> Notas</TabsTrigger>
             <TabsTrigger value="assinaturas" className="rounded-xl text-[9px] uppercase font-black py-3 data-[state=active]:bg-[#066abc] data-[state=active]:text-white flex items-center gap-1.5"><Signature className="w-3 h-3" /> Validar</TabsTrigger>
           </TabsList>
