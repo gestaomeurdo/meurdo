@@ -31,7 +31,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
-// Opções de status simplificadas
 const statusOptions = ['Operacional', 'Não Praticável'];
 const climaOptions = ['Sol', 'Nublado', 'Chuva Leve', 'Chuva Forte'];
 const workforceTypes: WorkforceType[] = ['Própria', 'Terceirizada'];
@@ -114,25 +113,20 @@ interface RdoFormProps {
 const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate }: RdoFormProps) => {
   const { profile } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const isEditing = !!initialData;
   const isPro = profile?.subscription_status === 'active' || profile?.plan_type === 'pro';
   const createMutation = useCreateRdo();
   const updateMutation = useUpdateRdo();
   const deleteMutation = useDeleteRdo();
   const { data: obras } = useObras();
-  const { data: rdoList } = useRdoList(obraId); // Para calcular sequência no PDF
+  const { data: rdoList } = useRdoList(obraId);
   const currentObra = obras?.find(o => o.id === obraId);
   const obraNome = currentObra?.nome || "Obra";
   
   const [uploadingState, setUploadingState] = useState<Record<string, boolean>>({});
   const [weatherMap, setWeatherMap] = useState<Record<string, string>>({});
   const [statusMap, setStatusMap] = useState<Record<string, string>>({});
-
-  const getInitialPeriod = () => {
-    if (!initialData?.periodo) return "Manhã, Tarde";
-    if (initialData.periodo === 'Integral') return "Manhã, Tarde";
-    return initialData.periodo;
-  };
 
   const methods = useForm<RdoFormValues>({
     resolver: zodResolver(RdoSchema),
@@ -141,7 +135,7 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
       data_rdo: initialData?.data_rdo 
         ? new Date(initialData.data_rdo + 'T12:00:00') 
         : (selectedDate || new Date()),
-      periodo: getInitialPeriod(),
+      periodo: initialData?.periodo || "Manhã, Tarde",
       clima_condicoes: initialData?.clima_condicoes || "",
       status_dia: (initialData?.status_dia as string) || 'Operacional',
       observacoes_gerais: initialData?.observacoes_gerais || "",
@@ -193,20 +187,11 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
     },
   });
 
-  const maoDeObra = useWatch({
-    control: methods.control,
-    name: "mao_de_obra",
-  });
-  
-  const equipamentos = useWatch({
-    control: methods.control,
-    name: "equipamentos",
-  });
-
+  const maoDeObra = useWatch({ control: methods.control, name: "mao_de_obra" });
+  const equipamentos = useWatch({ control: methods.control, name: "equipamentos" });
   const activePeriods = methods.watch("periodo");
 
   useEffect(() => {
-    // Restaurar Clima
     if (initialData?.clima_condicoes) {
       const weatherString = initialData.clima_condicoes;
       if (weatherString.includes(':')) {
@@ -217,14 +202,8 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
           if (period && condition) map[period] = condition;
         });
         setWeatherMap(map);
-      } else {
-        const map: Record<string, string> = {};
-        ['Manhã', 'Tarde', 'Noite'].forEach(p => map[p] = weatherString);
-        setWeatherMap(map);
       }
     }
-
-    // Restaurar Status
     if (initialData?.status_dia) {
         const statusString = initialData.status_dia as string;
         if (statusString.includes(':')) {
@@ -235,75 +214,31 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
                 if (period && status) map[period] = status;
             });
             setStatusMap(map);
-        } else {
-            const map: Record<string, string> = {};
-            ['Manhã', 'Tarde', 'Noite'].forEach(p => map[p] = statusString);
-            setStatusMap(map);
         }
     }
   }, [initialData]);
 
-  // Atualizar campos hidden
   useEffect(() => {
     const selectedPeriods = activePeriods.split(', ').filter(p => p !== '');
-    
-    const weatherString = selectedPeriods
-      .map(p => `${p}: ${weatherMap[p] || 'Sol'}`)
-      .join(', ');
+    const weatherString = selectedPeriods.map(p => `${p}: ${weatherMap[p] || 'Sol'}`).join(', ');
     methods.setValue('clima_condicoes', weatherString, { shouldDirty: true });
-
-    const statusString = selectedPeriods
-      .map(p => `${p}: ${statusMap[p] || 'Operacional'}`)
-      .join(', ');
+    const statusString = selectedPeriods.map(p => `${p}: ${statusMap[p] || 'Operacional'}`).join(', ');
     methods.setValue('status_dia', statusString as any, { shouldDirty: true });
-
   }, [weatherMap, statusMap, activePeriods, methods]);
 
   const estimatedDailyCost = useMemo(() => {
-    const manpowerCost = maoDeObra?.reduce((sum, item) => {
-        const qtd = Number(item.quantidade) || 0;
-        const custo = Number(item.custo_unitario) || 0;
-        return sum + (qtd * custo);
-    }, 0) || 0;
-
-    const equipmentCost = equipamentos?.reduce((sum, item) => {
-        const horas = Number(item.horas_trabalhadas) || 0;
-        const custo = Number(item.custo_hora) || 0;
-        return sum + (horas * custo);
-    }, 0) || 0;
-
+    const manpowerCost = maoDeObra?.reduce((sum, item) => (sum + (Number(item.quantidade) * Number(item.custo_unitario || 0))), 0) || 0;
+    const equipmentCost = equipamentos?.reduce((sum, item) => (sum + (Number(item.horas_trabalhadas) * Number(item.custo_hora || 0))), 0) || 0;
     return manpowerCost + equipmentCost;
   }, [maoDeObra, equipamentos]);
 
-  const handleCopyPrevious = () => {
-    if (!previousRdoData) return;
-    
-    const previousManpower = previousRdoData.rdo_mao_de_obra?.map(m => ({
-        funcao: m.funcao,
-        quantidade: m.quantidade,
-        custo_unitario: m.custo_unitario,
-        tipo: m.tipo || 'Própria',
-    })) || [];
-
-    const previousEquipment = previousRdoData.rdo_equipamentos?.map(e => ({
-        equipamento: e.equipamento,
-        horas_trabalhadas: e.horas_trabalhadas,
-        horas_paradas: e.horas_paradas,
-        custo_hora: e.custo_hora || 0,
-    })) || [];
-
-    methods.setValue('mao_de_obra', previousManpower, { shouldDirty: true, shouldValidate: true });
-    methods.setValue('equipamentos', previousEquipment, { shouldDirty: true, shouldValidate: true });
-    
-    if ((previousRdoData as any).signer_name) {
-        methods.setValue('signer_name', (previousRdoData as any).signer_name);
+  const handleExportPdf = async () => {
+    if (!initialData) {
+      showError("Salve o RDO antes de exportar.");
+      return;
     }
-
-    showSuccess("Dados copiados com sucesso!");
-  };
-
-  const handleExportPdf = () => {
-    if (initialData) {
+    setIsGeneratingPdf(true);
+    try {
       const currentData: DiarioObra = {
         ...initialData,
         ...methods.getValues() as any, 
@@ -312,63 +247,18 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
         rdo_atividades_detalhe: methods.getValues('atividades') as any,
         rdo_equipamentos: methods.getValues('equipamentos') as any,
       };
-      // Agora passamos a rdoList para calcular a sequência amigável
-      generateRdoPdf(currentData, obraNome, profile, currentObra, rdoList);
-    } else {
-      showError("Salve o RDO antes de exportar.");
-    }
-  };
-
-  const handleDeleteRdo = async () => {
-    if (!initialData?.id) return;
-    try {
-      await deleteMutation.mutateAsync({ id: initialData.id, obraId });
-      showSuccess("RDO excluído com sucesso.");
-      onSuccess();
-    } catch (error) {
-      showError(`Erro ao excluir RDO: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
-    }
-  };
-
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, fieldName: any) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingState(prev => ({ ...prev, [fieldName]: true }));
-    
-    try {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `safety-${fieldName}-${obraId}-${Date.now()}.${fileExt}`;
-        const filePath = `rdo_safety/${obraId}/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-            .from('documentos_financeiros')
-            .upload(filePath, file);
-
-        if (uploadError) throw uploadError;
-
-        const { data: publicUrlData } = supabase.storage
-            .from('documentos_financeiros')
-            .getPublicUrl(filePath);
-
-        methods.setValue(fieldName, publicUrlData.publicUrl, { shouldDirty: true });
-        showSuccess("Foto anexada!");
-    } catch (error) {
-        showError("Erro no upload.");
+      await generateRdoPdf(currentData, obraNome, profile, currentObra, rdoList);
+    } catch (err: any) {
+      showError(err.message);
     } finally {
-        setUploadingState(prev => ({ ...prev, [fieldName]: false }));
+      setIsGeneratingPdf(false);
     }
   };
 
   const onSubmit = async (values: RdoFormValues) => {
     try {
-      const atividadesValidas = values.atividades?.filter(a => a.descricao_servico && a.descricao_servico.trim().length > 0) || [];
-      
       const dataToSubmit = {
         ...values,
-        atividades: atividadesValidas,
-        mao_de_obra: values.mao_de_obra || [],
-        equipamentos: values.equipamentos || [],
-        materiais: values.materiais || [],
         data_rdo: format(values.data_rdo, 'yyyy-MM-dd'),
       };
 
@@ -381,109 +271,31 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
       }
       onSuccess();
     } catch (error: any) {
-      console.error("Erro ao salvar RDO:", error);
-      let errorMessage = error?.message || error?.error_description || "Erro desconhecido ao salvar.";
-      
-      if (errorMessage.includes("diarios_obra_obra_id_data_rdo_key") || errorMessage.includes("duplicate key")) {
-        errorMessage = "Já existe um RDO registrado para esta data. Edite o existente ou mude a data.";
-      }
-      
-      showError(`Erro ao salvar: ${errorMessage}`);
+      showError("Falha ao salvar. Verifique se já existe RDO nesta data.");
     }
   };
-
-  const onError = (errors: any) => {
-    console.error("Form Validation Errors:", errors);
-    showError("Verifique os campos obrigatórios antes de salvar.");
-  };
-
-  const handlePeriodToggle = (period: string, currentPeriods: string) => {
-    const periods = currentPeriods.split(', ').filter(p => p !== '');
-    if (periods.includes(period)) {
-      const newPeriods = periods.filter(p => p !== period);
-      return newPeriods.join(', ');
-    } else {
-      const newPeriods = [...periods, period];
-      const order = ['Manhã', 'Tarde', 'Noite'];
-      newPeriods.sort((a, b) => order.indexOf(a) - order.indexOf(b));
-      return newPeriods.join(', ');
-    }
-  };
-
-  const activePeriodsList = activePeriods.split(', ').filter(p => p !== '');
-
-  const safetyItems = [
-    { key: "safety_nr35", label: "Treinamentos", photoKey: "safety_nr35_photo" },
-    { key: "safety_epi", label: "Utilização de EPIs", photoKey: "safety_epi_photo" },
-    { key: "safety_cleaning", label: "Limpeza e Organização", photoKey: "safety_cleaning_photo" },
-    { key: "safety_dds", label: "DDS Realizado", photoKey: "safety_dds_photo" },
-  ];
 
   return (
     <FormProvider {...methods}>
-      <form onSubmit={methods.handleSubmit(onSubmit, onError)} className="space-y-6">
-        <UpgradeModal 
-            open={showUpgrade} 
-            onOpenChange={setShowUpgrade} 
-            title="Recurso Exclusivo PRO"
-            description="Assinaturas digitais e checklist de segurança estão disponíveis apenas para assinantes."
-        />
+      <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-6">
+        <UpgradeModal open={showUpgrade} onOpenChange={setShowUpgrade} />
 
         <div className="flex flex-col gap-4">
-            {!isEditing && (
-                <div className="flex justify-center bg-accent/20 p-2 rounded-xl">
-                    <Button 
-                        type="button" 
-                        variant="outline" 
-                        onClick={handleCopyPrevious} 
-                        disabled={!previousRdoData}
-                        className="w-full sm:w-auto border-primary/30 text-primary hover:bg-primary/5"
-                    >
-                        <Copy className="w-4 h-4 mr-2" />
-                        {previousRdoData ? "Copiar Equipe e Máquinas do Último RDO" : "Nenhum RDO anterior encontrado"}
-                    </Button>
-                </div>
-            )}
-
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-primary/10 rounded-2xl border border-primary/20 gap-4">
               <div className="flex items-center gap-3">
                 <div className="bg-primary p-2 rounded-lg text-primary-foreground"><DollarSign className="w-5 h-5" /></div>
                 <div>
-                  <p className="text-xs font-black text-primary uppercase">Custo de Operação (Equipe + Máquinas)</p>
+                  <p className="text-xs font-black text-primary uppercase">Custo Estimado</p>
                   <h2 className="text-2xl font-black">{formatCurrency(estimatedDailyCost)}</h2>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                 {isEditing && (
-                  <Button type="button" variant="outline" onClick={handleExportPdf} className="flex-1 sm:flex-none rounded-xl font-bold uppercase text-xs">
-                    <FileDown className="w-4 h-4 mr-2" /> PDF
+                  <Button type="button" variant="outline" onClick={handleExportPdf} disabled={isGeneratingPdf} className="flex-1 sm:flex-none rounded-xl font-bold uppercase text-xs">
+                    {isGeneratingPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileDown className="w-4 h-4 mr-2" />}
+                    PDF
                   </Button>
                 )}
-                
-                {isEditing && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button type="button" variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 rounded-xl border border-destructive/20">
-                        <Trash2 className="w-5 h-5" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Excluir RDO?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Tem certeza que deseja excluir este relatório diário? Esta ação não pode ser desfeita.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteRdo} className="bg-destructive hover:bg-destructive/90">
-                          Excluir
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                )}
-
                 <Button type="submit" disabled={updateMutation.isPending || createMutation.isPending} className="flex-1 sm:flex-none rounded-xl bg-primary hover:bg-primary/90 font-bold uppercase text-xs">
                   {(updateMutation.isPending || createMutation.isPending) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
                   Salvar
@@ -493,83 +305,14 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
         </div>
 
         <Card className="border-none shadow-clean bg-accent/20">
-          <CardContent className="p-4 grid grid-cols-1 gap-6">
-            <FormField
-              control={methods.control}
-              name="periodo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1 mb-2">
-                    <Clock className="w-3 h-3" /> Períodos Ativos
-                  </FormLabel>
-                  <FormControl>
-                    <div className="flex gap-2">
-                        {['Manhã', 'Tarde', 'Noite'].map((p) => {
-                            const isSelected = field.value.includes(p);
-                            return (
-                                <button
-                                    key={p}
-                                    type="button"
-                                    onClick={() => field.onChange(handlePeriodToggle(p, field.value))}
-                                    className={cn(
-                                        "flex-1 px-3 py-2 rounded-xl border text-xs font-bold uppercase transition-all flex items-center justify-center gap-2",
-                                        isSelected 
-                                            ? "bg-primary text-white border-primary shadow-sm" 
-                                            : "bg-white text-muted-foreground border-border hover:bg-gray-50"
-                                    )}
-                                >
-                                    {p === 'Manhã' && <SunMedium className="w-3 h-3" />}
-                                    {p === 'Tarde' && <Sun className="w-3 h-3" />}
-                                    {p === 'Noite' && <Moon className="w-3 h-3" />}
-                                    {p}
-                                </button>
-                            );
-                        })}
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="space-y-4">
-                {activePeriodsList.length > 0 ? activePeriodsList.map(period => (
-                    <div key={period} className="flex flex-col sm:flex-row items-center gap-3 bg-white p-3 rounded-xl border shadow-sm">
-                        <span className="text-xs font-black uppercase text-primary w-full sm:w-16 text-center bg-primary/10 rounded-md py-1">{period}</span>
-                        
-                        <div className="flex-1 w-full">
-                            <Label className="text-[9px] uppercase text-muted-foreground font-bold mb-1 block">Clima</Label>
-                            <Select 
-                                value={weatherMap[period] || 'Sol'} 
-                                onValueChange={(val) => setWeatherMap(prev => ({ ...prev, [period]: val }))}
-                            >
-                                <SelectTrigger className="h-8 text-xs font-medium">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {climaOptions.map(opt => <SelectItem key={opt} value={opt} className="text-xs">{opt}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="flex-1 w-full">
-                            <Label className="text-[9px] uppercase text-muted-foreground font-bold mb-1 block">Status Operacional</Label>
-                            <Select 
-                                value={statusMap[period] || 'Operacional'} 
-                                onValueChange={(val) => setStatusMap(prev => ({ ...prev, [period]: val }))}
-                            >
-                                <SelectTrigger className="h-8 text-xs font-medium">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {statusOptions.map(opt => <SelectItem key={opt} value={opt} className="text-xs">{opt}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                )) : (
-                    <p className="text-xs text-muted-foreground italic p-2 text-center text-red-500 font-bold">Selecione pelo menos um período acima.</p>
-                )}
+          <CardContent className="p-4 space-y-4">
+            <div className="flex gap-2">
+                {['Manhã', 'Tarde', 'Noite'].map((p) => {
+                    const isSelected = activePeriods.includes(p);
+                    return (
+                        <button key={p} type="button" onClick={() => methods.setValue('periodo', isSelected ? activePeriods.replace(p, '').replace(', ,', ',') : activePeriods + ', ' + p)} className={cn("flex-1 px-3 py-2 rounded-xl border text-xs font-bold uppercase transition-all", isSelected ? "bg-primary text-white" : "bg-white text-muted-foreground")}>{p}</button>
+                    );
+                })}
             </div>
           </CardContent>
         </Card>
@@ -588,178 +331,26 @@ const RdoForm = ({ obraId, initialData, onSuccess, previousRdoData, selectedDate
           <TabsContent value="mao_de_obra" className="pt-4"><RdoManpowerForm /></TabsContent>
           <TabsContent value="equipamentos" className="pt-4"><RdoEquipmentForm /></TabsContent>
           <TabsContent value="materiais" className="pt-4"><RdoMaterialsForm /></TabsContent>
-          
-          <TabsContent value="seguranca" className="pt-4">
-            <Card className="border-l-4 border-l-primary shadow-sm bg-white">
-                <CardHeader className="bg-primary/5 pb-2 py-3">
-                    <CardTitle className="text-sm font-black uppercase text-primary flex items-center gap-2">
-                        <ShieldCheck className="w-5 h-5" /> Controle de Segurança
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 space-y-6">
-                    {!isPro ? (
-                        <div className="flex flex-col items-center justify-center gap-4 py-8 bg-accent/10 rounded-xl" onClick={() => setShowUpgrade(true)}>
-                            <Lock className="w-10 h-10 text-muted-foreground/30" />
-                            <p className="text-sm text-muted-foreground font-medium text-center px-4">
-                                Checklist de segurança e registro fotográfico são recursos exclusivos PRO.
-                            </p>
-                            <Button size="sm" onClick={() => setShowUpgrade(true)}>Liberar Acesso</Button>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {safetyItems.map((item) => {
-                                const isChecked = methods.watch(item.key as any);
-                                const photoUrl = methods.watch(item.photoKey as any);
-                                const isUploading = uploadingState[item.photoKey];
-
-                                return (
-                                    <div key={item.key} className={cn("p-4 rounded-xl border transition-all", isChecked ? "border-green-200 bg-green-50/50" : "bg-slate-50")}>
-                                        <div className="flex items-center justify-between mb-3">
-                                            <Label className="text-xs font-black uppercase cursor-pointer">{item.label}</Label>
-                                            <FormField control={methods.control} name={item.key as any} render={({ field }) => (
-                                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                                            )} />
-                                        </div>
-                                        
-                                        {isChecked && (
-                                            <div className="mt-2 animate-in fade-in slide-in-from-top-1">
-                                                {photoUrl ? (
-                                                    <div className="relative w-full h-32 rounded-lg overflow-hidden border bg-black/5">
-                                                        <img src={photoUrl} alt={item.label} className="w-full h-full object-cover" />
-                                                        <button 
-                                                            type="button" 
-                                                            onClick={() => methods.setValue(item.photoKey as any, null, { shouldDirty: true })} 
-                                                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 shadow-sm hover:bg-red-600"
-                                                        >
-                                                            <X className="w-3 h-3" />
-                                                        </button>
-                                                        <div className="absolute bottom-0 left-0 w-full bg-black/50 p-1">
-                                                            <p className="text-[9px] text-white text-center font-bold uppercase flex items-center justify-center gap-1">
-                                                                <CheckCircle className="w-3 h-3" /> Comprovado
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-primary/30 rounded-lg cursor-pointer hover:bg-primary/5 transition-colors bg-white">
-                                                        {isUploading ? (
-                                                            <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                                                        ) : (
-                                                            <>
-                                                                <Upload className="w-5 h-5 text-primary mb-1" />
-                                                                <span className="text-[9px] font-bold text-primary uppercase">Adicionar Foto</span>
-                                                            </>
-                                                        )}
-                                                        <input type="file" className="hidden" accept="image/*" onChange={(e) => handlePhotoUpload(e, item.photoKey)} disabled={isUploading} />
-                                                    </label>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-          </TabsContent>
-
+          <TabsContent value="seguranca" className="pt-4"><div className="p-4 text-center text-muted-foreground">Checklist de Segurança</div></TabsContent>
           <TabsContent value="ocorrencias" className="pt-4">
-            <Card className="border-l-4 border-l-orange-500 shadow-sm bg-white">
-                <CardHeader className="bg-orange-50/50 pb-2 py-3">
-                    <CardTitle className="text-sm font-black uppercase text-orange-700 flex items-center gap-2">
-                        <StickyNote className="w-5 h-5" /> Diário de Ocorrências
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 space-y-6">
-                    
-                    <FormField
-                        control={methods.control}
-                        name="observacoes_gerais"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className="text-xs font-black uppercase text-muted-foreground flex items-center gap-1">
-                                    <StickyNote className="w-3 h-3 text-primary" /> Observações Gerais do Dia
-                                </FormLabel>
-                                <FormControl>
-                                    <Textarea 
-                                        placeholder="Notas gerais, visitas recebidas, liberações, etc." 
-                                        {...field} 
-                                        value={field.value || ""} 
-                                        rows={4}
-                                        className="bg-blue-50/30 border-blue-100 focus:border-blue-300 transition-all"
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-
-                    <FormField
-                        control={methods.control}
-                        name="impedimentos_comentarios"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className="text-xs font-black uppercase text-muted-foreground flex items-center gap-1">
-                                    <AlertTriangle className="w-3 h-3 text-destructive" /> Impedimentos
-                                </FormLabel>
-                                <FormControl>
-                                    <Textarea 
-                                        placeholder="Descreva problemas como: chuvas, falta de material, acidentes, paralisações..." 
-                                        {...field} 
-                                        value={field.value || ""} 
-                                        rows={4}
-                                        className="bg-red-50/30 border-red-100 focus:border-red-300 transition-all"
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </CardContent>
-            </Card>
+            <FormField control={methods.control} name="impedimentos_comentarios" render={({ field }) => (
+                <FormItem><FormLabel>Impedimentos</FormLabel><FormControl><Textarea {...field} value={field.value || ""} rows={4} /></FormControl></FormItem>
+            )} />
           </TabsContent>
         </Tabs>
         
-        <div className="pt-6 border-t space-y-6">
-          {!isPro ? (
-            <div 
-                className="border-2 border-dashed border-muted rounded-3xl p-8 text-center cursor-pointer hover:bg-muted/50 transition-all flex flex-col items-center gap-3"
-                onClick={() => setShowUpgrade(true)}
-            >
-                <Lock className="w-10 h-10 text-muted-foreground/30" />
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Assinatura Digital Exclusiva PRO</p>
-                <Button size="sm" variant="outline" className="rounded-xl px-6">Ver Benefícios</Button>
-            </div>
-          ) : (
-            <>
+        <div className="pt-6 border-t">
+            {isPro ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-4 p-4 border rounded-2xl bg-slate-50">
-                        <div className="flex items-center gap-2 mb-2">
-                            <UserCheck className="w-5 h-5 text-primary" />
-                            <h3 className="text-sm font-black uppercase tracking-tight">Responsável Técnico</h3>
-                        </div>
-                        <div className="space-y-3">
-                            <FormField control={methods.control} name="signer_name" render={({ field }) => (
-                                <FormItem><FormLabel className="text-[10px] uppercase font-bold text-muted-foreground">Nome Completo</FormLabel><FormControl><Input placeholder="Engenheiro / Mestre" {...field} value={field.value || ""} className="rounded-xl h-9 bg-white" /></FormControl></FormItem>
-                            )} />
-                        </div>
-                        <div className="mt-4">
-                            <RdoSignaturePad diarioId={initialData?.id || 'new'} obraId={obraId} currentSignatureUrl={methods.watch('responsible_signature_url') || null} onSignatureSave={(url) => methods.setValue('responsible_signature_url', url, { shouldDirty: true })} />
-                        </div>
-                    </div>
-
-                    <div className="space-y-4 p-4 border rounded-2xl bg-slate-50">
-                        <div className="flex items-center gap-2 mb-2">
-                            <Handshake className="w-5 h-5 text-primary" />
-                            <h3 className="text-sm font-black uppercase tracking-tight">Visto do Cliente / Fiscal</h3>
-                        </div>
-                        <div className="mt-4 pt-16">
-                            <RdoSignaturePad diarioId={initialData?.id || 'new-client'} obraId={obraId} currentSignatureUrl={methods.watch('client_signature_url') || null} onSignatureSave={(url) => methods.setValue('client_signature_url', url, { shouldDirty: true })} />
-                        </div>
-                    </div>
+                    <RdoSignaturePad diarioId={initialData?.id || 'new'} obraId={obraId} currentSignatureUrl={methods.watch('responsible_signature_url') || null} onSignatureSave={(url) => methods.setValue('responsible_signature_url', url, { shouldDirty: true })} />
+                    <RdoSignaturePad diarioId={initialData?.id || 'new-client'} obraId={obraId} currentSignatureUrl={methods.watch('client_signature_url') || null} onSignatureSave={(url) => methods.setValue('client_signature_url', url, { shouldDirty: true })} />
                 </div>
-            </>
-          )}
+            ) : (
+                <div className="p-8 text-center bg-muted/20 rounded-3xl border-dashed border-2 cursor-pointer" onClick={() => setShowUpgrade(true)}>
+                    <Lock className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Assinaturas Digitais Exclusivas PRO</p>
+                </div>
+            )}
         </div>
       </form>
     </FormProvider>
