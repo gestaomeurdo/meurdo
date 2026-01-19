@@ -6,7 +6,7 @@ import {
   Loader2, CheckCircle2, AlertTriangle, Cloud, Sun, Users, ImageIcon, 
   FileDown, Check, X, MapPin, Calendar, Camera, ListChecks, ShieldCheck, 
   Signature as SignatureIcon, Send, Truck, HardHat, Info, Clock, AlertCircle, 
-  Eye, CloudRain, CloudLightning, Package, User, Building, Briefcase, Smartphone, ClipboardCheck
+  Eye, CloudRain, CloudLightning, Package, User, Building, Briefcase, Smartphone, ClipboardCheck, ArrowUp
 } from "lucide-react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import SignatureCanvas from 'react-signature-canvas';
@@ -54,46 +54,12 @@ const PublicRdoApproval = () => {
     return () => { supabase.removeChannel(channel); };
   }, [rdo?.id, refetch]);
 
-  const parsedClima = useMemo(() => {
-    if (!rdo?.clima_condicoes) return [];
-    const parts = rdo.clima_condicoes.split(', ');
-    return parts.map((p, i) => {
-        const label = i === 0 ? "Manhã" : i === 1 ? "Tarde" : "Noite";
-        if (p.includes("N/T")) return { label, val: "N/T", status: "N/T" };
-        const climaMatch = p.match(/:\s*([^(\n,]*)/);
-        const statusMatch = p.match(/\((.*?)\)/);
-        return { 
-            label, 
-            val: climaMatch ? climaMatch[1].trim() : "Sol", 
-            status: statusMatch && statusMatch[1] === "Par" ? "Paralisado" : "Operacional" 
-        };
-    });
-  }, [rdo?.clima_condicoes]);
+  const isApproved = rdo?.status === 'approved';
 
   // Regra de Validez Jurídica: Nome + Cargo + Desenho
   const canApprove = useMemo(() => {
     return clientName.trim().length >= 3 && clientRole.trim().length >= 2 && isDrawing;
   }, [clientName, clientRole, isDrawing]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-accent/5">
-        <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-        <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs">Validando Relatório Digital...</p>
-      </div>
-    );
-  }
-
-  if (error || !rdo) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-slate-50">
-        <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
-        <h1 className="text-xl font-black uppercase tracking-tight">Relatório não encontrado</h1>
-        <p className="text-muted-foreground mt-2">O link pode ter expirado ou o relatório foi removido.</p>
-        <Button variant="outline" onClick={() => window.location.reload()} className="mt-6 font-bold uppercase text-xs rounded-xl">Tentar Novamente</Button>
-      </div>
-    );
-  }
 
   const handleApprove = async () => {
     if (sigPad.current?.isEmpty() || !canApprove) {
@@ -109,7 +75,6 @@ const PublicRdoApproval = () => {
       if (uploadError) throw uploadError;
       const { data: publicUrlData } = supabase.storage.from('documentos_financeiros').getPublicUrl(filePath);
       
-      // Captura de Metadados de Auditoria
       const metadata = {
           signer_name: clientName,
           signer_role: clientRole,
@@ -140,16 +105,82 @@ const PublicRdoApproval = () => {
     } catch (err: any) { showError("Erro ao enviar."); } finally { setIsProcessing(false); }
   };
 
-  const allPhotos = [
-    ...(rdo.rdo_atividades_detalhe?.filter(a => a.foto_anexo_url).map(a => ({ url: a.foto_anexo_url!, desc: a.descricao_servico })) || []),
-    ...(rdo.rdo_equipamentos?.filter(e => (e as any).foto_url).map(e => ({ url: (e as any).foto_url!, desc: `Máquina: ${e.equipamento}` })) || []),
-    ...(rdo.safety_nr35_photo ? [{ url: rdo.safety_nr35_photo, desc: "Segurança: Trabalho em Altura" }] : []),
-    ...(rdo.safety_epi_photo ? [{ url: rdo.safety_epi_photo, desc: "Segurança: Uso de EPIs" }] : []),
-    ...(rdo.safety_cleaning_photo ? [{ url: rdo.safety_cleaning_photo, desc: "Segurança: Limpeza/Org." }] : []),
-    ...(rdo.safety_dds_photo ? [{ url: rdo.safety_dds_photo, desc: "Segurança: DDS" }] : []),
-  ];
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-accent/5">
+        <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs">Validando Relatório Digital...</p>
+      </div>
+    );
+  }
+
+  if (error || !rdo) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-slate-50">
+        <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
+        <h1 className="text-xl font-black uppercase tracking-tight">Relatório não encontrado</h1>
+        <p className="text-muted-foreground mt-2">O link pode ter expirado ou o relatório foi removido.</p>
+        <Button variant="outline" onClick={() => window.location.reload()} className="mt-6 font-bold uppercase text-xs rounded-xl">Tentar Novamente</Button>
+      </div>
+    );
+  }
 
   const engineerName = rdo.profiles ? `${rdo.profiles.first_name || ''} ${rdo.profiles.last_name || ''}`.trim() : "Engenheiro Responsável";
+
+  // RENDERIZAÇÃO DA TELA DE SUCESSO (STATE CHANGE)
+  if (isApproved) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 font-sans text-center">
+        <div className="max-w-md w-full space-y-8 animate-in fade-in zoom-in duration-500">
+            <div className="bg-white p-12 rounded-[3.5rem] shadow-2xl border border-emerald-100 flex flex-col items-center relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-2 bg-emerald-500"></div>
+                
+                <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-6 scale-110">
+                    <CheckCircle2 className="w-12 h-12 text-emerald-600" />
+                </div>
+                
+                <h1 className="text-3xl font-black text-slate-800 uppercase tracking-tight leading-tight">
+                    RDO Aprovado com Sucesso!
+                </h1>
+                
+                <p className="text-slate-500 font-medium mt-4 leading-relaxed">
+                    O registro técnico foi validado e arquivado digitalmente em <span className="font-bold text-slate-700">{format(parseISO(rdo.approved_at!), "dd/MM/yyyy 'às' HH:mm")}</span>.
+                </p>
+
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 w-full mt-8">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Protocolo de Autenticidade</p>
+                    <p className="font-mono text-xs text-primary font-bold">{rdo.id.toUpperCase()}</p>
+                </div>
+
+                <div className="pt-10 w-full space-y-4">
+                    <Button 
+                        size="lg"
+                        onClick={async () => {
+                            setIsDownloading(true);
+                            await generateRdoPdf(rdo, rdo.obras?.nome || "Obra", rdo.profiles as any, rdo.obras as any);
+                            setIsDownloading(false);
+                        }}
+                        disabled={isDownloading}
+                        className="w-full bg-[#066abc] hover:bg-[#066abc]/90 text-white rounded-2xl h-16 font-black uppercase text-xs tracking-widest shadow-xl shadow-blue-500/20"
+                    >
+                        {isDownloading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <FileDown className="w-5 h-5 mr-2" />}
+                        Baixar PDF Assinado
+                    </Button>
+                    
+                    <button 
+                        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                        className="flex items-center justify-center gap-2 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-primary transition-colors w-full"
+                    >
+                        <ArrowUp className="w-3 h-3" /> Ver detalhes do relatório
+                    </button>
+                </div>
+            </div>
+            
+            <img src={LOGO_URL} alt="Meu RDO" className="h-6 mx-auto opacity-30 object-contain grayscale" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col font-sans">
@@ -189,7 +220,7 @@ const PublicRdoApproval = () => {
 
       <main className="max-w-5xl mx-auto w-full pb-32">
         
-        {/* HERO IMERSIVO COM FOTO DA OBRA */}
+        {/* HERO IMERSIVO */}
         <section className="relative h-[350px] sm:h-[450px] w-full overflow-hidden flex items-end p-6 sm:p-12 mb-10 group">
             {rdo.obras?.foto_url ? (
                 <img src={rdo.obras.foto_url} className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" alt="Obra" />
@@ -201,10 +232,8 @@ const PublicRdoApproval = () => {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
                     <div className="space-y-4">
                         <Badge className={cn("uppercase font-black tracking-widest px-4 py-1.5 rounded-full text-[10px] border-none shadow-lg", 
-                            rdo.status === 'approved' ? "bg-emerald-500 text-white" : 
-                            rdo.status === 'pending' ? "bg-orange-500 text-white" : "bg-red-500 text-white")}>
-                            {rdo.status === 'approved' ? '✓ Relatório Aprovado' : 
-                             rdo.status === 'pending' ? 'Aguardando Conferência' : 'Correção Solicitada'}
+                             rdo.status === 'pending' ? "bg-orange-500 text-white" : "bg-red-500 text-white")}>
+                            {rdo.status === 'pending' ? 'Aguardando Conferência' : 'Correção Solicitada'}
                         </Badge>
                         <h1 className="text-4xl sm:text-6xl font-black uppercase text-white tracking-tighter leading-none drop-shadow-2xl">
                             {rdo.obras?.nome || "Diário de Obra"}
@@ -334,7 +363,7 @@ const PublicRdoApproval = () => {
                 </div>
             </div>
 
-            {/* CARIMBO DO RESPONSÁVEL TÉCNICO (ESTILO PROFISSIONAL) */}
+            {/* CARIMBO DO RESPONSÁVEL TÉCNICO */}
             <section className="pt-10 border-t-4 border-slate-100 space-y-4">
                 <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
                     <SignatureIcon className="w-4 h-4" /> Emissão e Responsabilidade Técnica
@@ -359,11 +388,8 @@ const PublicRdoApproval = () => {
                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Protocolo: RDO-{rdo.id.substring(0,8).toUpperCase()}</p>
                         </div>
                     </div>
-                </Card>
-            </section>
+                </section>
 
-            {/* PROTOCOLO DE ASSINATURA IDENTIFICADA DO CLIENTE */}
-            {rdo.status !== 'approved' && (
                 <section className="pt-20 border-t-4 border-slate-100 space-y-8 animate-in slide-in-from-bottom-4">
                     <div className="text-center space-y-2">
                         <div className="bg-primary/10 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-4">
@@ -427,32 +453,6 @@ const PublicRdoApproval = () => {
                         </p>
                     </div>
                 </section>
-            )}
-
-            {/* ASSINATURA JÁ REGISTRADA */}
-            {rdo.status === 'approved' && (
-                <section className="pt-20 border-t-4 border-slate-100">
-                    <div className="max-w-md mx-auto bg-emerald-50 p-8 rounded-[3rem] border border-emerald-100 text-center space-y-6">
-                        <div className="bg-emerald-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20">
-                            <Check className="text-white w-8 h-8" />
-                        </div>
-                        <div>
-                            <h3 className="text-xl font-black uppercase tracking-tight text-emerald-800">Conferência Finalizada</h3>
-                            <p className="text-sm text-emerald-600 font-medium">Este RDO foi aprovado e assinado digitalmente.</p>
-                        </div>
-                        {rdo.client_signature_url && (
-                            <div className="bg-white p-4 rounded-2xl border border-emerald-200">
-                                <p className="text-[9px] font-black uppercase text-slate-400 mb-2">Assinatura do Cliente:</p>
-                                <img src={rdo.client_signature_url} className="h-20 object-contain mx-auto" alt="Assinatura" />
-                                <div className="mt-4 pt-4 border-t border-slate-100 text-left">
-                                    <p className="text-sm font-black text-slate-800">{rdo.signer_name}</p>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase">{rdo.signer_registration}</p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </section>
-            )}
         </div>
       </main>
 
@@ -465,21 +465,19 @@ const PublicRdoApproval = () => {
                         <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center"><Clock className="w-5 h-5 text-slate-400" /></div>
                         <div>
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Status do Processo</p>
-                            <p className="text-sm font-black text-slate-700 uppercase tracking-tight">{rdo.status === 'approved' ? 'Relatório Finalizado' : 'Aguardando sua Validação'}</p>
+                            <p className="text-sm font-black text-slate-700 uppercase tracking-tight">Aguardando sua Validação</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-4 w-full md:w-auto">
-                        <Button 
-                            variant="ghost" 
+                        <button 
                             onClick={() => setShowRejectForm(true)} 
                             className="text-[10px] font-black text-slate-400 uppercase hover:text-red-500 rounded-xl h-12 flex-1 md:flex-none transition-colors"
-                            disabled={rdo.status === 'approved'}
                         >
                             Solicitar Ajustes
-                        </Button>
+                        </button>
                         <Button 
                             onClick={handleApprove} 
-                            disabled={isProcessing || !canApprove || rdo.status === 'approved'} 
+                            disabled={isProcessing || !canApprove} 
                             className={cn(
                                 "font-black uppercase text-xs tracking-widest h-12 px-10 rounded-xl flex-1 md:flex-none shadow-lg transition-all",
                                 canApprove ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/30 scale-105" : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
