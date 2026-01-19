@@ -1,6 +1,7 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image, Font } from '@react-pdf/renderer';
 import { format, parseISO } from "date-fns";
+import { ptBR } from 'date-fns/locale';
 
 const styles = StyleSheet.create({
   page: { backgroundColor: '#f8fafc', padding: 0, fontFamily: 'Helvetica' },
@@ -84,7 +85,7 @@ export const RdoPdfTemplate = ({
                         <View style={styles.badge}><Text style={styles.badgeText}>Relatório de Obra</Text></View>
                         <Text style={styles.heroTitle}>{obraNome}</Text>
                         <Text style={styles.heroSubtitle}>
-                            {format(parseISO(rdo.data_rdo), "dd 'de' MMMM, yyyy", { locale: require('date-fns/locale/pt-BR') })} | {obra?.endereco || "Local não informado"}
+                            {format(parseISO(rdo.data_rdo), "dd 'de' MMMM, yyyy", { locale: ptBR })} | {obra?.endereco || "Local não informado"}
                         </Text>
                     </View>
                 </View>
