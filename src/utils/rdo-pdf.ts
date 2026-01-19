@@ -27,7 +27,7 @@ async function urlToBase64(url: string | null | undefined): Promise<string | nul
       reader.readAsDataURL(blob);
     });
   } catch (error) {
-    console.warn(`[PDF Image] Falha ao converter imagem: ${url}`, error);
+    console.warn(`[PDF Image] Falha ao converter imagem (CORS ou Rede): ${url}`);
     return null;
   }
 }
@@ -39,8 +39,10 @@ export const generateRdoPdf = async (
   obra?: Obra,
   rdoList?: DiarioObra[]
 ) => {
+  let url: string | null = null;
+  
   try {
-    console.log("[PDF Generator] Iniciando exportação técnica...");
+    console.log("[PDF Generator] Iniciando processamento de dados...");
 
     let sequenceNumber = "01";
     if (rdoList && rdoList.length > 0) {
@@ -54,7 +56,14 @@ export const generateRdoPdf = async (
     const dateObj = parseISO(rdo.data_rdo);
     const dayOfWeek = isValid(dateObj) ? format(dateObj, "EEEE", { locale: ptBR }) : "";
 
-    // Coletar e converter fotos
+    // Promessas de imagens cruciais
+    const [logoBase64, responsibleSigBase64, clientSigBase64] = await Promise.all([
+        urlToBase64(profile?.avatar_url),
+        urlToBase64(rdo.responsible_signature_url),
+        urlToBase64(rdo.client_signature_url)
+    ]);
+
+    // Coletar fotos de atividades e segurança
     const rawPhotos = [
         ...(rdo.rdo_atividades_detalhe?.filter(a => a.foto_anexo_url).map(a => ({ 
             url: a.foto_anexo_url!, 
@@ -70,18 +79,14 @@ export const generateRdoPdf = async (
         { url: (rdo as any).safety_dds_photo, desc: "Segurança: DDS" }
     ].filter(p => p.url && typeof p.url === 'string');
 
-    const [logoBase64, responsibleSigBase64, clientSigBase64] = await Promise.all([
-        urlToBase64(profile?.avatar_url),
-        urlToBase64(rdo.responsible_signature_url),
-        urlToBase64(rdo.client_signature_url)
-    ]);
-
     const processedPhotos = [];
     for (const p of rawPhotos.slice(0, 15)) {
         const b64 = await urlToBase64(p.url);
         if (b64) processedPhotos.push({ desc: p.desc, base64: b64 });
     }
 
+    console.log("[PDF Generator] Gerando blob do documento...");
+    
     const blob = await pdf(
       React.createElement(RdoPdfTemplate, { 
         rdo, 
@@ -97,19 +102,28 @@ export const generateRdoPdf = async (
       })
     ).toBlob();
 
-    const filename = `RDO_${sequenceNumber}_${obraNome.replace(/\s/g, '_')}_${rdo.data_rdo}.pdf`;
-    const url = URL.createObjectURL(blob);
-    const link = document.body.appendChild(document.createElement('a'));
+    if (!blob) throw new Error("O motor de PDF não conseguiu gerar o arquivo.");
+
+    url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
     link.href = url;
-    link.download = filename;
+    link.download = `RDO_${sequenceNumber}_${obraNome.replace(/\s/g, '_')}_${rdo.data_rdo}.pdf`;
+    
+    document.body.appendChild(link);
     link.click();
+    
+    // Cleanup seguro
     setTimeout(() => {
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-    }, 100);
+        if (link.parentNode) document.body.removeChild(link);
+        if (url) URL.revokeObjectURL(url);
+    }, 200);
+    
+    console.log("[PDF Generator] Download iniciado com sucesso.");
     
   } catch (error) {
-    console.error("[PDF Generator] Erro fatal:", error);
-    throw new Error("Erro ao gerar PDF técnico.");
+    console.error("[PDF Generator] Erro Crítico:", error);
+    // Tenta limpar a URL se ela foi criada mas algo falhou depois
+    if (url) URL.revokeObjectURL(url);
+    throw new Error("Erro ao gerar PDF técnico. Verifique as fotos anexadas.");
   }
 };
