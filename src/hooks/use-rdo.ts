@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/integrations/supabase/auth-provider";
 
 export type RdoStatus = 'draft' | 'pending' | 'approved' | 'rejected';
 
@@ -131,43 +132,112 @@ export const fetchPreviousRdo = async (obraId: string, date: Date) => {
 
 export const useCreateRdo = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+
   return useMutation({
     mutationFn: async (values: any) => {
+      if (!user) throw new Error("Usuário não identificado.");
+
       const { atividades, mao_de_obra, equipamentos, materiais, ...rdoData } = values;
-      const { data: rdo, error: rdoError } = await supabase.from("diarios_obra").insert(rdoData).select().single();
+      
+      // Criar o RDO com o user_id do usuário logado
+      const { data: rdo, error: rdoError } = await supabase
+        .from("diarios_obra")
+        .insert({ 
+            ...rdoData, 
+            user_id: user.id,
+            status: 'draft' // Força status inicial como rascunho
+        })
+        .select()
+        .single();
+
       if (rdoError) throw rdoError;
 
-      if (atividades?.length) await supabase.from("rdo_atividades_detalhe").insert(atividades.map((a: any) => ({ ...a, diario_id: rdo.id })));
-      if (mao_de_obra?.length) await supabase.from("rdo_mao_de_obra").insert(mao_de_obra.map((m: any) => ({ ...m, diario_id: rdo.id })));
-      if (equipamentos?.length) await supabase.from("rdo_equipamentos").insert(equipamentos.map((e: any) => ({ ...e, diario_id: rdo.id })));
-      if (materiais?.length) await supabase.from("rdo_materiais").insert(materiais.map((m: any) => ({ ...m, diario_id: rdo.id })));
+      // Inserir sub-tabelas vinculadas ao ID gerado
+      const promises = [];
+      
+      if (atividades?.length) {
+        promises.push(supabase.from("rdo_atividades_detalhe").insert(
+          atividades.map((a: any) => ({ ...a, diario_id: rdo.id }))
+        ));
+      }
+      
+      if (mao_de_obra?.length) {
+        promises.push(supabase.from("rdo_mao_de_obra").insert(
+          mao_de_obra.map((m: any) => ({ ...m, diario_id: rdo.id }))
+        ));
+      }
+      
+      if (equipamentos?.length) {
+        promises.push(supabase.from("rdo_equipamentos").insert(
+          equipamentos.map((e: any) => ({ ...e, diario_id: rdo.id }))
+        ));
+      }
+      
+      if (materiais?.length) {
+        promises.push(supabase.from("rdo_materiais").insert(
+          materiais.map((m: any) => ({ ...m, diario_id: rdo.id }))
+        ));
+      }
 
+      await Promise.all(promises);
       return rdo;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["rdos", variables.obra_id] });
       queryClient.invalidateQueries({ queryKey: ["rdoDashboardMetrics"] });
+      queryClient.invalidateQueries({ queryKey: ["rdoCount"] });
     },
   });
 };
 
 export const useUpdateRdo = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+
   return useMutation({
     mutationFn: async (values: any) => {
+      if (!user) throw new Error("Usuário não identificado.");
       const { id, atividades, mao_de_obra, equipamentos, materiais, ...rdoData } = values;
-      const { error: rdoError } = await supabase.from("diarios_obra").update(rdoData).eq("id", id);
+
+      // Atualizar dados principais
+      const { error: rdoError } = await supabase
+        .from("diarios_obra")
+        .update(rdoData)
+        .eq("id", id)
+        .eq("user_id", user.id); // Segurança extra: garante que o usuário é dono
+
       if (rdoError) throw rdoError;
 
+      // Limpar e reinserir sub-tabelas (Abordagem simples para sincronização)
       await supabase.from("rdo_atividades_detalhe").delete().eq("diario_id", id);
       await supabase.from("rdo_mao_de_obra").delete().eq("diario_id", id);
       await supabase.from("rdo_equipamentos").delete().eq("diario_id", id);
       await supabase.from("rdo_materiais").delete().eq("diario_id", id);
 
-      if (atividades?.length) await supabase.from("rdo_atividades_detalhe").insert(atividades.map((a: any) => ({ ...a, diario_id: id })));
-      if (mao_de_obra?.length) await supabase.from("rdo_mao_de_obra").insert(mao_de_obra.map((m: any) => ({ ...m, diario_id: id })));
-      if (equipamentos?.length) await supabase.from("rdo_equipamentos").insert(equipamentos.map((e: any) => ({ ...e, diario_id: id })));
-      if (materiais?.length) await supabase.from("rdo_materiais").insert(materiais.map((m: any) => ({ ...m, diario_id: id })));
+      const promises = [];
+      if (atividades?.length) {
+        promises.push(supabase.from("rdo_atividades_detalhe").insert(
+          atividades.map((a: any) => ({ ...a, diario_id: id }))
+        ));
+      }
+      if (mao_de_obra?.length) {
+        promises.push(supabase.from("rdo_mao_de_obra").insert(
+          mao_de_obra.map((m: any) => ({ ...m, diario_id: id }))
+        ));
+      }
+      if (equipamentos?.length) {
+        promises.push(supabase.from("rdo_equipamentos").insert(
+          equipamentos.map((e: any) => ({ ...e, diario_id: id }))
+        ));
+      }
+      if (materiais?.length) {
+        promises.push(supabase.from("rdo_materiais").insert(
+          materiais.map((m: any) => ({ ...m, diario_id: id }))
+        ));
+      }
+
+      await Promise.all(promises);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["rdos"] });
@@ -261,6 +331,7 @@ export const useDeleteRdo = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["rdos", variables.obraId] });
       queryClient.invalidateQueries({ queryKey: ["rdoDashboardMetrics"] });
+      queryClient.invalidateQueries({ queryKey: ["rdoCount"] });
     },
   });
 };
@@ -275,6 +346,7 @@ export const useDeleteAllRdo = () => {
     onSuccess: (_, obraId) => {
       queryClient.invalidateQueries({ queryKey: ["rdos", obraId] });
       queryClient.invalidateQueries({ queryKey: ["rdoDashboardMetrics"] });
+      queryClient.invalidateQueries({ queryKey: ["rdoCount"] });
     },
   });
 };
