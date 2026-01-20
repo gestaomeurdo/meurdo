@@ -1,6 +1,7 @@
 import AdminLayout from "@/components/layout/AdminLayout";
 import { useAdminStats } from "@/hooks/use-admin-stats";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Users, LifeBuoy, TrendingUp, DollarSign, Loader2, Zap } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 import { cn } from "@/lib/utils";
