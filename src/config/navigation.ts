@@ -63,13 +63,13 @@ export const navItems: NavItem[] = [
     roles: ["administrator", "obra_user", "view_only"],
   },
   {
-    title: "Suporte Direto",
+    title: "Suporte",
     href: "/suporte",
     icon: MessageCircle,
     roles: ["administrator", "obra_user", "view_only"],
   },
   {
-    title: "Backoffice Robson",
+    title: "Backoffice Admin",
     href: "/admin",
     icon: ShieldCheck,
     roles: ["administrator"],

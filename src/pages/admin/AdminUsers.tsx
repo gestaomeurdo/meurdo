@@ -3,19 +3,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { User, Search, Loader2, MessageCircle, ExternalLink } from "lucide-react";
+import { Search, Loader2, MessageCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { useStartChatWithUser } from "@/hooks/use-admin-support";
-import { showError } from "@/utils/toast";
 
 const AdminUsers = () => {
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
-  const startChat = useStartChatWithUser();
 
   const { data: users, isLoading } = useQuery({
     queryKey: ['adminUserList'],
@@ -26,13 +23,9 @@ const AdminUsers = () => {
     }
   });
 
-  const handleStartConversation = async (userId: string) => {
-    try {
-      const chatId = await startChat.mutateAsync(userId);
-      navigate('/admin/tickets', { state: { ticketId: chatId } });
-    } catch (err) {
-      showError("Erro ao abrir chat.");
-    }
+  const handleStartConversation = (userId: string) => {
+    // Navega para o chat passando o ID do usuário no estado
+    navigate('/admin/tickets', { state: { userId } });
   };
 
   const filtered = users?.filter(u => 
@@ -74,7 +67,7 @@ const AdminUsers = () => {
                                         <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-300 font-bold uppercase border border-slate-700 shadow-lg">{u.first_name?.[0] || 'U'}</div>
                                         <div>
                                             <p className="font-bold text-sm text-white">{u.first_name} {u.last_name}</p>
-                                            <p className="text-[10px] text-slate-500 font-medium uppercase tracking-tighter">{u.email}</p>
+                                            <p className="text-[10px] text-slate-500 font-medium uppercase tracking-tighter">{u.email || 'Engenheiro'}</p>
                                         </div>
                                     </div>
                                 </TableCell>
@@ -84,15 +77,14 @@ const AdminUsers = () => {
                                     </Badge>
                                 </TableCell>
                                 <TableCell className="text-xs font-bold text-slate-400 uppercase">{u.company_name || '-'}</TableCell>
-                                <TableCell className="text-right pr-10 space-x-2">
+                                <TableCell className="text-right pr-10">
                                     <Button 
                                         variant="ghost" 
                                         size="sm" 
                                         className="rounded-xl h-10 text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-white hover:bg-blue-600/20"
                                         onClick={() => handleStartConversation(u.id)}
-                                        disabled={startChat.isPending}
                                     >
-                                        <MessageCircle className="w-3.5 h-3.5 mr-2" /> {startChat.isPending ? 'Abrindo...' : 'Mensagem'}
+                                        <MessageCircle className="w-3.5 h-3.5 mr-2" /> Abrir Chat
                                     </Button>
                                 </TableCell>
                             </TableRow>

@@ -3,12 +3,14 @@ import { useAdminInbox, useAdminChatMessages, useAdminReply } from "@/hooks/use-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Send, User, MessageSquare, Search, ShieldCheck } from "lucide-react";
+import { Loader2, Send, User, MessageSquare, Search } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 const AdminTickets = () => {
   const location = useLocation();
@@ -21,6 +23,18 @@ const AdminTickets = () => {
   const replyMutation = useAdminReply();
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Busca perfil específico se o usuário for novo e não estiver na lista de conversas
+  const { data: forcedUserProfile } = useQuery({
+    queryKey: ['adminForcedUser', selectedUserId],
+    queryFn: async () => {
+      if (!selectedUserId) return null;
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', selectedUserId).single();
+      if (error) return null;
+      return data;
+    },
+    enabled: !!selectedUserId && !conversations?.find(c => c.id === selectedUserId)
+  });
+
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -30,7 +44,8 @@ const AdminTickets = () => {
     c.last_name?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const selectedUser = conversations?.find(c => c.id === selectedUserId);
+  // Determina quem é o usuário selecionado para o cabeçalho
+  const selectedUser = conversations?.find(c => c.id === selectedUserId) || forcedUserProfile;
 
   const handleSendReply = async () => {
     if (!replyText.trim() || !selectedUserId) return;
@@ -64,27 +79,42 @@ const AdminTickets = () => {
             <ScrollArea className="flex-1">
                 {loadingInbox ? (
                     <div className="p-12 text-center"><Loader2 className="animate-spin mx-auto text-blue-500" /></div>
-                ) : filteredConversations?.length === 0 ? (
-                    <div className="p-8 text-center text-slate-500 text-xs font-bold uppercase">Nenhuma conversa ativa.</div>
-                ) : filteredConversations?.map((room) => (
-                    <div 
-                        key={room.id} 
-                        onClick={() => setSelectedUserId(room.id)}
-                        className={cn(
-                            "p-5 border-b border-slate-800/50 cursor-pointer transition-all hover:bg-white/5 relative group",
-                            selectedUserId === room.id ? "bg-blue-600/10 border-l-4 border-l-blue-600" : ""
+                ) : (
+                    <div className="space-y-1">
+                        {/* Se selecionamos alguém novo que não tem msgs, mostramos ele no topo temporariamente */}
+                        {forcedUserProfile && (
+                            <div className="p-5 border-b border-blue-500/30 bg-blue-600/20 border-l-4 border-l-blue-600 cursor-default">
+                                <div className="flex justify-between items-start mb-1">
+                                    <span className="text-[9px] font-black uppercase text-blue-400 tracking-widest">Nova Conversa</span>
+                                </div>
+                                <h3 className="text-sm font-bold text-white truncate">{forcedUserProfile.first_name} {forcedUserProfile.last_name}</h3>
+                                <p className="text-[10px] text-blue-300 mt-1 uppercase font-black">Aguardando primeira mensagem...</p>
+                            </div>
                         )}
-                    >
-                        <div className="flex justify-between items-start mb-1">
-                            <span className="text-[9px] font-black uppercase text-blue-400 tracking-widest">{room.plan_type || 'FREE'}</span>
-                            <span className="text-[9px] font-bold text-slate-500">
-                                {room.last_message_at ? format(parseISO(room.last_message_at), "dd/MM") : '--'}
-                            </span>
-                        </div>
-                        <h3 className="text-sm font-bold text-slate-100 truncate">{room.first_name} {room.last_name}</h3>
-                        <p className="text-[10px] text-slate-500 mt-1 truncate">ID: {room.id.slice(0, 8)}...</p>
+
+                        {filteredConversations?.length === 0 && !forcedUserProfile ? (
+                            <div className="p-8 text-center text-slate-500 text-xs font-bold uppercase">Nenhuma conversa ativa.</div>
+                        ) : filteredConversations?.map((room) => (
+                            <div 
+                                key={room.id} 
+                                onClick={() => setSelectedUserId(room.id)}
+                                className={cn(
+                                    "p-5 border-b border-slate-800/50 cursor-pointer transition-all hover:bg-white/5 relative group",
+                                    selectedUserId === room.id ? "bg-blue-600/10 border-l-4 border-l-blue-600" : ""
+                                )}
+                            >
+                                <div className="flex justify-between items-start mb-1">
+                                    <span className="text-[9px] font-black uppercase text-blue-400 tracking-widest">{room.plan_type || 'FREE'}</span>
+                                    <span className="text-[9px] font-bold text-slate-500">
+                                        {room.last_message_at ? format(parseISO(room.last_message_at), "dd/MM") : '--'}
+                                    </span>
+                                </div>
+                                <h3 className="text-sm font-bold text-slate-100 truncate">{room.first_name} {room.last_name}</h3>
+                                <p className="text-[10px] text-slate-500 mt-1 truncate">ID: {room.id.slice(0, 8)}...</p>
+                            </div>
+                        ))}
                     </div>
-                ))}
+                )}
             </ScrollArea>
         </div>
 
@@ -113,9 +143,14 @@ const AdminTickets = () => {
                             {loadingMessages ? (
                                 <div className="flex justify-center p-12"><Loader2 className="animate-spin text-blue-500" /></div>
                             ) : !messages || messages.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center p-20 text-center space-y-4 opacity-30">
-                                    <div className="p-8 bg-slate-800 rounded-full"><MessageSquare className="w-12 h-12 text-slate-500" /></div>
-                                    <p className="font-bold uppercase text-xs tracking-widest text-white">Nenhuma mensagem. Mande a primeira!</p>
+                                <div className="flex flex-col items-center justify-center p-20 text-center space-y-4">
+                                    <div className="p-8 bg-slate-800 rounded-full border border-slate-700 shadow-2xl animate-in zoom-in duration-500">
+                                        <MessageSquare className="w-12 h-12 text-blue-500" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <h3 className="text-xl font-black uppercase tracking-widest text-white">Inicie o Contato</h3>
+                                        <p className="text-xs font-bold text-slate-500 uppercase tracking-tighter">O engenheiro ainda não recebeu suporte via chat direto.</p>
+                                    </div>
                                 </div>
                             ) : (
                                 messages.map((msg) => (
@@ -129,7 +164,7 @@ const AdminTickets = () => {
                                             {msg.message}
                                         </div>
                                         <span className="text-[9px] font-black uppercase text-slate-600 mt-2 tracking-widest">
-                                            {msg.sender_role === 'user' ? 'Cliente' : 'Robson (Você)'} • {format(parseISO(msg.created_at), "HH:mm")}
+                                            {msg.sender_role === 'user' ? 'Engenheiro' : 'Suporte (Você)'} • {format(parseISO(msg.created_at), "HH:mm")}
                                         </span>
                                     </div>
                                 ))
@@ -143,7 +178,7 @@ const AdminTickets = () => {
                             <Textarea 
                                 value={replyText}
                                 onChange={(e) => setReplyText(e.target.value)}
-                                placeholder="Responda diretamente ao engenheiro..."
+                                placeholder={`Mande uma mensagem para ${selectedUser?.first_name || 'o engenheiro'}...`}
                                 className="rounded-[2.5rem] pr-20 bg-slate-900 border-slate-700 text-white min-h-[100px] p-6 focus:ring-blue-600 resize-none shadow-inner"
                                 onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendReply(); } }}
                             />

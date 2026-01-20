@@ -3,7 +3,7 @@ import { useUserChat } from "@/hooks/use-support";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Send, MessageCircle, User, LifeBuoy } from "lucide-react";
+import { Loader2, Send, MessageCircle, LifeBuoy } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -33,8 +33,8 @@ const Suporte = () => {
                 <LifeBuoy className="w-6 h-6" />
             </div>
             <div>
-                <h1 className="text-xl font-black uppercase tracking-tight">Atendimento Direto</h1>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Fale diretamente com o Robson</p>
+                <h1 className="text-xl font-black uppercase tracking-tight">Central de Atendimento</h1>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Suporte especializado para engenheiros</p>
             </div>
         </header>
 
@@ -45,7 +45,8 @@ const Suporte = () => {
                 ) : messages.length === 0 ? (
                     <div className="text-center space-y-4 py-20 opacity-30">
                         <MessageCircle className="w-16 h-16 mx-auto" />
-                        <p className="font-bold uppercase text-xs tracking-widest">Inicie uma conversa abaixo.</p>
+                        <p className="font-bold uppercase text-xs tracking-widest text-foreground">Inicie uma conversa abaixo.</p>
+                        <p className="text-xs text-muted-foreground max-w-xs mx-auto">Nossa equipe responderá em até 24h úteis.</p>
                     </div>
                 ) : (
                     messages.map((msg) => (
@@ -59,7 +60,7 @@ const Suporte = () => {
                                 {msg.message}
                             </div>
                             <span className="text-[9px] font-bold text-muted-foreground mt-1 uppercase">
-                                {msg.sender_role === 'user' ? 'Você' : 'Robson (Suporte)'} • {format(parseISO(msg.created_at), "HH:mm")}
+                                {msg.sender_role === 'user' ? 'Você' : 'Suporte Meu RDO'} • {format(parseISO(msg.created_at), "HH:mm")}
                             </span>
                         </div>
                     ))
