@@ -8,94 +8,106 @@ export interface AdminUserConversation {
   last_name: string | null;
   email: string | null;
   plan_type: string | null;
-  ticket_id: string | null;
+  ticket_id?: string | null;
   last_message_at: string | null;
+  status?: string;
 }
 
 export const useAdminInbox = () => {
   return useQuery<AdminUserConversation[], Error>({
     queryKey: ['adminInbox'],
     queryFn: async () => {
-      // 1. Busca todos os usuários com tickets (salas de chat)
-      const { data, error } = await supabase
-        .from('support_tickets')
-        .select('*, profiles(first_name, last_name, email, plan_type)')
+      // 1. Busca todos os usuários que enviaram mensagens
+      const { data: messages, error: msgError } = await supabase
+        .from('support_messages')
+        .select('user_id, created_at')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (msgError) throw msgError;
 
-      return data.map((t: any) => ({
-        id: t.user_id,
-        first_name: t.profiles?.first_name,
-        last_name: t.profiles?.last_name,
-        email: t.profiles?.email,
-        plan_type: t.profiles?.plan_type,
-        ticket_id: t.id,
-        last_message_at: t.created_at,
-        status: t.status
-      })) as any[];
+      // Pegar IDs únicos dos usuários
+      const userIds = Array.from(new Set(messages.map(m => m.user_id).filter(Boolean)));
+
+      if (userIds.length === 0) return [];
+
+      // 2. Buscar perfis desses usuários
+      const { data: profiles, error: profError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, plan_type')
+        .in('id', userIds);
+
+      if (profError) throw profError;
+
+      // 3. Montar a lista de conversas
+      return userIds.map(uid => {
+        const profile = profiles.find(p => p.id === uid);
+        const lastMsg = messages.find(m => m.user_id === uid);
+        return {
+          id: uid,
+          first_name: profile?.first_name || 'Usuário',
+          last_name: profile?.last_name || 'Desconhecido',
+          email: 'N/A', // O e-mail não está no profile público por padrão
+          plan_type: profile?.plan_type,
+          last_message_at: lastMsg?.created_at || null,
+        } as AdminUserConversation;
+      });
     },
     staleTime: 1000 * 30,
   });
 };
 
-export const useAdminChatMessages = (ticketId?: string) => {
+export const useAdminChatMessages = (userId?: string) => {
   return useQuery<SupportMessage[], Error>({
-    queryKey: ['adminChatMessages', ticketId],
+    queryKey: ['adminChatMessages', userId],
     queryFn: async () => {
+      if (!userId) return [];
       const { data, error } = await supabase
         .from('support_messages')
         .select('*')
-        .eq('ticket_id', ticketId!)
+        .eq('user_id', userId)
         .order('created_at', { ascending: true });
       if (error) throw error;
       return data as SupportMessage[];
     },
-    enabled: !!ticketId,
+    enabled: !!userId,
   });
 };
 
 export const useAdminReply = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ ticketId, message }: { ticketId: string; message: string }) => {
+    mutationFn: async ({ userId, message }: { userId: string; message: string }) => {
       const { error } = await supabase
         .from('support_messages')
-        .insert({ ticket_id: ticketId, sender_role: 'support', message });
+        .insert({ 
+            user_id: userId, 
+            sender_role: 'support', 
+            message 
+        });
       if (error) throw error;
-
-      // Marca o ticket como resolvido quando o admin responde
-      await supabase.from('support_tickets').update({ status: 'resolved' }).eq('id', ticketId);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['adminInbox'] });
-      queryClient.invalidateQueries({ queryKey: ['adminChatMessages', variables.ticketId] });
+      queryClient.invalidateQueries({ queryKey: ['adminChatMessages', variables.userId] });
     },
   });
+};
+
+export const useAdminUpdateStatus = () => {
+    // Mantido para compatibilidade, mas agora o chat é contínuo
+    return useMutation({
+        mutationFn: async ({ ticketId, status }: { ticketId: string, status: string }) => {
+            if (!ticketId) return;
+            await supabase.from('support_tickets').update({ status }).eq('id', ticketId);
+        }
+    });
 };
 
 export const useStartChatWithUser = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (userId: string) => {
-      // Verifica se já existe um ticket para esse user
-      const { data: existing } = await supabase
-        .from('support_tickets')
-        .select('id')
-        .eq('user_id', userId)
-        .maybeSingle();
-      
-      if (existing) return existing.id;
-
-      // Se não, cria um chat invisível para começar a falar
-      const { data: created, error } = await supabase
-        .from('support_tickets')
-        .insert({ user_id: userId, subject: 'Atendimento Direto Robson', category: 'Chat' })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return created.id;
+      return userId; // No modelo direto, apenas retornamos o ID do usuário
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminInbox'] });
