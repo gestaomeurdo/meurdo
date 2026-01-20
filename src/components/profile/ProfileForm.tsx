@@ -50,36 +50,49 @@ const ProfileForm = ({ initialData }: ProfileFormProps) => {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        
+        {/* DADOS PESSOAIS */}
         <div className="space-y-4">
           <h3 className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
-            <User className="w-4 h-4" /> Dados Pessoais
+            <User className="w-4 h-4" /> Informações Pessoais
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField control={form.control} name="first_name" render={({ field }) => (
-              <FormItem><FormLabel>Nome</FormLabel><FormControl><Input {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>
+              <FormItem>
+                <FormLabel>Nome</FormLabel>
+                <FormControl><Input {...field} disabled={isLoading} className="rounded-xl h-11" /></FormControl>
+                <FormMessage />
+              </FormItem>
             )} />
             <FormField control={form.control} name="last_name" render={({ field }) => (
-              <FormItem><FormLabel>Sobrenome</FormLabel><FormControl><Input {...field} disabled={isLoading} /></FormControl><FormMessage /></FormItem>
+              <FormItem>
+                <FormLabel>Sobrenome</FormLabel>
+                <FormControl><Input {...field} disabled={isLoading} className="rounded-xl h-11" /></FormControl>
+                <FormMessage />
+              </FormItem>
             )} />
           </div>
         </div>
 
-        <div className="space-y-4 pt-4 border-t">
+        {/* DADOS DA EMPRESA */}
+        <div className="space-y-4 pt-6 border-t dark:border-slate-800">
           <h3 className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
-            <Building2 className="w-4 h-4" /> Dados da Empresa
+            <Building2 className="w-4 h-4" /> Dados da Construtora
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField control={form.control} name="company_name" render={({ field }) => (
               <FormItem>
-                <FormLabel>Nome da Construtora / Razão Social</FormLabel>
-                <FormControl><Input placeholder="Ex: Minha Construtora LTDA" {...field} value={field.value || ""} disabled={isLoading} /></FormControl>
-                <FormDescription className="text-[10px]">Exibido no cabeçalho dos PDFs.</FormDescription>
+                <FormLabel>Razão Social / Nome Fantasia</FormLabel>
+                <FormControl><Input placeholder="Minha Construtora LTDA" {...field} value={field.value || ""} disabled={isLoading} className="rounded-xl h-11" /></FormControl>
+                <FormDescription className="text-[10px] uppercase font-bold text-slate-400">Exibido no cabeçalho dos relatórios PDF.</FormDescription>
+                <FormMessage />
               </FormItem>
             )} />
             <FormField control={form.control} name="cnpj" render={({ field }) => (
               <FormItem>
                 <FormLabel>CNPJ</FormLabel>
-                <FormControl><Input placeholder="00.000.000/0000-00" {...field} value={field.value || ""} disabled={isLoading} /></FormControl>
+                <FormControl><Input placeholder="00.000.000/0000-00" {...field} value={field.value || ""} disabled={isLoading} className="rounded-xl h-11" /></FormControl>
+                <FormMessage />
               </FormItem>
             )} />
           </div>
@@ -88,18 +101,19 @@ const ProfileForm = ({ initialData }: ProfileFormProps) => {
               <FormLabel>Endereço Comercial</FormLabel>
               <FormControl>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input className="pl-9" placeholder="Rua, número, cidade - UF" {...field} value={field.value || ""} disabled={isLoading} />
+                  <MapPin className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+                  <Input className="pl-9 rounded-xl h-11" placeholder="Rua, número, cidade - UF" {...field} value={field.value || ""} disabled={isLoading} />
                 </div>
               </FormControl>
-              <FormDescription className="text-[10px]">Utilizado como rodapé técnico nos relatórios.</FormDescription>
+              <FormDescription className="text-[10px] uppercase font-bold text-slate-400">Utilizado como rodapé técnico nos documentos.</FormDescription>
+              <FormMessage />
             </FormItem>
           )} />
         </div>
 
-        <Button type="submit" className="bg-[#066abc] hover:bg-[#066abc]/90 rounded-xl" disabled={isLoading}>
+        <Button type="submit" className="bg-[#066abc] hover:bg-[#066abc]/90 rounded-xl h-12 px-8 font-bold shadow-lg" disabled={isLoading}>
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-          Salvar Dados da Empresa
+          Salvar Alterações
         </Button>
       </form>
     </Form>

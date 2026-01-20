@@ -3,32 +3,48 @@
 import { useProfile, useStripeCustomerPortal } from "@/hooks/use-profile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Zap, CreditCard, ShieldCheck, ExternalLink, Loader2, Lock, HelpCircle, MessageSquare } from "lucide-react";
+import { CheckCircle2, Zap, CreditCard, ShieldCheck, ExternalLink, Loader2, Lock } from "lucide-react";
 import UpgradeButton from "../subscription/UpgradeButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/integrations/supabase/auth-provider";
+import { toast } from "sonner";
+
+const ADMIN_EMAIL = 'robsonalixandree@gmail.com';
 
 const SubscriptionTab = () => {
+  const { user } = useAuth();
   const { data: profile, isLoading } = useProfile();
   const { mutate: openPortal, isPending: isOpeningPortal } = useStripeCustomerPortal();
   const [isYearly, setIsYearly] = useState(false);
   
-  if (isLoading) return <Skeleton className="h-[600px] w-full rounded-3xl" />;
+  if (isLoading) return <Skeleton className="h-[400px] w-full rounded-3xl" />;
 
   const isPro = profile?.subscription_status === 'active' || profile?.plan_type === 'pro';
+
+  const handleManageSubscription = () => {
+    // 1. Proteção para o Admin (Evita erro 500 do Stripe por falta de ID)
+    if (user?.email === ADMIN_EMAIL) {
+      toast.info("👑 Acesso Administrativo: Sua assinatura é vitalícia e gerenciada pelo sistema.");
+      return;
+    }
+
+    // 2. Fluxo normal para clientes
+    openPortal();
+  };
 
   return (
     <div className="space-y-12 animate-in fade-in duration-700 pb-20">
       
-      {/* 1. SEÇÃO DE PREÇOS */}
+      {/* SEÇÃO DE PREÇOS */}
       <section className="space-y-10">
           <div className="flex flex-col items-center text-center gap-6">
               <div className="space-y-2">
-                <h2 className="text-2xl font-black uppercase tracking-tight text-foreground">Escolha seu Nível de Gestão</h2>
-                <p className="text-muted-foreground text-sm font-medium">Planos simplificados para engenheiros de alta performance.</p>
+                <h2 className="text-2xl font-black uppercase tracking-tight text-foreground">Planos e Faturamento</h2>
+                <p className="text-muted-foreground text-sm font-medium">Gerencie seu acesso e histórico de cobrança.</p>
               </div>
 
               {!isPro && (
@@ -52,11 +68,11 @@ const SubscriptionTab = () => {
                       <div className="pt-6"><span className="text-4xl font-black">R$ 0</span></div>
                   </CardHeader>
                   <CardContent className="flex-1 space-y-8 px-8 pb-10">
-                      <ul className="space-y-4 pt-6 border-t dark:border-slate-800">
-                          <li className="flex items-center gap-3 text-xs font-bold text-muted-foreground"><CheckCircle2 className="w-4 h-4 text-slate-300" /> 1 Obra Ativa</li>
-                          <li className="flex items-center gap-3 text-xs font-bold text-muted-foreground"><CheckCircle2 className="w-4 h-4 text-slate-300" /> PDF com Marca d'água</li>
-                          <li className="flex items-center gap-3 text-xs font-bold text-muted-foreground"><CheckCircle2 className="w-4 h-4 text-slate-300" /> Até 5 fotos por RDO</li>
-                          <li className="flex items-center gap-3 text-xs font-bold text-muted-foreground opacity-50"><Lock className="w-4 h-4" /> Sem Relatório Executivo</li>
+                      <ul className="space-y-4 pt-6 border-t dark:border-slate-800 text-xs font-bold text-muted-foreground">
+                          <li className="flex items-center gap-3"><CheckCircle2 className="w-4 h-4 text-slate-300" /> 1 Obra Ativa</li>
+                          <li className="flex items-center gap-3"><CheckCircle2 className="w-4 h-4 text-slate-300" /> PDF com Marca d'água</li>
+                          <li className="flex items-center gap-3"><CheckCircle2 className="w-4 h-4 text-slate-300" /> Até 5 fotos por RDO</li>
+                          <li className="flex items-center gap-3 opacity-50"><Lock className="w-4 h-4" /> Sem Relatório Executivo</li>
                       </ul>
                       <Button variant="outline" disabled className="w-full h-14 rounded-2xl border-slate-200 dark:border-slate-700 text-slate-400 font-black uppercase text-[10px] tracking-widest">
                           {!isPro ? "Seu Plano Atual" : "Nível Base"}
@@ -86,14 +102,14 @@ const SubscriptionTab = () => {
                       </div>
                   </CardHeader>
                   <CardContent className="flex-1 space-y-8 px-8 pb-12">
-                      <ul className="space-y-4 pt-6 border-t dark:border-slate-800">
-                          <li className="flex items-center gap-3 text-sm font-black"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> Obras & RDOs Ilimitados</li>
-                          <li className="flex items-center gap-3 text-sm font-black"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> PDF Whitelabel (Sua Logo)</li>
-                          <li className="flex items-center gap-3 text-sm font-black"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> Relatório Executivo Mensal</li>
-                          <li className="flex items-center gap-3 text-sm font-black"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> Links de Aprovação Digital</li>
+                      <ul className="space-y-4 pt-6 border-t dark:border-slate-800 text-sm font-black">
+                          <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> Obras & RDOs Ilimitados</li>
+                          <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> PDF Whitelabel (Sua Logo)</li>
+                          <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> Relatório Executivo Mensal</li>
+                          <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-500" /> Links de Aprovação Digital</li>
                       </ul>
                       {isPro ? (
-                          <Button onClick={() => openPortal()} disabled={isOpeningPortal} className="w-full h-16 rounded-2xl bg-[#066abc] hover:bg-[#066abc]/90 text-white font-black uppercase text-xs tracking-widest shadow-xl">
+                          <Button onClick={handleManageSubscription} disabled={isOpeningPortal} className="w-full h-16 rounded-2xl bg-[#066abc] hover:bg-[#066abc]/90 text-white font-black uppercase text-xs tracking-widest shadow-xl">
                               {isOpeningPortal ? <Loader2 className="animate-spin h-5 w-5" /> : <ExternalLink className="w-5 h-5 mr-2" />} Gerenciar Assinatura
                           </Button>
                       ) : (
@@ -104,7 +120,6 @@ const SubscriptionTab = () => {
           </div>
       </section>
 
-      {/* RODAPÉ DE SEGURANÇA */}
       <section className="flex justify-center pt-16 border-t dark:border-slate-800">
           <Card className="bg-emerald-500/5 border-emerald-500/10 border-none rounded-[2rem] p-8 max-w-2xl w-full text-center">
               <div className="flex flex-col items-center gap-4">
@@ -112,7 +127,7 @@ const SubscriptionTab = () => {
                   <div className="space-y-1">
                     <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Pagamento Seguro</span>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                        Sua assinatura é processada pela Stripe. Cancele ou altere seu plano a qualquer momento pelo portal do cliente.
+                        Assinatura processada via Stripe. Cancele ou altere seu plano a qualquer momento.
                     </p>
                   </div>
               </div>
