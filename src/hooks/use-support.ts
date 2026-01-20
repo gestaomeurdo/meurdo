@@ -74,11 +74,39 @@ export const useSendReply = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['chatMessages', variables.ticketId] });
       queryClient.invalidateQueries({ queryKey: ['supportTickets'] });
+      queryClient.invalidateQueries({ queryKey: ['userChat'] });
     }
   });
 };
 
-// 4. Hook unificado para a página de suporte (Estilo Zap)
+// 4. Hook para criar um novo chamado manualmente (usado no CreateTicketDialog)
+export const useCreateTicket = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async ({ subject, category, message }: { subject: string, category: string, message: string }) => {
+      const { data: ticket, error: ticketError } = await supabase
+        .from('support_tickets')
+        .insert({ user_id: user!.id, subject, category, status: 'open' })
+        .select()
+        .single();
+      if (ticketError) throw ticketError;
+
+      const { error: msgError } = await supabase
+        .from('support_messages')
+        .insert({ ticket_id: ticket.id, sender_role: 'user', message });
+      if (msgError) throw msgError;
+
+      return ticket;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['supportTickets'] });
+      queryClient.invalidateQueries({ queryKey: ['userChat'] });
+    }
+  });
+};
+
+// 5. Hook unificado para a página de suporte (Estilo Zap)
 export const useUserChat = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -139,6 +167,7 @@ export const useUserChat = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['userChat'] });
       queryClient.invalidateQueries({ queryKey: ['chatMessages'] });
+      queryClient.invalidateQueries({ queryKey: ['supportTickets'] });
     }
   });
 
