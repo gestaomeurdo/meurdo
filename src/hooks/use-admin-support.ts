@@ -8,16 +8,23 @@ export interface AdminUserConversation {
   last_name: string | null;
   email: string | null;
   plan_type: string | null;
-  ticket_id?: string | null;
   last_message_at: string | null;
-  status?: string;
+  has_messages: boolean;
 }
 
 export const useAdminInbox = () => {
   return useQuery<AdminUserConversation[], Error>({
     queryKey: ['adminInbox'],
     queryFn: async () => {
-      // 1. Busca todos os usuários que enviaram mensagens
+      // 1. Busca todos os perfis
+      const { data: profiles, error: profError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, plan_type')
+        .order('first_name', { ascending: true });
+
+      if (profError) throw profError;
+
+      // 2. Busca a data da última mensagem de cada usuário para ordenar
       const { data: messages, error: msgError } = await supabase
         .from('support_messages')
         .select('user_id, created_at')
@@ -25,31 +32,30 @@ export const useAdminInbox = () => {
 
       if (msgError) throw msgError;
 
-      // Pegar IDs únicos dos usuários
-      const userIds = Array.from(new Set(messages.map(m => m.user_id).filter(Boolean)));
-
-      if (userIds.length === 0) return [];
-
-      // 2. Buscar perfis desses usuários
-      const { data: profiles, error: profError } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, plan_type')
-        .in('id', userIds);
-
-      if (profError) throw profError;
-
-      // 3. Montar a lista de conversas
-      return userIds.map(uid => {
-        const profile = profiles.find(p => p.id === uid);
-        const lastMsg = messages.find(m => m.user_id === uid);
+      // 3. Mapeia e cruza os dados
+      const inbox = profiles.map(p => {
+        const userMessages = messages.filter(m => m.user_id === p.id);
+        const lastMsg = userMessages[0];
+        
         return {
-          id: uid,
-          first_name: profile?.first_name || 'Usuário',
-          last_name: profile?.last_name || 'Desconhecido',
-          email: 'N/A', // O e-mail não está no profile público por padrão
-          plan_type: profile?.plan_type,
+          id: p.id,
+          first_name: p.first_name,
+          last_name: p.last_name,
+          email: 'N/A',
+          plan_type: p.plan_type,
           last_message_at: lastMsg?.created_at || null,
-        } as AdminUserConversation;
+          has_messages: userMessages.length > 0
+        };
+      });
+
+      // 4. Ordena: quem tem mensagem primeiro, depois por data, depois alfabético
+      return inbox.sort((a, b) => {
+        if (a.has_messages && !b.has_messages) return -1;
+        if (!a.has_messages && b.has_messages) return 1;
+        if (a.last_message_at && b.last_message_at) {
+            return new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime();
+        }
+        return 0;
       });
     },
     staleTime: 1000 * 30,
@@ -94,7 +100,6 @@ export const useAdminReply = () => {
 };
 
 export const useAdminUpdateStatus = () => {
-    // Mantido para compatibilidade, mas agora o chat é contínuo
     return useMutation({
         mutationFn: async ({ ticketId, status }: { ticketId: string, status: string }) => {
             if (!ticketId) return;
@@ -106,9 +111,7 @@ export const useAdminUpdateStatus = () => {
 export const useStartChatWithUser = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (userId: string) => {
-      return userId; // No modelo direto, apenas retornamos o ID do usuário
-    },
+    mutationFn: async (userId: string) => userId,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminInbox'] });
     }

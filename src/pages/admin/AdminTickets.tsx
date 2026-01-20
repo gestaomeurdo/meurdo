@@ -3,14 +3,12 @@ import { useAdminInbox, useAdminChatMessages, useAdminReply } from "@/hooks/use-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Send, User, MessageSquare, Search } from "lucide-react";
+import { Loader2, Send, User, MessageSquare, Search, Sparkles } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
 
 const AdminTickets = () => {
   const location = useLocation();
@@ -21,31 +19,28 @@ const AdminTickets = () => {
   const { data: conversations, isLoading: loadingInbox } = useAdminInbox();
   const { data: messages, isLoading: loadingMessages } = useAdminChatMessages(selectedUserId || undefined);
   const replyMutation = useAdminReply();
-  const scrollRef = useRef<HTMLDivElement>(null);
+  
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+  const userRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // Busca perfil específico se o usuário for novo e não estiver na lista de conversas
-  const { data: forcedUserProfile } = useQuery({
-    queryKey: ['adminForcedUser', selectedUserId],
-    queryFn: async () => {
-      if (!selectedUserId) return null;
-      const { data, error } = await supabase.from('profiles').select('*').eq('id', selectedUserId).single();
-      if (error) return null;
-      return data;
-    },
-    enabled: !!selectedUserId && !conversations?.find(c => c.id === selectedUserId)
-  });
-
+  // Auto-scroll para o fim das mensagens
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (chatScrollRef.current) chatScrollRef.current.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Auto-scroll para o usuário selecionado na sidebar
+  useEffect(() => {
+    if (selectedUserId && userRefs.current[selectedUserId]) {
+        userRefs.current[selectedUserId]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [selectedUserId, conversations]);
 
   const filteredConversations = conversations?.filter(c => 
     c.first_name?.toLowerCase().includes(search.toLowerCase()) ||
     c.last_name?.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Determina quem é o usuário selecionado para o cabeçalho
-  const selectedUser = conversations?.find(c => c.id === selectedUserId) || forcedUserProfile;
+  const selectedUser = conversations?.find(c => c.id === selectedUserId);
 
   const handleSendReply = async () => {
     if (!replyText.trim() || !selectedUserId) return;
@@ -63,12 +58,12 @@ const AdminTickets = () => {
         <div className="w-80 sm:w-[380px] border-r border-slate-800 flex flex-col bg-slate-900/40">
             <div className="p-6 border-b border-slate-800 space-y-4">
                 <h2 className="text-xl font-black uppercase tracking-tight text-white flex items-center gap-3">
-                    <MessageSquare className="w-6 h-6 text-blue-500" /> Mensagens
+                    <MessageSquare className="w-6 h-6 text-blue-500" /> Inbox Suporte
                 </h2>
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                     <Input 
-                        placeholder="Buscar engenheiro..." 
+                        placeholder="Buscar por nome..." 
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         className="pl-9 h-10 bg-slate-800 border-slate-700 text-white rounded-xl text-xs" 
@@ -81,35 +76,34 @@ const AdminTickets = () => {
                     <div className="p-12 text-center"><Loader2 className="animate-spin mx-auto text-blue-500" /></div>
                 ) : (
                     <div className="space-y-1">
-                        {/* Se selecionamos alguém novo que não tem msgs, mostramos ele no topo temporariamente */}
-                        {forcedUserProfile && (
-                            <div className="p-5 border-b border-blue-500/30 bg-blue-600/20 border-l-4 border-l-blue-600 cursor-default">
-                                <div className="flex justify-between items-start mb-1">
-                                    <span className="text-[9px] font-black uppercase text-blue-400 tracking-widest">Nova Conversa</span>
-                                </div>
-                                <h3 className="text-sm font-bold text-white truncate">{forcedUserProfile.first_name} {forcedUserProfile.last_name}</h3>
-                                <p className="text-[10px] text-blue-300 mt-1 uppercase font-black">Aguardando primeira mensagem...</p>
-                            </div>
-                        )}
-
-                        {filteredConversations?.length === 0 && !forcedUserProfile ? (
-                            <div className="p-8 text-center text-slate-500 text-xs font-bold uppercase">Nenhuma conversa ativa.</div>
+                        {filteredConversations?.length === 0 ? (
+                            <div className="p-8 text-center text-slate-500 text-xs font-bold uppercase">Nenhum engenheiro encontrado.</div>
                         ) : filteredConversations?.map((room) => (
                             <div 
                                 key={room.id} 
+                                ref={el => userRefs.current[room.id] = el}
                                 onClick={() => setSelectedUserId(room.id)}
                                 className={cn(
                                     "p-5 border-b border-slate-800/50 cursor-pointer transition-all hover:bg-white/5 relative group",
-                                    selectedUserId === room.id ? "bg-blue-600/10 border-l-4 border-l-blue-600" : ""
+                                    selectedUserId === room.id ? "bg-blue-600/10 border-l-4 border-l-blue-600 shadow-[inset_10px_0_20px_-10px_rgba(37,99,235,0.2)]" : ""
                                 )}
                             >
                                 <div className="flex justify-between items-start mb-1">
-                                    <span className="text-[9px] font-black uppercase text-blue-400 tracking-widest">{room.plan_type || 'FREE'}</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[9px] font-black uppercase text-blue-400 tracking-widest">{room.plan_type || 'FREE'}</span>
+                                        {!room.has_messages && (
+                                            <span className="flex items-center gap-1 text-[8px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded-md font-black uppercase tracking-tighter">
+                                                <Sparkles className="w-2 h-2" /> Novo Contato
+                                            </span>
+                                        )}
+                                    </div>
                                     <span className="text-[9px] font-bold text-slate-500">
                                         {room.last_message_at ? format(parseISO(room.last_message_at), "dd/MM") : '--'}
                                     </span>
                                 </div>
-                                <h3 className="text-sm font-bold text-slate-100 truncate">{room.first_name} {room.last_name}</h3>
+                                <h3 className={cn("text-sm font-bold truncate transition-colors", selectedUserId === room.id ? "text-white" : "text-slate-300 group-hover:text-white")}>
+                                    {room.first_name} {room.last_name}
+                                </h3>
                                 <p className="text-[10px] text-slate-500 mt-1 truncate">ID: {room.id.slice(0, 8)}...</p>
                             </div>
                         ))}
@@ -143,13 +137,15 @@ const AdminTickets = () => {
                             {loadingMessages ? (
                                 <div className="flex justify-center p-12"><Loader2 className="animate-spin text-blue-500" /></div>
                             ) : !messages || messages.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center p-20 text-center space-y-4">
-                                    <div className="p-8 bg-slate-800 rounded-full border border-slate-700 shadow-2xl animate-in zoom-in duration-500">
-                                        <MessageSquare className="w-12 h-12 text-blue-500" />
+                                <div className="flex flex-col items-center justify-center p-20 text-center space-y-6">
+                                    <div className="p-8 bg-slate-800/50 rounded-full border border-slate-800 shadow-2xl animate-in zoom-in duration-500">
+                                        <Sparkles className="w-12 h-12 text-blue-500" />
                                     </div>
                                     <div className="space-y-2">
                                         <h3 className="text-xl font-black uppercase tracking-widest text-white">Inicie o Contato</h3>
-                                        <p className="text-xs font-bold text-slate-500 uppercase tracking-tighter">O engenheiro ainda não recebeu suporte via chat direto.</p>
+                                        <p className="text-xs font-bold text-slate-500 uppercase tracking-tighter max-w-xs mx-auto leading-relaxed">
+                                            Este engenheiro ainda não recebeu suporte. Mande uma mensagem de boas-vindas ou prospecção!
+                                        </p>
                                     </div>
                                 </div>
                             ) : (
@@ -169,7 +165,7 @@ const AdminTickets = () => {
                                     </div>
                                 ))
                             )}
-                            <div ref={scrollRef} />
+                            <div ref={chatScrollRef} />
                         </div>
                     </ScrollArea>
 
