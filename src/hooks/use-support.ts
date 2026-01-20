@@ -67,7 +67,64 @@ export const useUserChat = () => {
   };
 };
 
-// Mantendo suporte aos tickets antigos por compatibilidade se necessário
+// Hook para enviar resposta em um ticket específico (Compatibilidade)
+export const useSendReply = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ ticketId, message }: { ticketId: string; message: string }) => {
+      if (!user) throw new Error("Não autenticado");
+      const { error } = await supabase
+        .from('support_messages')
+        .insert({
+          ticket_id: ticketId,
+          user_id: user.id,
+          message,
+          sender_role: 'user'
+        });
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['chatMessages', variables.ticketId] });
+      queryClient.invalidateQueries({ queryKey: ['chatMessages', user?.id] });
+    }
+  });
+};
+
+// Hook para criar novos tickets
+export const useCreateTicket = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ subject, category, message }: { subject: string; category: string; message: string }) => {
+      if (!user) throw new Error("Não autenticado");
+
+      // 1. Cria o ticket
+      const { data: ticket, error: ticketError } = await supabase
+        .from('support_tickets')
+        .insert({ user_id: user.id, subject, category, status: 'open' })
+        .select()
+        .single();
+
+      if (ticketError) throw ticketError;
+
+      // 2. Cria a primeira mensagem
+      const { error: msgError } = await supabase
+        .from('support_messages')
+        .insert({ ticket_id: ticket.id, user_id: user.id, message, sender_role: 'user' });
+
+      if (msgError) throw msgError;
+
+      return ticket;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['supportTickets', user?.id] });
+    }
+  });
+};
+
 export const useSupportTickets = () => {
   const { user } = useAuth();
   return useQuery<SupportTicket[], Error>({
