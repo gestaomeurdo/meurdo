@@ -15,8 +15,8 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   ];
 
   return (
-    <div className="flex h-screen bg-slate-950 overflow-hidden">
-      {/* SIDEBAR ADMIN FIXA */}
+    <div className="flex h-screen bg-slate-950 text-slate-100 overflow-hidden">
+      {/* SIDEBAR ADMIN FIXA - SEMPRE ESCURA */}
       <aside className={cn(
         "fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 border-r border-white/5 transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0",
         !isSidebarOpen && "-translate-x-full"
@@ -58,9 +58,9 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
       </aside>
 
-      {/* CONTEÚDO PRINCIPAL */}
-      <main className="flex-1 flex flex-col relative overflow-hidden">
-        <div className="h-1.5 w-full bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600"></div>
+      {/* CONTEÚDO PRINCIPAL - AGORA DARK POR PADRÃO */}
+      <main className="flex-1 flex flex-col relative overflow-hidden bg-slate-950">
+        <div className="h-1.5 w-full bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 shadow-[0_0_15px_rgba(147,51,234,0.3)]"></div>
         <div className="flex-1 overflow-y-auto">
             {children}
         </div>
