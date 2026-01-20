@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SupportTicket, SupportMessage } from "./use-support";
+import { showError } from "@/utils/toast";
 
 export interface AdminTicket extends SupportTicket {
   profiles: {
@@ -16,21 +17,37 @@ export const useAdminTickets = () => {
   return useQuery<AdminTicket[], Error>({
     queryKey: ['adminTickets'],
     queryFn: async () => {
-      // Query enriquecida com dados do profile
-      const { data, error } = await supabase
-        .from('support_tickets')
-        .select(`
-          *,
-          profiles (first_name, last_name, email, plan_type, subscription_status)
-        `)
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error("Admin tickets fetch error:", error);
-        throw error;
+      // FORMA SEGURA DE BUSCAR: Try/Catch e tratamento de dados nulos
+      try {
+        const { data, error } = await supabase
+          .from('support_tickets')
+          .select(`
+            *,
+            profiles (first_name, last_name, email, plan_type, subscription_status)
+          `)
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+
+        // PROTEÇÃO CONTRA PERFIL NULO
+        // Se o usuário foi deletado ou o join falhou, injeta valores padrão para não quebrar a UI
+        return (data || []).map(ticket => ({
+          ...ticket,
+          profiles: ticket.profiles || {
+            first_name: 'Usuário',
+            last_name: 'Desconhecido',
+            email: 'N/A',
+            plan_type: 'FREE',
+            subscription_status: 'inactive'
+          }
+        })) as AdminTicket[];
+      } catch (err: any) {
+        console.error("[useAdminTickets] Erro crítico:", err.message);
+        showError("Falha ao carregar chamados. Verifique as permissões de Admin.");
+        throw err;
       }
-      return data as any[];
     },
+    staleTime: 1000 * 30, // 30 segundos
   });
 };
 

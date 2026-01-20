@@ -7,38 +7,36 @@ export const useAdminStats = () => {
     queryKey: ['adminStats'],
     queryFn: async () => {
       try {
-        // Consultas simplificadas para testar RLS individualmente
-        const { count: userCount, error: err1 } = await supabase
-            .from('profiles')
-            .select('id', { count: 'exact', head: true });
-        
-        if (err1) throw new Error("Erro ao ler Perfis: " + err1.message);
+        // 1. Verificar se a conexão está ativa e e-mail é admin (proteção frontend)
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.email !== 'robsonalixandree@gmail.com') {
+            throw new Error("Usuário não autorizado para estatísticas admin.");
+        }
 
-        const { count: openTickets, error: err2 } = await supabase
-            .from('support_tickets')
-            .select('id', { count: 'exact', head: true })
-            .eq('status', 'open');
-        
-        if (err2) throw new Error("Erro ao ler Tickets: " + err2.message);
-        
-        const { count: proCount } = await supabase
-            .from('profiles')
-            .select('id', { count: 'exact', head: true })
-            .eq('plan_type', 'pro');
+        // 2. Consultas simplificadas e paralelas
+        const [profilesRes, ticketsRes] = await Promise.all([
+          supabase.from('profiles').select('id, plan_type', { count: 'exact', head: false }),
+          supabase.from('support_tickets').select('id', { count: 'exact', head: true }).eq('status', 'open')
+        ]);
+
+        if (profilesRes.error) throw new Error("Erro profiles: " + profilesRes.error.message);
+        if (ticketsRes.error) throw new Error("Erro tickets: " + ticketsRes.error.message);
+
+        const proUsers = (profilesRes.data || []).filter(p => p.plan_type === 'pro').length;
 
         return {
-          totalUsers: userCount || 0,
-          openTickets: openTickets || 0,
-          proUsers: proCount || 0,
-          estimatedRevenue: (proCount || 0) * 49.90
+          totalUsers: profilesRes.count || 0,
+          openTickets: ticketsRes.count || 0,
+          proUsers: proUsers,
+          estimatedRevenue: proUsers * 49.90
         };
       } catch (error: any) {
         console.error("[useAdminStats] Falha crítica:", error.message);
-        showError("Erro de Permissão (RLS): O banco bloqueou a consulta.");
-        throw error; // Tanstack Query lida com o estado de erro
+        // Não mostramos toast aqui para não floodar a tela, a UI do dashboard já lida com o isError
+        throw error;
       }
     },
-    staleTime: 1000 * 60 * 5,
-    retry: 1, // Não tenta muitas vezes se for erro de permissão
+    staleTime: 1000 * 60 * 10, // 10 minutos
+    retry: 1, 
   });
 };
