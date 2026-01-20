@@ -10,6 +10,7 @@ export const ProfileSchema = z.object({
   last_name: z.string().nullish(),
   company_name: z.string().nullish(),
   cnpj: z.string().nullish(),
+  address: z.string().nullish(), // Novo campo
   avatar_url: z.string().nullish(),
   role: z.enum(['administrator', 'obra_user', 'view_only']).default('obra_user'),
   subscription_status: z.enum([
@@ -55,6 +56,7 @@ interface ProfileUpdateInput {
   last_name?: string;
   company_name?: string | null;
   cnpj?: string | null;
+  address?: string | null; // Novo campo
 }
 
 export const useUpdateProfile = () => {

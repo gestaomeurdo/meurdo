@@ -10,8 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import SupportTicketList from "./SupportTicketList";
-import CreateTicketDialog from "./CreateTicketDialog";
 
 const SubscriptionTab = () => {
   const { data: profile, isLoading } = useProfile();
@@ -106,41 +104,19 @@ const SubscriptionTab = () => {
           </div>
       </section>
 
-      {/* 2. SUPORTE INTERNO (TICKETS) */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-16 border-t dark:border-slate-800">
-          <div className="lg:col-span-4 space-y-6">
-              <div className="flex items-center gap-3 px-2">
-                  <div className="p-2.5 bg-primary/10 rounded-xl border border-primary/20"><HelpCircle className="w-5 h-5 text-primary" /></div>
-                  <h3 className="text-lg font-black uppercase tracking-tight">Central de Ajuda</h3>
-              </div>
-              <Card className="bg-slate-50 dark:bg-slate-800/50 border-none rounded-[2.5rem] p-8 space-y-6">
-                  <p className="text-sm text-muted-foreground font-medium leading-relaxed">
-                      Precisa de suporte? Nossa equipe técnica responde em até 24h úteis. 
-                      Utilize o chat para acompanhar seus chamados.
-                  </p>
-                  <CreateTicketDialog />
-              </Card>
-              
-              <Card className="bg-emerald-500/5 border-emerald-500/10 border-none rounded-[2.5rem] p-8">
-                  <div className="flex items-center gap-2 mb-4">
-                      <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Segurança Ativa</span>
+      {/* RODAPÉ DE SEGURANÇA */}
+      <section className="flex justify-center pt-16 border-t dark:border-slate-800">
+          <Card className="bg-emerald-500/5 border-emerald-500/10 border-none rounded-[2rem] p-8 max-w-2xl w-full text-center">
+              <div className="flex flex-col items-center gap-4">
+                  <ShieldCheck className="w-10 h-10 text-emerald-600" />
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Pagamento Seguro</span>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                        Sua assinatura é processada pela Stripe. Cancele ou altere seu plano a qualquer momento pelo portal do cliente.
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                      Sua conta e dados financeiros são processados via Stripe com criptografia SSL 256 bits.
-                  </p>
-              </Card>
-          </div>
-          
-          <div className="lg:col-span-8 space-y-6">
-            <div className="flex items-center justify-between px-2">
-                <div className="flex items-center gap-3">
-                    <MessageSquare className="w-5 h-5 text-muted-foreground" />
-                    <h3 className="text-lg font-black uppercase tracking-tight">Meus Chamados</h3>
-                </div>
-            </div>
-            <SupportTicketList />
-          </div>
+              </div>
+          </Card>
       </section>
     </div>
   );

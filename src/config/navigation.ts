@@ -75,7 +75,7 @@ export const navItems: NavItem[] = [
     roles: ["administrator"],
   },
   {
-    title: "Assinatura",
+    title: "Meu Plano",
     href: "/settings",
     icon: Star,
     roles: ["administrator", "obra_user", "view_only"],
