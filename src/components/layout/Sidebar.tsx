@@ -10,6 +10,7 @@ import { Sun, Moon, Zap } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { useUnreadMessages } from "@/hooks/use-unread-messages";
 
 const LOGO_URL = "https://meurdo.com.br/wp-content/uploads/2026/01/Logo-MEU-RDO-scaled.png";
 
@@ -24,6 +25,7 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: SidebarProps) => {
   const { isPro, user } = useAuth();
   const { data: profile, isLoading } = useProfile();
   const { theme, setTheme } = useTheme();
+  const { unreadCount } = useUnreadMessages();
 
   const userRole = profile?.role || "obra_user";
 
@@ -72,6 +74,8 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: SidebarProps) => {
         <nav className="flex-grow space-y-1">
           {filteredNavItems.map((item) => {
             const isActive = location.pathname === item.href;
+            const isSupport = item.href === "/suporte";
+            
             return (
               <Link
                 key={item.href}
@@ -85,7 +89,13 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: SidebarProps) => {
                 )}
               >
                 <item.icon className={cn("w-5 h-5 mr-3 transition-colors", isActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400 group-hover:text-blue-600")} />
-                <span>{item.title}</span>
+                <span className="flex-1">{item.title}</span>
+                
+                {isSupport && unreadCount > 0 && (
+                    <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse shadow-lg shadow-red-500/20">
+                        {unreadCount}
+                    </span>
+                )}
               </Link>
             );
           })}

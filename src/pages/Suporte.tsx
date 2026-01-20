@@ -7,11 +7,18 @@ import { Loader2, Send, MessageCircle, LifeBuoy } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useUnreadMessages } from "@/hooks/use-unread-messages";
 
 const Suporte = () => {
   const { messages, isLoading, sendMessage } = useUserChat();
+  const { markAllAsRead } = useUnreadMessages();
   const [text, setText] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Marcar como lida ao entrar ou receber nova msg com o chat aberto
+  useEffect(() => {
+    markAllAsRead();
+  }, [messages.length, markAllAsRead]);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollIntoView({ behavior: 'smooth' });
