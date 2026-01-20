@@ -6,7 +6,7 @@ import {
   Loader2, CheckCircle2, AlertTriangle, Cloud, Sun, Users, ImageIcon, 
   FileDown, Check, X, MapPin, Calendar, Camera, ListChecks, ShieldCheck, 
   Signature as SignatureIcon, Send, Truck, HardHat, Info, Clock, AlertCircle, 
-  Eye, CloudRain, CloudLightning, Package, User, Building, Briefcase, Smartphone, ClipboardCheck, ArrowUp, TrendingUp
+  Eye, CloudRain, CloudLightning, Package, User, Building, Briefcase, Smartphone, ClipboardCheck, ArrowUp, TrendingUp, PartyPopper, Download
 } from "lucide-react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import SignatureCanvas from 'react-signature-canvas';
@@ -43,6 +43,7 @@ const PublicRdoApproval = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<{url: string, desc: string} | null>(null);
+  const [isSignedSuccessfully, setIsSignedSuccessfully] = useState(false);
 
   useEffect(() => {
     if (!rdo?.id) return;
@@ -70,9 +71,15 @@ const PublicRdoApproval = () => {
           signerName: clientName, signerRole: clientRole,
           metadata: { signed_at: new Date().toISOString(), user_agent: window.navigator.userAgent }
       });
-      confetti({ particleCount: 150, spread: 70 });
+      
+      confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
       showSuccess("Assinado!");
-    } catch (err: any) { showError("Erro ao aprovar."); } finally { setIsProcessing(false); }
+      setIsSignedSuccessfully(true);
+    } catch (err: any) { 
+      showError("Erro ao aprovar."); 
+    } finally { 
+      setIsProcessing(false); 
+    }
   };
 
   const handleReject = async () => {
@@ -85,8 +92,56 @@ const PublicRdoApproval = () => {
     } catch (err: any) { showError("Erro ao enviar."); } finally { setIsProcessing(false); }
   };
 
+  const downloadPdf = async () => {
+    if (!rdo) return;
+    setIsDownloading(true);
+    try {
+      await generateRdoPdf(rdo, rdo.obras?.nome || "Obra", rdo.profiles as any, rdo.obras as any);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   if (isLoading) return <div className="min-h-screen flex flex-col items-center justify-center p-4"><Loader2 className="h-10 w-10 animate-spin text-primary mb-4" /><p className="text-muted-foreground font-black uppercase tracking-widest text-[10px]">Validando Acesso...</p></div>;
   if (error || !rdo) return <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center"><AlertTriangle className="h-12 w-12 text-destructive mb-4" /><h1 className="text-xl font-black uppercase">Relatório não encontrado</h1></div>;
+
+  // --- TELA DE SUCESSO ---
+  if (isSignedSuccessfully || isApproved) {
+    return (
+      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-4">
+        <div className="max-w-md w-full space-y-8 animate-in zoom-in-95 duration-500">
+          <div className="bg-white rounded-[3rem] shadow-2xl overflow-hidden text-center p-10 border border-slate-100">
+            <div className="w-24 h-24 bg-emerald-50 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+              <CheckCircle2 className="w-12 h-12 text-emerald-500" />
+            </div>
+            <h1 className="text-3xl font-black uppercase tracking-tighter text-slate-800 leading-none mb-4">
+              RDO Aprovado!
+            </h1>
+            <p className="text-sm text-muted-foreground font-medium mb-8">
+              Agradecemos sua validação técnica. O documento oficial já está disponível para arquivamento.
+            </p>
+            
+            <div className="space-y-4">
+              <Button 
+                onClick={downloadPdf} 
+                disabled={isDownloading}
+                className="w-full h-16 rounded-2xl bg-[#066abc] hover:bg-[#066abc]/90 text-white font-black uppercase text-xs tracking-widest shadow-xl shadow-blue-500/20"
+              >
+                {isDownloading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Download className="w-5 h-5 mr-2" />}
+                Baixar PDF Assinado
+              </Button>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                Protocolo: {rdo.id.slice(0, 8)}
+              </p>
+            </div>
+          </div>
+          <div className="text-center">
+            <img src={LOGO_URL} alt="Meu RDO" className="h-6 opacity-30 mx-auto" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const engineerName = rdo.profiles ? `${rdo.profiles.first_name || ''} ${rdo.profiles.last_name || ''}`.trim() : "Responsável Técnico";
 
@@ -101,29 +156,39 @@ const PublicRdoApproval = () => {
 
         <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b px-6 py-4 flex items-center justify-between shadow-sm">
             <img src={LOGO_URL} alt="Meu RDO" className="h-7 object-contain" />
-            <Button variant="outline" size="sm" className="rounded-xl font-black uppercase text-[9px] tracking-widest h-9" onClick={async () => { setIsDownloading(true); await generateRdoPdf(rdo, rdo.obras?.nome || "Obra", rdo.profiles as any, rdo.obras as any); setIsDownloading(false); }}>
+            <Button variant="outline" size="sm" className="rounded-xl font-black uppercase text-[9px] tracking-widest h-9" onClick={downloadPdf}>
                 {isDownloading ? <Loader2 className="w-3 h-3 mr-2 animate-spin" /> : <FileDown className="w-3 h-3 mr-2" />} PDF
             </Button>
         </header>
 
         <main className="max-w-5xl mx-auto w-full p-4 sm:p-8 space-y-12 animate-in fade-in duration-700">
-            {/* HERO SECTION */}
-            <section className="relative h-[300px] sm:h-[400px] rounded-[3rem] overflow-hidden flex items-end p-8 sm:p-12 shadow-2xl">
-                {rdo.obras?.foto_url ? <img src={rdo.obras.foto_url} className="absolute inset-0 w-full h-full object-cover" /> : <div className="absolute inset-0 bg-[#066abc]" />}
-                <div className="absolute inset-0 bg-black/50" />
+            {/* HERO SECTION CORRIGIDA */}
+            <section className="relative h-[300px] sm:h-[400px] rounded-[3rem] overflow-hidden flex items-end p-8 sm:p-12 shadow-2xl bg-slate-800">
+                {rdo.obras?.foto_url ? (
+                  <img src={rdo.obras.foto_url} className="absolute inset-0 w-full h-full object-cover" alt="Capa da Obra" />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-950" />
+                )}
+                <div className="absolute inset-0 bg-black/40" />
                 <div className="relative z-10 space-y-4 w-full">
-                    <Badge className={cn("uppercase font-black tracking-widest text-[10px] border-none shadow-lg", isApproved ? "bg-emerald-500" : "bg-orange-500")}>
-                        {isApproved ? 'Relatório Aprovado' : 'Aguardando Conferência'}
+                    <Badge className="uppercase font-black tracking-widest text-[10px] border-none shadow-lg bg-orange-500">
+                        Aguardando Conferência
                     </Badge>
-                    <h1 className="text-4xl sm:text-6xl font-black uppercase text-white tracking-tighter leading-none">{rdo.obras?.nome}</h1>
-                    <div className="flex flex-wrap gap-4 text-white/80 font-bold uppercase text-[10px] tracking-widest">
-                        <span className="flex items-center gap-2"><Calendar className="w-3.5 h-3.5" /> {format(parseISO(rdo.data_rdo), "dd 'de' MMMM, yyyy", { locale: ptBR })}</span>
-                        <span className="flex items-center gap-2"><MapPin className="w-3.5 h-3.5" /> {rdo.obras?.endereco || "Local N/A"}</span>
+                    <h1 className="text-4xl sm:text-6xl font-black uppercase text-white tracking-tighter leading-tight drop-shadow-lg">
+                        {rdo.obras?.nome || "Obra Sem Nome"}
+                    </h1>
+                    <div className="flex flex-wrap gap-4 text-white/90 font-bold uppercase text-[10px] tracking-widest">
+                        <span className="flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-lg backdrop-blur-md">
+                          <Calendar className="w-3.5 h-3.5 text-primary" /> {format(parseISO(rdo.data_rdo), "dd 'de' MMMM, yyyy", { locale: ptBR })}
+                        </span>
+                        <span className="flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-lg backdrop-blur-md">
+                          <MapPin className="w-3.5 h-3.5 text-primary" /> {rdo.obras?.endereco || "Endereço em atualização"}
+                        </span>
                     </div>
                 </div>
             </section>
 
-            {/* SEGURANÇA E CLIMA (TOP CARDS) */}
+            {/* SEGURANÇA E CLIMA */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card className="rounded-[2rem] border-none shadow-sm bg-white overflow-hidden">
                     <div className="bg-emerald-600 p-4 flex items-center justify-between">
@@ -151,9 +216,58 @@ const PublicRdoApproval = () => {
                 </Card>
             </div>
 
+            {/* RECURSOS (EQUIPE, MÁQUINAS, MATERIAIS) - ADICIONADO FALLBACKS */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="space-y-4">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2"><Users className="w-3.5 h-3.5" /> Efetivo em Campo</h3>
+                    <Card className="rounded-3xl border-none shadow-sm bg-white min-h-[150px]">
+                        <div className="p-6 space-y-3">
+                            {rdo.rdo_mao_de_obra && rdo.rdo_mao_de_obra.length > 0 ? rdo.rdo_mao_de_obra.map((m, i) => (
+                                <div key={i} className="flex justify-between items-center py-2 border-b border-slate-50 last:border-0">
+                                    <span className="text-xs font-bold text-slate-700 uppercase">{m.funcao}</span>
+                                    <Badge variant="secondary" className="font-black px-3 rounded-lg text-[9px]">{m.quantidade} {m.quantidade === 1 ? 'Pessoa' : 'Pessoas'}</Badge>
+                                </div>
+                            )) : (
+                              <div className="py-8 text-center"><p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Nenhum registro</p></div>
+                            )}
+                        </div>
+                    </Card>
+                </div>
+                <div className="space-y-4">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2"><Truck className="w-3.5 h-3.5" /> Máquinas</h3>
+                    <Card className="rounded-3xl border-none shadow-sm bg-white min-h-[150px]">
+                        <div className="p-6 space-y-3">
+                            {rdo.rdo_equipamentos && rdo.rdo_equipamentos.length > 0 ? rdo.rdo_equipamentos.map((e, i) => (
+                                <div key={i} className="flex justify-between items-center py-2 border-b border-slate-50 last:border-0">
+                                    <span className="text-xs font-bold text-slate-700 uppercase">{e.equipamento}</span>
+                                    <Badge className="bg-blue-50 text-blue-600 border-none font-black px-3 text-[9px]">{e.horas_trabalhadas}h</Badge>
+                                </div>
+                            )) : (
+                              <div className="py-8 text-center"><p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Nenhum registro</p></div>
+                            )}
+                        </div>
+                    </Card>
+                </div>
+                <div className="space-y-4">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2"><Package className="w-3.5 h-3.5" /> Insumos</h3>
+                    <Card className="rounded-3xl border-none shadow-sm bg-white min-h-[150px]">
+                        <div className="p-6 space-y-3">
+                            {rdo.rdo_materiais && rdo.rdo_materiais.length > 0 ? rdo.rdo_materiais.map((m, i) => (
+                                <div key={i} className="flex justify-between items-center py-2 border-b border-slate-50 last:border-0">
+                                    <span className="text-xs font-bold text-slate-700 uppercase">{m.nome_material}</span>
+                                    <Badge className="bg-orange-50 text-orange-600 border-none font-black px-3 text-[9px]">{m.quantidade_consumida} {m.unidade}</Badge>
+                                </div>
+                            )) : (
+                              <div className="py-8 text-center"><p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Nenhum registro</p></div>
+                            )}
+                        </div>
+                    </Card>
+                </div>
+            </div>
+
             {/* SERVIÇOS EXECUTADOS */}
             <section className="space-y-4">
-                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2 px-2"><ListChecks className="w-4 h-4" /> Atividades Reportadas</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2 px-2"><ListChecks className="w-4 h-4" /> Atividades Reportadas</h3>
                 <div className="grid grid-cols-1 gap-4">
                     {rdo.rdo_atividades_detalhe?.map((atv, i) => (
                         <Card key={i} className="border-none shadow-sm rounded-3xl p-6 bg-white flex flex-col sm:flex-row items-center gap-6">
@@ -161,7 +275,7 @@ const PublicRdoApproval = () => {
                                 <h4 className="text-lg font-black text-slate-800 uppercase tracking-tight leading-tight">{atv.descricao_servico}</h4>
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                        <span>Progresso Realizado</span>
+                                        <span>Avanço Diário</span>
                                         <span className="text-primary">{atv.avanco_percentual}%</span>
                                     </div>
                                     <Progress value={atv.avanco_percentual} className="h-2" />
@@ -177,38 +291,6 @@ const PublicRdoApproval = () => {
                     ))}
                 </div>
             </section>
-
-            {/* DETALHES DE RECURSOS (EQUIPE E MÁQUINAS) */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="space-y-4">
-                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2"><Users className="w-4 h-4" /> Efetivo em Campo</h3>
-                    <Card className="rounded-3xl border-none shadow-sm overflow-hidden bg-white">
-                        <div className="p-6 space-y-3">
-                            {rdo.rdo_mao_de_obra?.map((m, i) => (
-                                <div key={i} className="flex justify-between items-center py-2 border-b border-slate-50 last:border-0">
-                                    <span className="text-sm font-bold text-slate-700 uppercase">{m.funcao}</span>
-                                    <Badge variant="secondary" className="font-black px-4 rounded-lg">{m.quantidade} {m.quantidade === 1 ? 'Pessoa' : 'Pessoas'}</Badge>
-                                </div>
-                            ))}
-                        </div>
-                    </Card>
-                </div>
-                <div className="space-y-4">
-                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2"><Truck className="w-4 h-4" /> Máquinas & Equipamentos</h3>
-                    <Card className="rounded-3xl border-none shadow-sm overflow-hidden bg-white">
-                        <div className="p-6 space-y-3">
-                            {rdo.rdo_equipamentos?.length ? rdo.rdo_equipamentos.map((e, i) => (
-                                <div key={i} className="flex justify-between items-center py-2 border-b border-slate-50 last:border-0">
-                                    <span className="text-sm font-bold text-slate-700 uppercase">{e.equipamento}</span>
-                                    <div className="flex gap-2">
-                                        <Badge className="bg-blue-50 text-blue-600 border-none font-black px-3">{e.horas_trabalhadas}h Trab.</Badge>
-                                    </div>
-                                </div>
-                            )) : <div className="py-6 text-center text-slate-400 text-xs font-bold uppercase tracking-widest">Nenhum equipamento</div>}
-                        </div>
-                    </Card>
-                </div>
-            </div>
 
             {/* OBSERVAÇÕES */}
             {(rdo.impedimentos_comentarios || rdo.observacoes_gerais) && (
@@ -232,28 +314,26 @@ const PublicRdoApproval = () => {
             )}
 
             {/* RODAPÉ DE ASSINATURA */}
-            {!isApproved && (
-                <section className="pt-20 border-t-4 border-slate-100 space-y-8 animate-in slide-in-from-bottom-8">
-                    <div className="text-center space-y-2">
-                        <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6"><SignatureIcon className="w-10 h-10 text-primary" /></div>
-                        <h3 className="text-3xl font-black uppercase tracking-tight text-slate-800">Assinatura Digital do Cliente</h3>
-                        <p className="text-sm text-muted-foreground font-medium">Validar relatório e arquivar digitalmente.</p>
+            <section className="pt-20 border-t-4 border-slate-100 space-y-8 animate-in slide-in-from-bottom-8">
+                <div className="text-center space-y-2">
+                    <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6"><SignatureIcon className="w-10 h-10 text-primary" /></div>
+                    <h3 className="text-3xl font-black uppercase tracking-tight text-slate-800">Validação Digital do Cliente</h3>
+                    <p className="text-sm text-muted-foreground font-medium">Preencha os dados e assine no campo abaixo.</p>
+                </div>
+
+                <div className="max-w-md mx-auto space-y-6 px-2">
+                    <div className="grid grid-cols-1 gap-4">
+                        <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase tracking-widest ml-1 text-slate-400">Seu Nome</Label><Input placeholder="Ex: João Silva" value={clientName} onChange={e => setClientName(e.target.value)} className="h-12 rounded-2xl bg-white shadow-inner" /></div>
+                        <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase tracking-widest ml-1 text-slate-400">Seu Vínculo (Ex: Proprietário)</Label><Input placeholder="Cargo ou Função" value={clientRole} onChange={e => setClientRole(e.target.value)} className="h-12 rounded-2xl bg-white shadow-inner" /></div>
                     </div>
 
-                    <div className="max-w-md mx-auto space-y-6">
-                        <div className="grid grid-cols-1 gap-4">
-                            <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase tracking-widest ml-1 text-slate-400">Seu Nome</Label><Input placeholder="Ex: João Silva" value={clientName} onChange={e => setClientName(e.target.value)} className="h-12 rounded-2xl bg-white shadow-inner" /></div>
-                            <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase tracking-widest ml-1 text-slate-400">Seu Vínculo (Ex: Proprietário)</Label><Input placeholder="Cargo ou Função" value={clientRole} onChange={e => setClientRole(e.target.value)} className="h-12 rounded-2xl bg-white shadow-inner" /></div>
-                        </div>
-
-                        <div className={cn("border-4 border-dashed rounded-[3rem] bg-white aspect-[16/8] relative overflow-hidden transition-all", isDrawing ? "border-primary ring-8 ring-primary/5" : "border-slate-200 opacity-60")}>
-                            <SignatureCanvas ref={sigPad} penColor='#066abc' canvasProps={{ className: 'sigCanvas w-full h-full' }} onBegin={() => setIsDrawing(true)} />
-                            {!isDrawing && <div className="absolute inset-0 flex flex-col items-center justify-center opacity-40 pointer-events-none"><Smartphone className="w-10 h-10 mb-2 text-slate-400" /><p className="text-[9px] font-black uppercase tracking-[0.3em]">Assine Aqui</p></div>}
-                            {isDrawing && <button onClick={() => { sigPad.current.clear(); setIsDrawing(false); }} className="absolute top-4 right-4 p-2 bg-slate-100 text-red-500 rounded-full hover:bg-red-50 shadow-md"><X className="w-5 h-5" /></button>}
-                        </div>
+                    <div className={cn("border-4 border-dashed rounded-[3rem] bg-white aspect-[16/8] relative overflow-hidden transition-all", isDrawing ? "border-primary ring-8 ring-primary/5" : "border-slate-200 opacity-60")}>
+                        <SignatureCanvas ref={sigPad} penColor='#066abc' canvasProps={{ className: 'sigCanvas w-full h-full' }} onBegin={() => setIsDrawing(true)} />
+                        {!isDrawing && <div className="absolute inset-0 flex flex-col items-center justify-center opacity-40 pointer-events-none"><Smartphone className="w-10 h-10 mb-2 text-slate-400" /><p className="text-[9px] font-black uppercase tracking-[0.3em]">Assine Aqui</p></div>}
+                        {isDrawing && <button onClick={() => { sigPad.current.clear(); setIsDrawing(false); }} className="absolute top-4 right-4 p-2 bg-slate-100 text-red-500 rounded-full hover:bg-red-50 shadow-md"><X className="w-5 h-5" /></button>}
                     </div>
-                </section>
-            )}
+                </div>
+            </section>
         </main>
 
         <footer className="fixed bottom-0 left-0 right-0 p-6 bg-white/95 backdrop-blur-md border-t shadow-2xl flex items-center justify-center z-[60]">
@@ -265,9 +345,9 @@ const PublicRdoApproval = () => {
                             <div><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Emitido por:</p><p className="text-sm font-black text-slate-800 uppercase tracking-tight">{engineerName}</p></div>
                         </div>
                         <div className="flex gap-4 w-full md:w-auto">
-                            <button onClick={() => setShowRejectForm(true)} className="text-[10px] font-black text-slate-400 uppercase hover:text-red-500 flex-1 h-14">Ajustes</button>
+                            <button onClick={() => setShowRejectForm(true)} className="text-[10px] font-black text-slate-400 uppercase hover:text-red-500 flex-1 h-14">Solicitar Correção</button>
                             <Button onClick={handleApprove} disabled={isProcessing || !canApprove} className={cn("h-14 px-12 rounded-[1.25rem] font-black uppercase text-xs tracking-widest flex-1 shadow-2xl transition-all", canApprove ? "bg-emerald-600 hover:bg-emerald-700 text-white scale-105" : "bg-slate-200 text-slate-400 shadow-none")}>
-                                {isProcessing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />} Aprovar RDO
+                                {isProcessing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />} Aprovar e Assinar
                             </Button>
                         </div>
                     </>
