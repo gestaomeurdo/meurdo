@@ -9,17 +9,25 @@ export const FREE_PLAN_LIMITS = {
 
 const ADMIN_EMAIL = 'robsonalixandree@gmail.com';
 
-export const useCanCreateObra = () => {
+export const useSubscriptionLimits = () => {
   const { data: profile, isLoading: isLoadingProfile } = useProfile();
   const { data: obras, isLoading: isLoadingObras } = useObras();
-  const { user } = useAuth();
+  const { user, isPro: authIsPro } = useAuth();
 
-  // REGRA DE OURO: Robson ignora todos os limites
+  // 1. Prioridade absoluta: Se for o Robson ou se o contexto de Auth já marcou como Pro
   const isRobson = user?.email === ADMIN_EMAIL || profile?.role === 'administrator';
-  const isPro = isRobson || profile?.subscription_status === 'active' || profile?.plan_type === 'pro';
+  
+  // 2. Verificação robusta de Pro
+  const isPro = 
+    isRobson || 
+    authIsPro || 
+    profile?.subscription_status === 'active' || 
+    profile?.plan_type === 'pro' || 
+    profile?.plan_type === 'premium';
   
   const obraCount = obras?.length || 0;
   
+  // Se for Pro/Robson, sempre pode criar. Se não, respeita o limite de 1.
   const canCreateObra = isPro || obraCount < FREE_PLAN_LIMITS.OBRAS;
 
   return {
@@ -31,4 +39,4 @@ export const useCanCreateObra = () => {
   };
 };
 
-export const useSubscriptionLimits = useCanCreateObra;
+export const useCanCreateObra = useSubscriptionLimits;

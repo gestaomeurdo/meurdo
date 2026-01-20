@@ -23,7 +23,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const PRO_CACHE_KEY = 'meurdo_is_pro_v1';
+const PRO_CACHE_KEY = 'meurdo_is_pro_v2';
 const ADMIN_EMAIL = 'robsonalixandree@gmail.com';
 
 export const SessionContextProvider = ({ children }: { children: ReactNode }) => {
@@ -40,9 +40,15 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
   const queryClient = useQueryClient();
 
   const updateProStatus = (p: Profile | null, email?: string) => {
-    // REGRA DE OURO: Robson é sempre PRO
+    // Robson ou Admin sempre são PRO
     const isRobson = email === ADMIN_EMAIL || p?.role === 'administrator';
-    const status = isRobson || p?.subscription_status === 'active' || p?.plan_type === 'pro';
+    
+    // Verificação múltipla de campos premium
+    const status = 
+      isRobson || 
+      p?.subscription_status === 'active' || 
+      p?.plan_type === 'pro' || 
+      p?.plan_type === 'premium';
     
     setIsPro(status);
     localStorage.setItem(PRO_CACHE_KEY, status ? 'true' : 'false');
