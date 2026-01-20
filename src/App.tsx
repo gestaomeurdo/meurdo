@@ -23,6 +23,7 @@ import Profile from "./pages/Profile";
 import UpdatePassword from "./pages/UpdatePassword";
 import AuthCallback from "./pages/AuthCallback";
 import PublicRdoApproval from "./pages/PublicRdoApproval";
+import Suporte from "./pages/Suporte";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -59,9 +60,10 @@ const App = () => (
               <Route path="/documentacao" element={<Documentacao />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/suporte" element={<Suporte />} />
               <Route path="/update-password" element={<UpdatePassword />} />
               
-              {/* BACKOFFICE ADMINISTRATIVO (PROTEGIDO) */}
+              {/* BACKOFFICE ADMINISTRATIVO */}
               <Route element={<AdminGuard />}>
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/admin/tickets" element={<AdminTickets />} />

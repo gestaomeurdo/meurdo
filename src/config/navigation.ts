@@ -1,10 +1,10 @@
-import { LayoutDashboard, Construction, DollarSign, Package, Users, FileText, Settings, ClipboardList, BarChart3, Star, Truck, LifeBuoy, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Construction, DollarSign, Package, Users, FileText, ClipboardList, BarChart3, Star, Truck, ShieldCheck, MessageCircle } from "lucide-react";
 
 export interface NavItem {
   title: string;
   href: string;
   icon: React.ElementType;
-  roles: string[]; // Roles that can access this link
+  roles: string[];
 }
 
 export const navItems: NavItem[] = [
@@ -39,7 +39,7 @@ export const navItems: NavItem[] = [
     roles: ["administrator", "obra_user", "view_only"],
   },
   {
-    title: "Atividades",
+    title: "Cronograma",
     href: "/atividades",
     icon: ClipboardList,
     roles: ["administrator", "obra_user", "view_only"],
@@ -51,15 +51,9 @@ export const navItems: NavItem[] = [
     roles: ["administrator", "obra_user", "view_only"],
   },
   {
-    title: "Mão de Obra",
+    title: "Efetivo & Custos",
     href: "/mao-de-obra",
     icon: Users,
-    roles: ["administrator", "obra_user", "view_only"],
-  },
-  {
-    title: "Máquinas",
-    href: "/maquinas",
-    icon: Truck,
     roles: ["administrator", "obra_user", "view_only"],
   },
   {
@@ -69,13 +63,19 @@ export const navItems: NavItem[] = [
     roles: ["administrator", "obra_user", "view_only"],
   },
   {
-    title: "Backoffice (Robson)",
-    href: "/admin/tickets",
+    title: "Suporte Direto",
+    href: "/suporte",
+    icon: MessageCircle,
+    roles: ["administrator", "obra_user", "view_only"],
+  },
+  {
+    title: "Backoffice Robson",
+    href: "/admin",
     icon: ShieldCheck,
     roles: ["administrator"],
   },
   {
-    title: "Planos & Suporte",
+    title: "Assinatura",
     href: "/settings",
     icon: Star,
     roles: ["administrator", "obra_user", "view_only"],
