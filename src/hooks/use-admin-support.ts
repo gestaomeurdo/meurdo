@@ -16,7 +16,7 @@ export const useAdminTickets = () => {
   return useQuery<AdminTicket[], Error>({
     queryKey: ['adminTickets'],
     queryFn: async () => {
-      // Query sem filtros para Admin
+      // Query enriquecida com dados do profile
       const { data, error } = await supabase
         .from('support_tickets')
         .select(`
@@ -60,7 +60,6 @@ export const useAdminReply = () => {
       
       if (msgError) throw msgError;
 
-      // Opcional: Atualiza o status do ticket para indicar que o suporte respondeu
       await supabase
         .from('support_tickets')
         .update({ status: 'resolved' }) 
@@ -69,7 +68,6 @@ export const useAdminReply = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['adminTickets'] });
       queryClient.invalidateQueries({ queryKey: ['adminTicketMessages', variables.ticketId] });
-      queryClient.invalidateQueries({ queryKey: ['supportTickets'] });
     },
   });
 };

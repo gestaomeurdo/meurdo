@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/integrations/supabase/auth-provider";
+import { showError } from "@/utils/toast";
 
 export type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
 export type SenderRole = 'user' | 'support';
@@ -60,25 +61,40 @@ export const useCreateTicket = () => {
 
   return useMutation({
     mutationFn: async ({ subject, category, message }: { subject: string; category: string; message: string }) => {
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!user?.id) throw new Error("Sessão expirada. Faça login novamente.");
 
-      // 1. Criar Ticket
-      const { data: ticket, error: ticketError } = await supabase
-        .from('support_tickets')
-        .insert({ user_id: user.id, subject, category, status: 'open' })
-        .select()
-        .single();
+      try {
+        // 1. Criar Ticket com ID explícito
+        const { data: ticket, error: ticketError } = await supabase
+          .from('support_tickets')
+          .insert({ 
+            user_id: user.id, 
+            subject, 
+            category, 
+            status: 'open' 
+          })
+          .select()
+          .single();
 
-      if (ticketError) throw ticketError;
+        if (ticketError) throw ticketError;
 
-      // 2. Criar Primeira Mensagem
-      const { error: msgError } = await supabase
-        .from('support_messages')
-        .insert({ ticket_id: ticket.id, sender_role: 'user', message });
+        // 2. Criar Primeira Mensagem
+        const { error: msgError } = await supabase
+          .from('support_messages')
+          .insert({ 
+            ticket_id: ticket.id, 
+            sender_role: 'user', 
+            message 
+          });
 
-      if (msgError) throw msgError;
+        if (msgError) throw msgError;
 
-      return ticket;
+        return ticket;
+      } catch (err: any) {
+        console.error("[useCreateTicket] Erro crítico:", err);
+        showError("Falha ao abrir chamado: " + (err.message || "Erro de conexão"));
+        throw err;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['supportTickets'] });
