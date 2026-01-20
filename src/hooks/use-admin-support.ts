@@ -99,6 +99,23 @@ export const useAdminReply = () => {
   });
 };
 
+export const useAdminClearChat = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase
+        .from('support_messages')
+        .delete()
+        .eq('user_id', userId);
+      if (error) throw error;
+    },
+    onSuccess: (_, userId) => {
+      queryClient.invalidateQueries({ queryKey: ['adminInbox'] });
+      queryClient.invalidateQueries({ queryKey: ['adminChatMessages', userId] });
+    },
+  });
+};
+
 export const useAdminUpdateStatus = () => {
     return useMutation({
         mutationFn: async ({ ticketId, status }: { ticketId: string, status: string }) => {

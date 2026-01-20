@@ -1,14 +1,16 @@
 import AdminLayout from "@/components/layout/AdminLayout";
-import { useAdminInbox, useAdminChatMessages, useAdminReply } from "@/hooks/use-admin-support";
+import { useAdminInbox, useAdminChatMessages, useAdminReply, useAdminClearChat } from "@/hooks/use-admin-support";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Send, User, MessageSquare, Search, Sparkles } from "lucide-react";
+import { Loader2, Send, User, MessageSquare, Search, Sparkles, Trash2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "react-router-dom";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { showSuccess, showError } from "@/utils/toast";
 
 const AdminTickets = () => {
   const location = useLocation();
@@ -19,6 +21,7 @@ const AdminTickets = () => {
   const { data: conversations, isLoading: loadingInbox } = useAdminInbox();
   const { data: messages, isLoading: loadingMessages } = useAdminChatMessages(selectedUserId || undefined);
   const replyMutation = useAdminReply();
+  const clearChatMutation = useAdminClearChat();
   
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const userRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -48,6 +51,16 @@ const AdminTickets = () => {
       await replyMutation.mutateAsync({ userId: selectedUserId, message: replyText });
       setReplyText("");
     } catch (err) {}
+  };
+
+  const handleClearChat = async () => {
+    if (!selectedUserId) return;
+    try {
+        await clearChatMutation.mutateAsync(selectedUserId);
+        showSuccess("Histórico de mensagens removido com sucesso.");
+    } catch (err) {
+        showError("Falha ao remover mensagens.");
+    }
   };
 
   return (
@@ -130,6 +143,38 @@ const AdminTickets = () => {
                                 </p>
                             </div>
                         </div>
+
+                        {/* AÇÃO DE LIMPAR CONVERSA */}
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-10 w-10 text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl"
+                                    title="Limpar histórico de mensagens"
+                                >
+                                    <Trash2 className="w-5 h-5" />
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="bg-slate-900 border-slate-800 text-white rounded-[2rem]">
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle className="text-xl font-black uppercase tracking-tight">Apagar histórico?</AlertDialogTitle>
+                                    <AlertDialogDescription className="text-slate-400">
+                                        Tem certeza que deseja remover permanentemente todas as mensagens trocadas com <strong>{selectedUser?.first_name}</strong>? Esta ação não pode ser desfeita.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel className="bg-transparent border-slate-700 text-slate-400 rounded-xl">Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction 
+                                        onClick={handleClearChat} 
+                                        className="bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold"
+                                        disabled={clearChatMutation.isPending}
+                                    >
+                                        {clearChatMutation.isPending ? <Loader2 className="animate-spin h-4 w-4" /> : "Sim, apagar tudo"}
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                     </header>
 
                     <ScrollArea className="flex-1 p-8 sm:p-12">
