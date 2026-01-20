@@ -9,27 +9,24 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const menuItems = [
-    { title: "Métricas SaaS", href: "/admin", icon: LayoutDashboard },
-    { title: "Inbox Suporte", href: "/admin/tickets", icon: LifeBuoy },
+    { title: "Dashboard Admin", href: "/admin", icon: LayoutDashboard },
+    { title: "Inbox de Suporte", href: "/admin/tickets", icon: LifeBuoy },
     { title: "Base de Usuários", href: "/admin/users", icon: Users },
   ];
 
   return (
     <div className="flex h-screen bg-slate-950 text-slate-100 overflow-hidden">
-      {/* SIDEBAR ADMIN FIXA - SEMPRE ESCURA */}
+      {/* SIDEBAR - MESMO ESTILO DO APP PRINCIPAL */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 border-r border-white/5 transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0",
+        "fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 border-r border-slate-800 transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0",
         !isSidebarOpen && "-translate-x-full"
       )}>
-        <div className="flex flex-col h-full p-6">
-          <div className="flex items-center gap-3 mb-10 px-2">
-            <div className="bg-purple-600 p-2.5 rounded-2xl shadow-lg shadow-purple-500/20">
-                <ShieldCheck className="w-6 h-6 text-white" />
+        <div className="flex flex-col h-full p-4">
+          <div className="mb-8 flex items-center gap-3 px-2 pt-2">
+            <div className="bg-[#066abc] p-2 rounded-xl">
+                <ShieldCheck className="w-5 h-5 text-white" />
             </div>
-            <div>
-                <h2 className="text-white font-black uppercase tracking-tighter text-xl leading-none">MEU RDO</h2>
-                <p className="text-[9px] font-bold text-purple-400 uppercase tracking-widest mt-1">Backoffice v1.0</p>
-            </div>
+            <span className="font-black text-lg tracking-tighter uppercase">Meu RDO Admin</span>
           </div>
 
           <nav className="flex-1 space-y-1">
@@ -38,10 +35,10 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
                 key={item.href}
                 to={item.href}
                 className={cn(
-                  "flex items-center p-4 rounded-2xl transition-all font-bold text-sm",
+                  "flex items-center p-3 rounded-xl transition-all font-bold text-sm",
                   location.pathname === item.href
-                    ? "bg-purple-600 text-white shadow-xl shadow-purple-900/40"
-                    : "text-slate-400 hover:bg-white/5 hover:text-slate-100"
+                    ? "bg-[#066abc] text-white shadow-lg shadow-blue-500/20"
+                    : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
                 )}
               >
                 <item.icon className="w-5 h-5 mr-3" />
@@ -50,17 +47,17 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
             ))}
           </nav>
 
-          <div className="pt-6 border-t border-white/5">
-              <Link to="/dashboard" className="flex items-center p-4 rounded-2xl text-slate-500 hover:text-white transition-colors text-xs font-black uppercase tracking-widest">
-                <ArrowLeft className="w-4 h-4 mr-2" /> Voltar ao Site
+          <div className="mt-auto pt-4 border-t border-slate-800">
+              <Link to="/dashboard" className="flex items-center p-3 rounded-xl text-slate-500 hover:text-white transition-colors text-xs font-black uppercase tracking-widest">
+                <ArrowLeft className="w-4 h-4 mr-2" /> Voltar ao App
               </Link>
           </div>
         </div>
       </aside>
 
-      {/* CONTEÚDO PRINCIPAL - AGORA DARK POR PADRÃO */}
+      {/* CONTEÚDO */}
       <main className="flex-1 flex flex-col relative overflow-hidden bg-slate-950">
-        <div className="h-1.5 w-full bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 shadow-[0_0_15px_rgba(147,51,234,0.3)]"></div>
+        <div className="h-1 bg-[#066abc]/30"></div>
         <div className="flex-1 overflow-y-auto">
             {children}
         </div>
@@ -70,7 +67,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       <Button 
         variant="ghost" 
         size="icon" 
-        className="fixed bottom-6 right-6 lg:hidden z-50 bg-purple-600 text-white rounded-full h-14 w-14 shadow-2xl hover:bg-purple-700"
+        className="fixed bottom-6 right-6 lg:hidden z-50 bg-[#066abc] text-white rounded-full h-14 w-14 shadow-xl"
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
       >
         {isSidebarOpen ? <X /> : <Menu />}
