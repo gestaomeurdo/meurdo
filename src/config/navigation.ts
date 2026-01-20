@@ -39,7 +39,7 @@ export const navItems: NavItem[] = [
     roles: ["administrator", "obra_user", "view_only"],
   },
   {
-    title: "Cronograma",
+    title: "Cadastro de Atividades",
     href: "/atividades",
     icon: ClipboardList,
     roles: ["administrator", "obra_user", "view_only"],
