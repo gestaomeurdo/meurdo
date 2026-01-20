@@ -4,50 +4,47 @@ import { SupportTicket, SupportMessage } from "./use-support";
 import { showError } from "@/utils/toast";
 
 export interface AdminTicket extends SupportTicket {
+  user_name: string;
+  user_email: string;
   profiles: {
     first_name: string | null;
     last_name: string | null;
     email: string | null;
     plan_type: string | null;
-    subscription_status: string | null;
-  };
+  } | null;
 }
 
 export const useAdminTickets = () => {
   return useQuery<AdminTicket[], Error>({
     queryKey: ['adminTickets'],
     queryFn: async () => {
-      // FORMA SEGURA DE BUSCAR: Try/Catch e tratamento de dados nulos
       try {
         const { data, error } = await supabase
           .from('support_tickets')
           .select(`
             *,
-            profiles (first_name, last_name, email, plan_type, subscription_status)
+            profiles ( first_name, last_name, email, plan_type )
           `)
           .order('created_at', { ascending: false });
         
         if (error) throw error;
 
-        // PROTEÇÃO CONTRA PERFIL NULO
-        // Se o usuário foi deletado ou o join falhou, injeta valores padrão para não quebrar a UI
-        return (data || []).map(ticket => ({
-          ...ticket,
-          profiles: ticket.profiles || {
-            first_name: 'Usuário',
-            last_name: 'Desconhecido',
-            email: 'N/A',
-            plan_type: 'FREE',
-            subscription_status: 'inactive'
-          }
-        })) as AdminTicket[];
+        // Mapeamento robusto com fallbacks para evitar crash se o join falhar
+        return (data || []).map(ticket => {
+          const profile = ticket.profiles;
+          return {
+            ...ticket,
+            user_name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Usuário Sem Nome' : 'Usuário Desconhecido',
+            user_email: profile?.email || 'Email não encontrado',
+            profiles: profile
+          };
+        }) as AdminTicket[];
       } catch (err: any) {
         console.error("[useAdminTickets] Erro crítico:", err.message);
-        showError("Falha ao carregar chamados. Verifique as permissões de Admin.");
         throw err;
       }
     },
-    staleTime: 1000 * 30, // 30 segundos
+    staleTime: 1000 * 30,
   });
 };
 

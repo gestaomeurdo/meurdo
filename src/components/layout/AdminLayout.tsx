@@ -15,10 +15,10 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   ];
 
   return (
-    <div className="flex h-screen bg-slate-950 text-slate-100 overflow-hidden font-sans">
-      {/* SIDEBAR - DESIGN UNIFICADO */}
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex overflow-hidden font-sans">
+      {/* SIDEBAR */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 border-r border-slate-800 transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0",
+        "fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 border-r border-slate-800 transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 flex flex-col",
         !isSidebarOpen && "-translate-x-full"
       )}>
         <div className="flex flex-col h-full p-6">
@@ -40,7 +40,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
                 className={cn(
                   "flex items-center p-3.5 rounded-xl transition-all font-bold text-sm",
                   location.pathname === item.href
-                    ? "bg-[#066abc] text-white shadow-xl shadow-blue-500/20 scale-[1.02]"
+                    ? "bg-[#066abc] text-white shadow-xl shadow-blue-500/20"
                     : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
                 )}
               >
@@ -60,16 +60,11 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
 
       {/* CONTEÚDO PRINCIPAL */}
       <main className="flex-1 flex flex-col relative overflow-hidden bg-slate-950">
-        <div className="h-1.5 bg-gradient-to-r from-blue-600 via-blue-400 to-blue-600 opacity-50"></div>
-        <div className="flex-1 overflow-y-auto">
+        <div className="h-1 bg-blue-600 opacity-50"></div>
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8">
             {children}
         </div>
       </main>
-
-      {/* MOBILE OVERLAY */}
-      {isSidebarOpen && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)}></div>
-      )}
 
       {/* MOBILE TRIGGER */}
       <Button 
