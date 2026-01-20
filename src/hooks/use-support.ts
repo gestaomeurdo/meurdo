@@ -22,11 +22,67 @@ export interface SupportMessage {
   created_at: string;
 }
 
+// 1. Hook para buscar todos os chats/tickets do usuário (usado na lista da aba Assinatura)
+export const useSupportTickets = () => {
+  const { user } = useAuth();
+  return useQuery<SupportTicket[], Error>({
+    queryKey: ['supportTickets', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('support_tickets')
+        .select('*')
+        .eq('user_id', user!.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as SupportTicket[];
+    },
+    enabled: !!user,
+  });
+};
+
+// 2. Hook para buscar mensagens de um chat específico
+export const useTicketMessages = (ticketId?: string) => {
+  return useQuery<SupportMessage[], Error>({
+    queryKey: ['chatMessages', ticketId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('support_messages')
+        .select('*')
+        .eq('ticket_id', ticketId!)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return data as SupportMessage[];
+    },
+    enabled: !!ticketId,
+  });
+};
+
+// 3. Hook para enviar resposta (usado no componente de chat)
+export const useSendReply = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ ticketId, message }: { ticketId: string, message: string }) => {
+      const { error: msgError } = await supabase
+        .from('support_messages')
+        .insert({ ticket_id: ticketId, sender_role: 'user', message });
+      if (msgError) throw msgError;
+
+      // Atualiza status para 'open' para notificar o admin
+      await supabase.from('support_tickets').update({ status: 'open' }).eq('id', ticketId);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['chatMessages', variables.ticketId] });
+      queryClient.invalidateQueries({ queryKey: ['supportTickets'] });
+    }
+  });
+};
+
+// 4. Hook unificado para a página de suporte (Estilo Zap)
 export const useUserChat = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // 1. Busca o chat (ticket) principal do usuário
   const chatQuery = useQuery({
     queryKey: ['userChat', user?.id],
     queryFn: async () => {
@@ -44,7 +100,6 @@ export const useUserChat = () => {
     enabled: !!user,
   });
 
-  // 2. Busca mensagens se o chat existir
   const messagesQuery = useQuery({
     queryKey: ['chatMessages', chatQuery.data?.id],
     queryFn: async () => {
@@ -59,12 +114,10 @@ export const useUserChat = () => {
     enabled: !!chatQuery.data?.id,
   });
 
-  // 3. Mutation de envio (Cria chat se não existir)
   const sendMessage = useMutation({
     mutationFn: async (message: string) => {
       let chatId = chatQuery.data?.id;
 
-      // Se não tem chat, cria um invisível
       if (!chatId) {
         const { data: newChat, error: chatError } = await supabase
           .from('support_tickets')
@@ -80,9 +133,7 @@ export const useUserChat = () => {
         .insert({ ticket_id: chatId, sender_role: 'user', message });
       if (msgError) throw msgError;
 
-      // Atualiza status para Robson saber que tem msg nova
       await supabase.from('support_tickets').update({ status: 'open' }).eq('id', chatId);
-
       return chatId;
     },
     onSuccess: () => {
