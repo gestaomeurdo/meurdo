@@ -23,7 +23,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       )}>
         <div className="flex flex-col h-full p-6">
           <div className="mb-10 flex items-center gap-3">
-            <div className="bg-[#066abc] p-2.5 rounded-2xl shadow-lg shadow-blue-500/20">
+            <div className="bg-blue-600 p-2.5 rounded-2xl shadow-lg shadow-blue-500/20">
                 <ShieldCheck className="w-6 h-6 text-white" />
             </div>
             <div className="flex flex-col">
@@ -40,7 +40,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
                 className={cn(
                   "flex items-center p-3.5 rounded-xl transition-all font-bold text-sm",
                   location.pathname === item.href
-                    ? "bg-[#066abc] text-white shadow-xl shadow-blue-500/20"
+                    ? "bg-blue-600 text-white shadow-xl shadow-blue-500/20"
                     : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
                 )}
               >
@@ -60,8 +60,8 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
 
       {/* CONTEÚDO PRINCIPAL */}
       <main className="flex-1 flex flex-col relative overflow-hidden bg-slate-950">
-        <div className="h-1 bg-blue-600 opacity-50"></div>
-        <div className="flex-1 overflow-y-auto p-4 sm:p-8">
+        <div className="h-1 bg-blue-600 opacity-30"></div>
+        <div className="flex-1 overflow-y-auto">
             {children}
         </div>
       </main>
@@ -70,7 +70,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       <Button 
         variant="ghost" 
         size="icon" 
-        className="fixed bottom-6 right-6 lg:hidden z-50 bg-[#066abc] text-white rounded-2xl h-14 w-14 shadow-2xl hover:bg-blue-600"
+        className="fixed bottom-6 right-6 lg:hidden z-50 bg-blue-600 text-white rounded-2xl h-14 w-14 shadow-2xl hover:bg-blue-700"
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
       >
         {isSidebarOpen ? <X /> : <Menu />}

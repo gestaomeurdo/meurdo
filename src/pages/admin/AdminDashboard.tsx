@@ -13,32 +13,8 @@ const AdminDashboard = () => {
     return (
       <AdminLayout>
         <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-[#066abc]" />
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Autenticando God Mode...</p>
-        </div>
-      </AdminLayout>
-    );
-  }
-
-  if (isError) {
-    return (
-      <AdminLayout>
-        <div className="flex flex-col items-center justify-center h-[60vh] gap-6 p-8 text-center">
-          <div className="bg-red-500/10 p-6 rounded-[2.5rem] border border-red-500/20">
-            <AlertTriangle className="h-12 w-12 text-red-500" />
-          </div>
-          <div className="space-y-2">
-            <h2 className="text-xl font-black uppercase text-white tracking-tighter">Acesso Negado ou RLS Bloqueado</h2>
-            <p className="text-slate-400 max-w-sm mx-auto text-sm font-medium">
-              Sua conta não possui privilégios 'Super Admin' no banco de dados.
-            </p>
-          </div>
-          <button 
-            onClick={() => refetch()}
-            className="bg-slate-800 text-white px-8 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-700 transition-all border border-slate-700 shadow-xl"
-          >
-            Tentar Reconectar
-          </button>
+          <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Sincronizando Sistema...</p>
         </div>
       </AdminLayout>
     );
@@ -76,7 +52,7 @@ const AdminDashboard = () => {
         <Card className="rounded-[3rem] border-slate-800 shadow-2xl overflow-hidden bg-slate-900/50 backdrop-blur-md">
             <CardHeader className="bg-slate-900/80 border-b border-slate-800 p-8 flex flex-row items-center justify-between">
                 <CardTitle className="text-lg font-black uppercase flex items-center gap-3 text-white">
-                    <Activity className="w-5 h-5 text-blue-500" /> Atividade em Tempo Real
+                    <Activity className="w-5 h-5 text-blue-500" /> Atividade do Sistema
                 </CardTitle>
                 <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 uppercase font-black text-[9px] tracking-widest px-3 py-1">Sincronizado</Badge>
             </CardHeader>

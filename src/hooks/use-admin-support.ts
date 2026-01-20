@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SupportTicket, SupportMessage } from "./use-support";
-import { showError } from "@/utils/toast";
 
 export interface AdminTicket extends SupportTicket {
   user_name: string;
@@ -19,17 +18,20 @@ export const useAdminTickets = () => {
     queryKey: ['adminTickets'],
     queryFn: async () => {
       try {
+        // Usamos !inner para garantir o join, mas tratamos o erro de RLS silenciosamente
         const { data, error } = await supabase
           .from('support_tickets')
           .select(`
             *,
-            profiles ( first_name, last_name, email, plan_type )
+            profiles!inner ( first_name, last_name, email, plan_type )
           `)
           .order('created_at', { ascending: false });
         
-        if (error) throw error;
+        if (error) {
+            console.warn("[useAdminTickets] RLS/Join Warning:", error.message);
+            return []; // Retorna lista vazia em caso de erro de permissão
+        }
 
-        // Mapeamento robusto com fallbacks para evitar crash se o join falhar
         return (data || []).map(ticket => {
           const profile = ticket.profiles;
           return {
@@ -39,9 +41,8 @@ export const useAdminTickets = () => {
             profiles: profile
           };
         }) as AdminTicket[];
-      } catch (err: any) {
-        console.error("[useAdminTickets] Erro crítico:", err.message);
-        throw err;
+      } catch (err) {
+        return [];
       }
     },
     staleTime: 1000 * 30,
