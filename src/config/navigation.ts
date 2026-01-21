@@ -1,4 +1,4 @@
-import { LayoutDashboard, Construction, DollarSign, Package, Users, FileText, ClipboardList, BarChart3, Star, Truck, ShieldCheck, MessageCircle } from "lucide-react";
+import { LayoutDashboard, Construction, DollarSign, Package, Users, FileText, ClipboardList, BarChart3, Star, MessageCircle, ShieldCheck } from "lucide-react";
 
 export interface NavItem {
   title: string;
@@ -33,7 +33,7 @@ export const navItems: NavItem[] = [
     roles: ["administrator", "obra_user", "view_only"],
   },
   {
-    title: "Gestão de Obra",
+    title: "Gestão de RDOs",
     href: "/gestao-rdo",
     icon: FileText,
     roles: ["administrator", "obra_user", "view_only"],

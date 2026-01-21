@@ -3,14 +3,17 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import ReceiptForm from "./ReceiptForm";
 import { useState } from "react";
+import { MaterialReceipt } from "@/hooks/use-material-receipts";
 
 interface MaterialReceiptDialogProps {
   obraId: string;
+  initialData?: MaterialReceipt;
   trigger?: React.ReactNode;
 }
 
-const MaterialReceiptDialog = ({ obraId, trigger }: MaterialReceiptDialogProps) => {
+const MaterialReceiptDialog = ({ obraId, initialData, trigger }: MaterialReceiptDialogProps) => {
   const [open, setOpen] = useState(false);
+  const isEditing = !!initialData;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -24,10 +27,18 @@ const MaterialReceiptDialog = ({ obraId, trigger }: MaterialReceiptDialogProps) 
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto rounded-3xl">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-black uppercase tracking-tight">Novo Recebimento</DialogTitle>
-          <DialogDescription>Registre a chegada de materiais no canteiro de obras.</DialogDescription>
+          <DialogTitle className="text-2xl font-black uppercase tracking-tight">
+            {isEditing ? "Editar Registro" : "Novo Recebimento"}
+          </DialogTitle>
+          <DialogDescription>
+            {isEditing ? "Atualize os dados do material recebido." : "Registre a chegada de materiais no canteiro de obras."}
+          </DialogDescription>
         </DialogHeader>
-        <ReceiptForm obraId={obraId} onSuccess={() => setOpen(false)} />
+        <ReceiptForm 
+          obraId={obraId} 
+          initialData={initialData} 
+          onSuccess={() => setOpen(false)} 
+        />
       </DialogContent>
     </Dialog>
   );

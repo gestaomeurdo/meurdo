@@ -1,41 +1,37 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/integrations/supabase/auth-provider";
-import { showError } from "@/utils/toast";
 
-const BUCKET_NAME = 'documentos_obra';
-const MAX_FILE_SIZE_MB = 2; // Limite por arquivo
-const FREE_STORAGE_LIMIT_BYTES = 10 * 1024 * 1024; // 10MB para o plano free
+const BUCKET_NAME = 'project-docs';
+const MAX_FILE_SIZE_MB = 2;
+const FREE_STORAGE_LIMIT_BYTES = 10 * 1024 * 1024;
 
 export interface DocumentFile {
   name: string;
   path: string;
   uploaded_at: string;
-  size: number; // in bytes
+  size: number;
   publicUrl: string;
 }
 
 export interface StorageMetrics {
-  totalSize: number; // Total size of user's files in bytes
-  limit: number; // Limit in bytes
+  totalSize: number;
+  limit: number;
   isPro: boolean;
   canUpload: boolean;
 }
 
-// --- Utility to get file size in a bucket (approximation for RLS) ---
 const fetchStorageMetrics = async (userId: string, isPro: boolean): Promise<StorageMetrics> => {
-  const limit = isPro ? 1000 * 1024 * 1024 : FREE_STORAGE_LIMIT_BYTES; // 1GB for Pro
+  const limit = isPro ? 1000 * 1024 * 1024 : FREE_STORAGE_LIMIT_BYTES;
 
-  // List all files in the user's root folder to calculate total size
   const { data, error } = await supabase.storage.from(BUCKET_NAME).list(`${userId}/`, {
-    limit: 1000, // Max files to list
+    limit: 1000,
     offset: 0,
     search: '',
   });
 
   if (error) {
     console.error("[StorageMetrics] Error listing files:", error);
-    // If listing fails (e.g., bucket not found or RLS issue), assume 0 size but allow upload if Pro
     return { totalSize: 0, limit, isPro, canUpload: isPro || 0 < limit };
   }
 
@@ -49,7 +45,6 @@ const fetchStorageMetrics = async (userId: string, isPro: boolean): Promise<Stor
   };
 };
 
-// --- Fetching Documents ---
 const fetchDocuments = async (obraId: string, userId: string): Promise<DocumentFile[]> => {
   const folderPath = `${userId}/${obraId}/`;
   
@@ -61,7 +56,6 @@ const fetchDocuments = async (obraId: string, userId: string): Promise<DocumentF
 
   if (error) {
     console.error("[fetchDocuments] Error listing files:", error);
-    // If bucket doesn't exist, return empty array
     if (error.message.includes("Bucket not found")) {
       return [];
     }
@@ -105,10 +99,9 @@ export const useStorageMetrics = () => {
   });
 };
 
-// --- Upload Mutation ---
 interface UploadInput {
   obraId: string;
-  folder: string; // e.g., 'Projetos', 'Contratos'
+  folder: string;
   file: File;
 }
 
@@ -123,7 +116,6 @@ export const useUploadDocument = () => {
         throw new Error(`O arquivo excede o limite de ${MAX_FILE_SIZE_MB}MB.`);
       }
 
-      const fileExt = file.name.split('.').pop();
       const safeFileName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
       const filePath = `${user.id}/${obraId}/${folder}/${Date.now()}-${safeFileName}`;
 
@@ -133,10 +125,6 @@ export const useUploadDocument = () => {
 
       if (uploadError) {
         console.error("[UploadDocument] Supabase upload error:", uploadError);
-        // Handle bucket not found error specifically
-        if (uploadError.message.includes("Bucket not found")) {
-          throw new Error("O bucket de armazenamento não foi configurado. Entre em contato com o suporte.");
-        }
         throw new Error(`Falha no upload: ${uploadError.message}`);
       }
 
@@ -144,8 +132,6 @@ export const useUploadDocument = () => {
         .from(BUCKET_NAME)
         .getPublicUrl(filePath);
         
-      // NOTE: We don't have the file size immediately after upload via the client API, 
-      // but we can return the path and rely on query invalidation to fetch the full data.
       return {
         name: safeFileName,
         path: filePath,
@@ -161,13 +147,11 @@ export const useUploadDocument = () => {
   });
 };
 
-// --- Delete Mutation ---
 export const useDeleteDocument = () => {
   const queryClient = useQueryClient();
   
   return useMutation<void, Error, { path: string, obraId: string }>({
     mutationFn: async ({ path }) => {
-      // The path should be relative to the bucket root, e.g., 'user_id/obra_id/folder/file.ext'
       const { error } = await supabase.storage.from(BUCKET_NAME).remove([path]);
       if (error) throw new Error(error.message);
     },

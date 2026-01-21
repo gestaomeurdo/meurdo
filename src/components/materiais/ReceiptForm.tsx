@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { useCreateReceipt, ReceiptStatus } from "@/hooks/use-material-receipts";
+import { useCreateReceipt, useUpdateReceipt, MaterialReceipt } from "@/hooks/use-material-receipts";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { compressImage } from "@/utils/image-compression";
@@ -34,25 +34,29 @@ type ReceiptFormValues = z.infer<typeof ReceiptSchema>;
 
 interface ReceiptFormProps {
   obraId: string;
+  initialData?: MaterialReceipt;
   onSuccess: () => void;
 }
 
-const ReceiptForm = ({ obraId, onSuccess }: ReceiptFormProps) => {
+const ReceiptForm = ({ obraId, initialData, onSuccess }: ReceiptFormProps) => {
+  const isEditing = !!initialData;
   const createMutation = useCreateReceipt();
+  const updateMutation = useUpdateReceipt();
   const [isUploading, setIsUploading] = useState(false);
 
   const form = useForm<ReceiptFormValues>({
     resolver: zodResolver(ReceiptSchema),
     defaultValues: {
       obra_id: obraId,
-      data_recebimento: new Date(),
-      status: 'Conforme',
-      unidade: 'un',
-      material: '',
-      quantidade: 0,
-      fornecedor: '',
-      numero_nf: '',
-      foto_url: null,
+      data_recebimento: initialData?.data_recebimento ? new Date(initialData.data_recebimento + 'T12:00:00') : new Date(),
+      status: initialData?.status || 'Conforme',
+      unidade: initialData?.unidade || 'un',
+      material: initialData?.material || '',
+      quantidade: initialData?.quantidade || 0,
+      fornecedor: initialData?.fornecedor || '',
+      numero_nf: initialData?.numero_nf || '',
+      foto_url: initialData?.foto_url || null,
+      observacoes: initialData?.observacoes || '',
     },
   });
 
@@ -63,7 +67,6 @@ const ReceiptForm = ({ obraId, onSuccess }: ReceiptFormProps) => {
     
     try {
       const compressedFile = await compressImage(file);
-      
       const fileExt = compressedFile.name.split('.').pop();
       const fileName = `material-${Date.now()}.${fileExt}`;
       const filePath = `materiais/${obraId}/${fileName}`;
@@ -89,11 +92,18 @@ const ReceiptForm = ({ obraId, onSuccess }: ReceiptFormProps) => {
 
   const onSubmit = async (values: ReceiptFormValues) => {
     try {
-      await createMutation.mutateAsync({
+      const payload = {
         ...values,
         data_recebimento: format(values.data_recebimento, 'yyyy-MM-dd'),
-      });
-      showSuccess("Recebimento registrado com sucesso!");
+      };
+
+      if (isEditing && initialData) {
+        await updateMutation.mutateAsync({ ...payload, id: initialData.id });
+        showSuccess("Material atualizado!");
+      } else {
+        await createMutation.mutateAsync(payload);
+        showSuccess("Recebimento registrado!");
+      }
       onSuccess();
     } catch (error) {
       showError("Erro ao salvar recebimento.");
@@ -101,6 +111,7 @@ const ReceiptForm = ({ obraId, onSuccess }: ReceiptFormProps) => {
   };
 
   const currentFoto = form.watch('foto_url');
+  const isLoading = createMutation.isPending || updateMutation.isPending || isUploading;
 
   return (
     <Form {...form}>
@@ -280,22 +291,19 @@ const ReceiptForm = ({ obraId, onSuccess }: ReceiptFormProps) => {
                 />
               </label>
             )}
-            <div className="text-xs text-muted-foreground">
-              Anexe uma foto do comprovante de entrega ou do material descarregado para controle visual.
-            </div>
           </div>
         </div>
         <Button
           type="submit"
           className="w-full bg-[#066abc] hover:bg-[#066abc]/90"
-          disabled={createMutation.isPending || isUploading}
+          disabled={isLoading}
         >
-          {createMutation.isPending ? (
+          {isLoading ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             <CheckCircle className="mr-2 h-4 w-4" />
           )}
-          Confirmar Recebimento
+          {isEditing ? "Salvar Alterações" : "Confirmar Recebimento"}
         </Button>
       </form>
     </Form>

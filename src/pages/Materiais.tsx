@@ -5,9 +5,8 @@ import ObraSelector from "@/components/financeiro/ObraSelector";
 import { Card, CardContent } from "@/components/ui/card";
 import { useMaterialReceipts, useDeleteReceipt } from "@/hooks/use-material-receipts";
 import MaterialReceiptDialog from "@/components/materiais/MaterialReceiptDialog";
-import { Package, Truck, Calendar, Trash2, ImageIcon, Search, Info, AlertTriangle, RefreshCcw } from "lucide-react";
+import { Package, Truck, Calendar, Trash2, Edit, Search, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,10 +26,6 @@ const ReceiptSkeleton = () => (
             <div className="flex-1 space-y-2">
               <Skeleton className="h-6 w-1/3" />
               <Skeleton className="h-4 w-1/4" />
-              <div className="flex gap-2 pt-2">
-                <Skeleton className="h-3 w-20" />
-                <Skeleton className="h-3 w-20" />
-              </div>
             </div>
           </div>
         </CardContent>
@@ -70,22 +65,7 @@ const Materiais = () => {
 
   const renderContent = () => {
     if (isLoadingObras) return <ReceiptSkeleton />;
-    
-    if (obrasError || receiptsError) {
-      return (
-        <Alert variant="destructive" className="mt-6">
-          <AlertTriangle className="h-5 w-5" />
-          <AlertTitle>Falha na Sincronização</AlertTitle>
-          <AlertDescription>
-            Erro: {receiptsError?.message || obrasError?.message}
-            <Button variant="outline" size="sm" onClick={() => refetch()} className="mt-4 block bg-white">Reconectar</Button>
-          </AlertDescription>
-        </Alert>
-      );
-    }
-
-    if (!selectedObraId) return <div className="text-center py-20 text-muted-foreground">Selecione uma obra.</div>;
-
+    if (!selectedObraId) return <div className="text-center py-20 text-muted-foreground font-bold uppercase tracking-widest text-xs">Selecione uma obra.</div>;
     if (isLoadingReceipts && !receipts) return <ReceiptSkeleton />;
 
     if (filteredReceipts && filteredReceipts.length === 0) {
@@ -121,11 +101,16 @@ const Materiais = () => {
                     <p className="text-sm text-primary font-black uppercase">{receipt.quantidade} {receipt.unidade}</p>
                     <div className="flex flex-wrap gap-x-4 text-[11px] text-muted-foreground font-bold uppercase">
                       <span className="flex items-center gap-1.5"><Truck className="w-3.5 h-3.5" />{receipt.fornecedor || 'N/A'}</span>
-                      <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" />{format(new Date(receipt.data_recebimento), 'dd/MM/yyyy')}</span>
+                      <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" />{format(new Date(receipt.data_recebimento + 'T12:00:00'), 'dd/MM/yyyy')}</span>
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  <MaterialReceiptDialog 
+                    obraId={selectedObraId} 
+                    initialData={receipt} 
+                    trigger={<Button variant="ghost" size="icon" className="text-primary rounded-full"><Edit className="w-5 h-5" /></Button>}
+                  />
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="ghost" size="icon" className="text-destructive rounded-full"><Trash2 className="w-5 h-5" /></Button>

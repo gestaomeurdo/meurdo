@@ -31,7 +31,6 @@ const GestaoRdo = () => {
   const deleteAllMutation = useDeleteAllRdo();
 
   useEffect(() => {
-    // Check for ID in location state (navigated from details)
     const stateObraId = location.state?.obraId;
     
     if (stateObraId && obras?.find(o => o.id === stateObraId)) {
@@ -79,10 +78,7 @@ const GestaoRdo = () => {
         <Alert variant="destructive" className="mt-6">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Erro ao carregar RDOs</AlertTitle>
-          <AlertDescription>
-            Ocorreu um erro ao buscar os dados. Verifique as permissões ou a conexão.
-            <p className="mt-2 text-sm italic">Detalhe: {rdoError.message}</p>
-          </AlertDescription>
+          <AlertDescription>Ocorreu um erro ao buscar os dados.</AlertDescription>
         </Alert>
       );
     }
@@ -93,103 +89,56 @@ const GestaoRdo = () => {
       isLoading: isLoadingRdoList,
     };
 
-    let contentView;
-    if (view === "calendario") {
-      contentView = <RdoCalendar obraId={selectedObraId} rdoList={rdoList || []} currentDate={currentDate} />;
-    } else if (view === "kanban") {
-      contentView = <RdoKanbanBoard {...commonProps} />;
-    } else {
-      contentView = isMobile ? <RdoMobileList {...commonProps} /> : <RdoListTable {...commonProps} />;
-    }
-
     return (
       <div className="space-y-6">
-        <RdoDashboard
-          rdoList={rdoList || []}
-          currentDate={currentDate}
-          isLoading={isLoadingRdoList}
-        />
+        <RdoDashboard rdoList={rdoList || []} currentDate={currentDate} isLoading={isLoadingRdoList} />
+        
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="bg-card border rounded-xl p-1 inline-flex w-full sm:w-auto">
-            <Button
-              variant={view === "calendario" ? "secondary" : "ghost"}
-              onClick={() => setView("calendario")}
-              size="sm"
-              className="flex-1 sm:flex-none flex items-center"
-            >
-              <CalendarIcon className="w-4 h-4 mr-2" />
-              Calendário
+            <Button variant={view === "calendario" ? "secondary" : "ghost"} onClick={() => setView("calendario")} size="sm">
+              <CalendarIcon className="w-4 h-4 mr-2" /> Calendário
             </Button>
-            <Button
-              variant={view === "kanban" ? "secondary" : "ghost"}
-              onClick={() => setView("kanban")}
-              size="sm"
-              className="flex-1 sm:flex-none flex items-center"
-            >
-              <LayoutGrid className="w-4 h-4 mr-2" />
-              Kanban
+            <Button variant={view === "kanban" ? "secondary" : "ghost"} onClick={() => setView("kanban")} size="sm">
+              <LayoutGrid className="w-4 h-4 mr-2" /> Kanban
             </Button>
-            <Button
-              variant={view === "lista" ? "secondary" : "ghost"}
-              onClick={() => setView("lista")}
-              size="sm"
-              className="flex-1 sm:flex-none flex items-center"
-            >
-              <List className="w-4 h-4 mr-2" />
-              Lista
+            <Button variant={view === "lista" ? "secondary" : "ghost"} onClick={() => setView("lista")} size="sm">
+              <List className="w-4 h-4 mr-2" /> Lista
             </Button>
           </div>
+          
           <div className="flex gap-2 items-center bg-card p-1 border rounded-lg w-full sm:w-auto justify-between">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
-            >
-              Anterior
-            </Button>
-            <span className="text-sm font-bold px-2 capitalize">
-              {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
-            >
-              Próximo
-            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}>Anterior</Button>
+            <span className="text-sm font-bold px-2 capitalize">{format(currentDate, 'MMMM yyyy', { locale: ptBR })}</span>
+            <Button variant="ghost" size="sm" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}>Próximo</Button>
           </div>
         </div>
+
         {rdoList && rdoList.length > 0 && (
           <div className="flex justify-end">
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10">
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Limpar Todos RDOs
+                  <Trash2 className="w-4 h-4 mr-2" /> Limpar Todos RDOs
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Apagar todos os RDOs?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esta ação removerá definitivamente todos os registros desta obra.
-                  </AlertDialogDescription>
+                  <AlertDialogDescription>Esta ação removerá definitivamente todos os registros desta obra.</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleClearAll}
-                    className="bg-destructive hover:bg-destructive/90"
-                  >
-                    Sim, Apagar Tudo
-                  </AlertDialogAction>
+                  <AlertDialogAction onClick={handleClearAll} className="bg-destructive hover:bg-destructive/90">Sim, Apagar Tudo</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
           </div>
         )}
+        
         <RdoLimitWarning />
-        {contentView}
+        {view === "calendario" ? <RdoCalendar obraId={selectedObraId} rdoList={rdoList || []} currentDate={currentDate} /> :
+         view === "kanban" ? <RdoKanbanBoard {...commonProps} /> :
+         isMobile ? <RdoMobileList {...commonProps} /> : <RdoListTable {...commonProps} />}
       </div>
     );
   };
@@ -199,7 +148,7 @@ const GestaoRdo = () => {
       <div className="p-4 sm:p-6 space-y-6">
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-1">
-            <h1 className="text-2xl sm:text-3xl font-bold">Gestão de Obra</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">Gestão de RDOs</h1>
             <p className="text-sm text-muted-foreground">Controle diário de atividades e equipe.</p>
           </div>
           <div className="w-full sm:max-w-sm">

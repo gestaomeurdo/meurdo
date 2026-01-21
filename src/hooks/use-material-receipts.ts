@@ -23,7 +23,6 @@ export interface MaterialReceipt {
 const fetchReceipts = async (obraId: string, date?: string): Promise<MaterialReceipt[]> => {
   if (!obraId) return [];
 
-  // Otimização: Selecionando colunas explícitas
   let query = supabase
     .from('recebimento_materiais')
     .select('id, obra_id, user_id, data_recebimento, material, quantidade, unidade, fornecedor, numero_nf, foto_url, status, observacoes, criado_em')
@@ -59,6 +58,25 @@ export const useCreateReceipt = () => {
       const { data, error } = await supabase
         .from('recebimento_materiais')
         .insert({ ...newReceipt, user_id: user.id })
+        .select()
+        .single();
+      if (error) throw new Error(error.message);
+      return data as MaterialReceipt;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['materialReceipts'] });
+    },
+  });
+};
+
+export const useUpdateReceipt = () => {
+  const queryClient = useQueryClient();
+  return useMutation<MaterialReceipt, Error, Partial<MaterialReceipt> & { id: string }>({
+    mutationFn: async ({ id, ...updates }) => {
+      const { data, error } = await supabase
+        .from('recebimento_materiais')
+        .update(updates)
+        .eq('id', id)
         .select()
         .single();
       if (error) throw new Error(error.message);
