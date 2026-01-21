@@ -1,7 +1,7 @@
 import { DocumentFile, useDeleteDocument } from "@/hooks/use-document-storage";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Trash2, Eye, Loader2, AlertTriangle } from "lucide-react";
+import { FileText, Download, Trash2, Eye, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { showError, showSuccess } from "@/utils/toast";
@@ -35,7 +35,10 @@ const DocumentList = ({ documents, obraId, folder, isLoading }: DocumentListProp
     );
   }
 
-  const folderDocuments = documents.filter(doc => doc.path.includes(`/${folder}/`));
+  // Filtragem agora é baseada no campo folder da tabela, mas mantendo compatibilidade com o path se necessário
+  const folderDocuments = documents.filter(doc => 
+    doc.folder === folder || doc.path.includes(`/${folder}/`)
+  );
 
   if (folderDocuments.length === 0) {
     return (
@@ -62,7 +65,7 @@ const DocumentList = ({ documents, obraId, folder, isLoading }: DocumentListProp
             <TableRow key={doc.path}>
               <TableCell className="font-medium flex items-center gap-2">
                 <FileText className="w-4 h-4 text-primary" />
-                {doc.name}
+                <span className="truncate max-w-[200px]" title={doc.name}>{doc.name}</span>
               </TableCell>
               <TableCell className="text-sm text-muted-foreground">
                 {formatBytes(doc.size)}
